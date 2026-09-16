@@ -145,4 +145,4 @@ The last check is the one most likely to be skipped and most worth keeping. A pr
 - It does not prevent the author from being consistently wrong in the same direction throughout.
 - It has no enforcement mechanism beyond the author's own adherence, except for traceability, which can be checked automatically.
 
-Automating the traceability check in CI is a planned improvement precisely because it is the only control here that does not depend on the person it governs.
+The traceability check is automated in CI ([Phase G](../phase-g-implementation-governance/implementation-governance.md#3-traceability)) precisely because it is the only control here that does not depend on the person it governs.

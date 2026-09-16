@@ -1,17 +1,28 @@
 # Phase H — Architecture Change Management
 
-> **Status: not yet written.** Scheduled for project Phase 2, exercised in Phase 5 onward.
+> **Status: process defined. Exit condition pending** — it requires a change originating in implementation, which cannot exist until Stage Two. Designated subject: ADR-0005 / BS-2, due at v2.0.0.
 
-What happens when implementation shows the architecture was wrong. Unlike the other phases, this one's exit condition requires a genuine worked example rather than a process description — demonstrating the feedback loop is charter objective O-5.
+What happens when the architecture turns out to be wrong.
 
-## Planned contents
+## Documents
 
-- Change management process
-- Architecture review process
-- Continuous improvement approach
-- Architecture evolution strategy
-- **Worked example:** a real change carried from implementation learning through ADR, impact assessment and traceability update
+| | |
+|---|---|
+| [Architecture Change Management](architecture-change-management.md) | Sources of change, process, classification, impact checklist, review, evolution, the designated worked example |
+| [Change Log](change-log.md) | Every change to a baselined artefact |
 
-**Exit condition:** the process has been exercised at least once on a change originating from implementation.
+## What this settles
 
-[A-007](../../02-stage-two-reference-implementation/assumptions.md#a-007) — representing a disruption as a static footprint — is the current candidate for that worked example, on the grounds that it is the assumption most likely to be contradicted by building the thing.
+**Being wrong has a procedure.** Triggered changes go through an issue, an ADR, an impact assessment that includes past milestone claims, artefact amendment, traceability update — then implementation. Never the reverse.
+
+**Reaffirming is a result.** An ADR reviewed and left unchanged is recorded as reviewed.
+
+**The worked example was chosen before any code existed** — the static-footprint disruption model, tested against a moving protest. Its outcome will be recorded whichever way it falls.
+
+## Exit condition
+
+| Check | |
+|---|---|
+| Process exercised at least once on a change originating from implementation | ⏳ **Pending** — v2.0.0 |
+
+The change log already holds three changes (two data-domain splits caught during Phase C, one release-order change). They show the process working; none originated in implementation, so none of them counts.

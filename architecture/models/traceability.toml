@@ -1,0 +1,1129 @@
+# RouteShield traceability model — source of truth for the traceability matrix.
+# Checked and rendered by tools/traceability/check.py. Edit this file, not the rendered matrix.
+
+schema_version = 1
+
+[capabilities]
+"C1.1" = "Detection"
+"C1.2" = "Classification"
+"C1.3" = "Characterisation"
+"C1.4" = "Confirmation"
+"C2.1" = "Route impact"
+"C2.2" = "Vehicle impact"
+"C2.3" = "Stop impact"
+"C2.4" = "Passenger impact"
+"C3.1" = "Alternative paths"
+"C3.2" = "Feasibility validation"
+"C3.3" = "Coverage analysis"
+"C3.4" = "Option ranking"
+"C3.5" = "Contingency retrieval"
+"C4.1" = "Recommendation presentation"
+"C4.2" = "Decision capture"
+"C4.3" = "Authority and escalation"
+"C4.4" = "Decision load management"
+"C5.1" = "Driver instruction"
+"C5.2" = "Acknowledgement and refusal"
+"C5.3" = "Passenger information"
+"C5.4" = "Service state update"
+"C6.1" = "Clearance detection"
+"C6.2" = "Reversion decision"
+"C6.3" = "Reversion activation"
+"C7.1" = "Decision recording"
+"C7.2" = "Decision reconstruction"
+"C7.3" = "Outcome analysis"
+"C7.4" = "Contingency development"
+"C8.1" = "Input health monitoring"
+"C8.2" = "Confidence determination"
+"C8.3" = "Degraded operation"
+"C8.4" = "Manual fallback"
+
+[technical]
+"core-worker" = "TypeScript core modules running in a Web Worker"
+"sqlite-store" = "SQLite WASM with opfs-sahpool persistence"
+"optimiser-worker" = "Route optimiser in a dedicated Web Worker"
+"network-pipeline" = "Python build-time pipeline over NTA GTFS and OpenStreetMap"
+"workspace-ui" = "React control workspace"
+"channel-simulators" = "Fictional driver and passenger channel simulators"
+"fleet-simulator" = "Fictional fleet, GPS, traffic and incident simulators"
+"persona-switcher" = "Simulated identity personas"
+"telemetry-sink" = "OpenTelemetry-shaped in-memory telemetry"
+"tree-evaluator" = "TypeScript evaluator for JSON tree models"
+
+[components."AC-01"]
+name = "Source Gateway"
+capabilities = ["C8.1"]
+
+[components."AC-02"]
+name = "Disruption Manager"
+capabilities = ["C1.1", "C1.2", "C1.3", "C1.4", "C6.1", "C8.3"]
+
+[components."AC-04"]
+name = "Impact Assessor"
+capabilities = ["C2.1", "C2.2", "C2.3", "C2.4", "C8.3"]
+
+[components."AC-05"]
+name = "Route Optimiser"
+capabilities = ["C3.1", "C3.2", "C3.3", "C3.4", "C3.5", "C8.3"]
+
+[components."AC-06"]
+name = "Decision Support"
+capabilities = ["C3.4", "C4.1", "C4.4", "C8.2", "C8.3"]
+
+[components."AC-07"]
+name = "Decision Manager"
+capabilities = ["C4.2", "C4.3", "C5.2", "C6.2", "C8.3"]
+
+[components."AC-08"]
+name = "Service State"
+capabilities = ["C5.4"]
+
+[components."AC-09"]
+name = "Communication Hub"
+capabilities = ["C5.1", "C5.2", "C5.3", "C6.3"]
+
+[components."AC-10"]
+name = "Contingency Library"
+capabilities = ["C3.5", "C7.4"]
+
+[components."AC-11"]
+name = "Audit Ledger"
+capabilities = ["C7.1", "C7.2"]
+
+[components."AC-12"]
+name = "Service Analytics"
+capabilities = ["C7.3", "C7.4"]
+
+[components."AC-13"]
+name = "Control Workspace"
+capabilities = ["C1.4", "C4.1", "C4.2", "C8.4"]
+
+[components."AC-14"]
+name = "Access Control"
+capabilities = ["C4.3"]
+
+[business_requirements."BR-001"]
+title = "Become aware of a disruption from authoritative, inferred or declared sources"
+priority = "MUST"
+capabilities = ["C1.1"]
+stories = []
+
+[business_requirements."BR-002"]
+title = "Accept a controller-declared disruption with no automated report"
+priority = "MUST"
+capabilities = ["C1.1", "C8.4"]
+stories = []
+
+[business_requirements."BR-003"]
+title = "Determine the type of disruption"
+priority = "SHOULD"
+capabilities = ["C1.2"]
+stories = []
+
+[business_requirements."BR-004"]
+title = "Establish geographic extent and time window"
+priority = "MUST"
+capabilities = ["C1.3"]
+stories = []
+
+[business_requirements."BR-005"]
+title = "Require human confirmation before any service change is proposed"
+priority = "MUST"
+capabilities = ["C1.4"]
+stories = []
+
+[business_requirements."BR-006"]
+title = "Identify every route intersecting the disruption"
+priority = "MUST"
+capabilities = ["C2.1"]
+stories = []
+
+[business_requirements."BR-007"]
+title = "Identify affected vehicles, distinguishing past from approaching"
+priority = "MUST"
+capabilities = ["C2.2"]
+stories = []
+
+[business_requirements."BR-008"]
+title = "Identify every stop that becomes unservable"
+priority = "MUST"
+capabilities = ["C2.3"]
+stories = []
+
+[business_requirements."BR-009"]
+title = "Assess all affected services concurrently; time does not scale with count"
+priority = "MUST"
+capabilities = ["C2.1", "C2.2", "C2.3"]
+stories = []
+
+[business_requirements."BR-010"]
+title = "Estimate passengers affected"
+priority = "SHOULD"
+capabilities = ["C2.4"]
+stories = []
+
+[business_requirements."BR-011"]
+title = "Produce an impact assessment even when no viable response exists"
+priority = "MUST"
+capabilities = ["C8.3"]
+stories = []
+
+[business_requirements."BR-012"]
+title = "Generate candidate alternative paths"
+priority = "MUST"
+capabilities = ["C3.1"]
+stories = []
+
+[business_requirements."BR-013"]
+title = "Establish that a candidate path is physically usable"
+priority = "MUST"
+capabilities = ["C3.2"]
+stories = []
+
+[business_requirements."BR-014"]
+title = "Determine whether a skipped stop is served by a following service"
+priority = "SHOULD"
+capabilities = ["C3.3"]
+stories = []
+
+[business_requirements."BR-015"]
+title = "Rank by service continuity, not travel time"
+priority = "MUST"
+capabilities = ["C3.4"]
+stories = []
+
+[business_requirements."BR-016"]
+title = "Account for dependency on a stop, not only volume"
+priority = "SHOULD"
+capabilities = ["C3.4"]
+stories = []
+
+[business_requirements."BR-017"]
+title = "Retrieve a matching pre-approved contingency route"
+priority = "SHOULD"
+capabilities = ["C3.5"]
+stories = []
+
+[business_requirements."BR-018"]
+title = "Support hold, split and terminate as outcomes"
+priority = "MUST"
+capabilities = ["C3.4", "C4.1"]
+stories = []
+
+[business_requirements."BR-019"]
+title = "Present rationale, cost and unknowns with each recommendation"
+priority = "MUST"
+capabilities = ["C4.1"]
+stories = []
+
+[business_requirements."BR-020"]
+title = "Require identified approval before any novel change"
+priority = "MUST"
+capabilities = ["C4.2"]
+stories = []
+
+[business_requirements."BR-021"]
+title = "Support and record approve, reject and modify"
+priority = "MUST"
+capabilities = ["C4.2"]
+stories = []
+
+[business_requirements."BR-022"]
+title = "Determine authority and escalate beyond it"
+priority = "SHOULD"
+capabilities = ["C4.3"]
+stories = []
+
+[business_requirements."BR-023"]
+title = "Bound recommendations awaiting a decision"
+priority = "MUST"
+capabilities = ["C4.4"]
+stories = []
+
+[business_requirements."BR-024"]
+title = "Detect approvals that indicate decisions are not being evaluated"
+priority = "SHOULD"
+capabilities = ["C4.4"]
+stories = []
+
+[business_requirements."BR-025"]
+title = "Permit unattended activation only for matching pre-approved routes"
+priority = "MUST"
+capabilities = ["C3.5", "C4.2"]
+stories = []
+
+[business_requirements."BR-026"]
+title = "Deliver revised sequences to all affected drivers concurrently, in time"
+priority = "MUST"
+capabilities = ["C5.1"]
+stories = []
+
+[business_requirements."BR-027"]
+title = "Receive acknowledgement and refusal with reason"
+priority = "MUST"
+capabilities = ["C5.2"]
+stories = []
+
+[business_requirements."BR-028"]
+title = "Return refusals to the decision-maker"
+priority = "MUST"
+capabilities = ["C5.2", "C4.2"]
+stories = []
+
+[business_requirements."BR-029"]
+title = "Publish stop-level information while alternatives exist"
+priority = "MUST"
+capabilities = ["C5.3"]
+stories = []
+
+[business_requirements."BR-030"]
+title = "State the alternative available"
+priority = "SHOULD"
+capabilities = ["C5.3"]
+stories = []
+
+[business_requirements."BR-031"]
+title = "Maintain an authoritative record of current service"
+priority = "MUST"
+capabilities = ["C5.4"]
+stories = []
+
+[business_requirements."BR-032"]
+title = "Become aware that a disruption has ended"
+priority = "SHOULD"
+capabilities = ["C6.1"]
+stories = []
+
+[business_requirements."BR-033"]
+title = "Prompt a reversion decision on clearance"
+priority = "MUST"
+capabilities = ["C6.2"]
+stories = []
+
+[business_requirements."BR-034"]
+title = "Restore services and inform drivers and passengers"
+priority = "MUST"
+capabilities = ["C6.3"]
+stories = []
+
+[business_requirements."BR-035"]
+title = "Prevent diversions persisting without an explicit decision"
+priority = "MUST"
+capabilities = ["C6.2"]
+stories = []
+
+[business_requirements."BR-036"]
+title = "Record every recommendation, decision, activation, refusal and reversion immutably"
+priority = "MUST"
+capabilities = ["C7.1"]
+stories = []
+
+[business_requirements."BR-037"]
+title = "Capture inputs as they stood, including stale or absent ones"
+priority = "MUST"
+capabilities = ["C7.1"]
+stories = []
+
+[business_requirements."BR-038"]
+title = "Reconstruct any decision from the record alone"
+priority = "MUST"
+capabilities = ["C7.2"]
+stories = []
+
+[business_requirements."BR-039"]
+title = "Make the record interpretable outside the operator"
+priority = "SHOULD"
+capabilities = ["C7.2"]
+stories = []
+
+[business_requirements."BR-040"]
+title = "Determine what resulted from a decision"
+priority = "COULD"
+capabilities = ["C7.3"]
+stories = []
+
+[business_requirements."BR-041"]
+title = "Propose contingency candidates from recurring patterns"
+priority = "COULD"
+capabilities = ["C7.4"]
+stories = []
+
+[business_requirements."BR-042"]
+title = "Restrict analytics to service outcomes, not driver behaviour"
+priority = "SHOULD"
+capabilities = ["C7.3"]
+stories = []
+
+[business_requirements."BR-043"]
+title = "Know which inputs are healthy, stale or absent"
+priority = "MUST"
+capabilities = ["C8.1"]
+stories = []
+
+[business_requirements."BR-044"]
+title = "Derive confidence and carry it to the recommendation"
+priority = "MUST"
+capabilities = ["C8.2"]
+stories = []
+
+[business_requirements."BR-045"]
+title = "Operate with any single input absent"
+priority = "MUST"
+capabilities = ["C8.3"]
+stories = []
+
+[business_requirements."BR-046"]
+title = "Constrain automatic activation according to confidence"
+priority = "MUST"
+capabilities = ["C8.2", "C4.2"]
+stories = []
+
+[business_requirements."BR-047"]
+title = "Preserve the manual response as a usable fallback"
+priority = "MUST"
+capabilities = ["C8.4"]
+stories = []
+
+[architecture_requirements."AR-001"]
+statement = "Assessment reads only an immutable, area-scoped snapshot persisted before it starts"
+sources = ["BR-037", "BR-038", "ADR-0004"]
+components = ["AC-04", "AC-11"]
+technical = ["core-worker", "sqlite-store"]
+
+[architecture_requirements."AR-002"]
+statement = "Every state change and its audit event commit in one transaction"
+sources = ["BR-036", "ADR-0007"]
+components = ["AC-02", "AC-04", "AC-05", "AC-06", "AC-07", "AC-08", "AC-09", "AC-10", "AC-11", "AC-14"]
+technical = ["sqlite-store"]
+
+[architecture_requirements."AR-003"]
+statement = "Audit events are append-only and hash-chained"
+sources = ["BR-036", "BR-038"]
+components = ["AC-11"]
+technical = ["sqlite-store"]
+
+[architecture_requirements."AR-004"]
+statement = "Impact is committed and presentable before optimisation; optimisation is time-boxed in an isolated worker"
+sources = ["BR-011", "BR-045", "ADR-0006"]
+components = ["AC-04", "AC-05", "AC-06"]
+technical = ["core-worker", "optimiser-worker"]
+
+[architecture_requirements."AR-005"]
+statement = "Each owned domain has exactly one writing component"
+sources = ["P-8"]
+components = ["AC-01", "AC-02", "AC-04", "AC-05", "AC-06", "AC-07", "AC-08", "AC-09", "AC-10", "AC-11", "AC-12", "AC-14"]
+technical = ["core-worker", "sqlite-store"]
+
+[architecture_requirements."AR-006"]
+statement = "Authority is verified at decision time"
+sources = ["BR-020", "BR-022"]
+components = ["AC-07", "AC-14"]
+technical = ["core-worker", "persona-switcher"]
+
+[architecture_requirements."AR-007"]
+statement = "Pre-approved activation re-checks all six conditions at execution"
+sources = ["BR-025", "ADR-0017"]
+components = ["AC-07", "AC-10", "AC-14"]
+technical = ["core-worker"]
+
+[architecture_requirements."AR-008"]
+statement = "A recommendation carries rationale, cost terms, confidence and autonomy band"
+sources = ["BR-019", "BR-044"]
+components = ["AC-06"]
+technical = ["core-worker", "workspace-ui"]
+
+[architecture_requirements."AR-009"]
+statement = "Confidence derives from snapshot health and footprint age, and gates pre-approved eligibility"
+sources = ["BR-044", "BR-046"]
+components = ["AC-06"]
+technical = ["core-worker"]
+
+[architecture_requirements."AR-010"]
+statement = "Pending recommendations per actor are bounded; overflow escalates"
+sources = ["BR-022", "BR-023"]
+components = ["AC-06"]
+technical = ["core-worker"]
+
+[architecture_requirements."AR-011"]
+statement = "Decisions carry presented_at; approval timing is aggregated per corridor and period"
+sources = ["BR-024"]
+components = ["AC-06", "AC-13"]
+technical = ["core-worker", "workspace-ui"]
+
+[architecture_requirements."AR-012"]
+statement = "Driver refusal and non-response re-enter decision"
+sources = ["BR-027", "BR-028"]
+components = ["AC-07", "AC-09"]
+technical = ["core-worker", "channel-simulators"]
+
+[architecture_requirements."AR-013"]
+statement = "A disruption closes only when no ungoverned deviation remains"
+sources = ["BR-034", "BR-035"]
+components = ["AC-02", "AC-08"]
+technical = ["core-worker"]
+
+[architecture_requirements."AR-014"]
+statement = "No LINK-classified field enters analytics; driver identity is absent from audit"
+sources = ["BR-042"]
+components = ["AC-11", "AC-12"]
+technical = ["sqlite-store"]
+
+[architecture_requirements."AR-015"]
+statement = "External systems are reached only through ports; authority is assigned by channel"
+sources = ["BR-001", "BR-043", "ADR-0006"]
+components = ["AC-01"]
+technical = ["core-worker", "fleet-simulator", "channel-simulators"]
+
+[architecture_requirements."AR-016"]
+statement = "Options include hold and terminate; infeasible options are discarded; ranking is weighted service loss over the Pareto set"
+sources = ["BR-012", "BR-013", "BR-015", "BR-018", "ADR-0014", "ADR-0015"]
+components = ["AC-05", "AC-06"]
+technical = ["optimiser-worker", "network-pipeline"]
+
+[architecture_requirements."AR-017"]
+statement = "Following-service coverage is computed for skipped stops"
+sources = ["BR-014"]
+components = ["AC-05"]
+technical = ["optimiser-worker"]
+
+[architecture_requirements."AR-018"]
+statement = "Disruption descriptions are versioned; decisions on superseded recommendations are rejected as stale"
+sources = ["BR-004", "BR-038", "ADR-0005"]
+components = ["AC-02", "AC-07"]
+technical = ["core-worker"]
+
+[architecture_requirements."AR-019"]
+statement = "Contingency approvals carry mandatory expiry and network version; candidates never self-approve"
+sources = ["BR-017", "BR-025", "BR-041"]
+components = ["AC-10"]
+technical = ["core-worker"]
+
+[architecture_requirements."AR-020"]
+statement = "Passenger notices target stops, carry no cause detail, and are withdrawn on reversion"
+sources = ["BR-029", "BR-030", "BR-034"]
+components = ["AC-09"]
+technical = ["core-worker", "channel-simulators"]
+
+[architecture_requirements."AR-021"]
+statement = "The declaration path is available whenever the core runs, regardless of source health"
+sources = ["BR-002", "BR-047"]
+components = ["AC-02", "AC-13"]
+technical = ["core-worker", "workspace-ui"]
+
+[architecture_requirements."AR-022"]
+statement = "Each input has a defined degraded mode; readiness fails only when audit cannot be written"
+sources = ["BR-043", "BR-045"]
+components = ["AC-01", "AC-04", "AC-06"]
+technical = ["core-worker", "telemetry-sink"]
+
+[architecture_requirements."AR-023"]
+statement = "Model outputs are versioned suggestions shown beside rule baselines"
+sources = ["BR-003", "BR-038", "ADR-0016"]
+components = ["AC-02", "AC-12"]
+technical = ["tree-evaluator", "network-pipeline"]
+
+[architecture_requirements."AR-024"]
+statement = "Each trip's service state references its governing activation"
+sources = ["BR-031"]
+components = ["AC-08"]
+technical = ["core-worker"]
+
+[architecture_requirements."AR-025"]
+statement = "Clearance prompts a reversion decision"
+sources = ["BR-032", "BR-033"]
+components = ["AC-02", "AC-07"]
+technical = ["core-worker"]
+
+[architecture_requirements."AR-026"]
+statement = "Reconstruction and export are available, excluding LINK fields"
+sources = ["BR-038", "BR-039"]
+components = ["AC-11"]
+technical = ["core-worker", "workspace-ui"]
+
+[architecture_requirements."AR-027"]
+statement = "Detection candidates require confirmation before any non-A0 recommendation"
+sources = ["BR-005"]
+components = ["AC-02", "AC-06"]
+technical = ["core-worker"]
+
+[architecture_requirements."AR-028"]
+statement = "Driver instructions are delivered concurrently, with deadlines, keyed idempotently"
+sources = ["BR-026"]
+components = ["AC-09"]
+technical = ["core-worker", "channel-simulators"]
+
+[architecture_requirements."AR-029"]
+statement = "Impact is computed in one operation across all affected routes, vehicles and stops"
+sources = ["BR-006", "BR-007", "BR-008", "BR-009", "BR-010"]
+components = ["AC-04"]
+technical = ["core-worker", "network-pipeline"]
+
+[architecture_requirements."AR-030"]
+statement = "Outcomes and corridor recurrence are derived from the audit record only"
+sources = ["BR-040", "BR-041"]
+components = ["AC-12"]
+technical = ["core-worker"]
+
+[architecture_requirements."AR-031"]
+statement = "Decisions record approve, modify, reject or escalate; a modification creates a new option"
+sources = ["BR-021"]
+components = ["AC-07"]
+technical = ["core-worker"]
+
+[architecture_requirements."AR-032"]
+statement = "The cost model carries a criticality term, and its unavailability is displayed"
+sources = ["BR-016", "ADR-0015"]
+components = ["AC-05", "AC-06"]
+technical = ["optimiser-worker", "workspace-ui"]
+
+[tests."TC-001"]
+verifies = ["BR-001"]
+level = "system"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-002"]
+verifies = ["BR-002"]
+level = "system"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-003"]
+verifies = ["BR-003"]
+level = "unit"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-004"]
+verifies = ["BR-004"]
+level = "unit"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-005"]
+verifies = ["BR-005"]
+level = "system"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-006"]
+verifies = ["BR-006"]
+level = "unit"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-007"]
+verifies = ["BR-007"]
+level = "unit"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-008"]
+verifies = ["BR-008"]
+level = "unit"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-009"]
+verifies = ["BR-009"]
+level = "performance"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-010"]
+verifies = ["BR-010"]
+level = "unit"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-011"]
+verifies = ["BR-011"]
+level = "resilience"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-012"]
+verifies = ["BR-012"]
+level = "unit"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-013"]
+verifies = ["BR-013"]
+level = "unit"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-014"]
+verifies = ["BR-014"]
+level = "unit"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-015"]
+verifies = ["BR-015"]
+level = "unit"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-016"]
+verifies = ["BR-016"]
+level = "inspection"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-017"]
+verifies = ["BR-017"]
+level = "integration"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-018"]
+verifies = ["BR-018"]
+level = "unit"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-019"]
+verifies = ["BR-019"]
+level = "acceptance"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-020"]
+verifies = ["BR-020"]
+level = "security"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-021"]
+verifies = ["BR-021"]
+level = "integration"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-022"]
+verifies = ["BR-022"]
+level = "security"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-023"]
+verifies = ["BR-023"]
+level = "integration"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-024"]
+verifies = ["BR-024"]
+level = "unit"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-025"]
+verifies = ["BR-025"]
+level = "security"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-026"]
+verifies = ["BR-026"]
+level = "system"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-027"]
+verifies = ["BR-027"]
+level = "integration"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-028"]
+verifies = ["BR-028"]
+level = "system"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-029"]
+verifies = ["BR-029"]
+level = "system"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-030"]
+verifies = ["BR-030"]
+level = "acceptance"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-031"]
+verifies = ["BR-031"]
+level = "integration"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-032"]
+verifies = ["BR-032"]
+level = "integration"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-033"]
+verifies = ["BR-033"]
+level = "system"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-034"]
+verifies = ["BR-034"]
+level = "system"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-035"]
+verifies = ["BR-035"]
+level = "integration"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-036"]
+verifies = ["BR-036"]
+level = "integration"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-037"]
+verifies = ["BR-037"]
+level = "integration"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-038"]
+verifies = ["BR-038"]
+level = "system"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-039"]
+verifies = ["BR-039"]
+level = "acceptance"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-040"]
+verifies = ["BR-040"]
+level = "integration"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-041"]
+verifies = ["BR-041"]
+level = "integration"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-042"]
+verifies = ["BR-042"]
+level = "inspection"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-043"]
+verifies = ["BR-043"]
+level = "unit"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-044"]
+verifies = ["BR-044"]
+level = "unit"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-045"]
+verifies = ["BR-045"]
+level = "resilience"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-046"]
+verifies = ["BR-046"]
+level = "security"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-047"]
+verifies = ["BR-047"]
+level = "inspection"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-101"]
+verifies = ["AR-001"]
+level = "integration"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-102"]
+verifies = ["AR-002"]
+level = "integration"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-103"]
+verifies = ["AR-003"]
+level = "security"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-104"]
+verifies = ["AR-004"]
+level = "resilience"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-105"]
+verifies = ["AR-005"]
+level = "inspection"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-106"]
+verifies = ["AR-006"]
+level = "security"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-107"]
+verifies = ["AR-007"]
+level = "security"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-108"]
+verifies = ["AR-008"]
+level = "unit"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-109"]
+verifies = ["AR-009"]
+level = "unit"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-110"]
+verifies = ["AR-010"]
+level = "integration"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-111"]
+verifies = ["AR-011"]
+level = "unit"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-112"]
+verifies = ["AR-012"]
+level = "system"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-113"]
+verifies = ["AR-013"]
+level = "integration"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-114"]
+verifies = ["AR-014"]
+level = "inspection"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-115"]
+verifies = ["AR-015"]
+level = "security"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-116"]
+verifies = ["AR-016"]
+level = "unit"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-117"]
+verifies = ["AR-017"]
+level = "unit"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-118"]
+verifies = ["AR-018"]
+level = "integration"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-119"]
+verifies = ["AR-019"]
+level = "security"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-120"]
+verifies = ["AR-020"]
+level = "integration"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-121"]
+verifies = ["AR-021"]
+level = "resilience"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-122"]
+verifies = ["AR-022"]
+level = "resilience"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-123"]
+verifies = ["AR-023"]
+level = "integration"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-124"]
+verifies = ["AR-024"]
+level = "unit"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-125"]
+verifies = ["AR-025"]
+level = "system"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-126"]
+verifies = ["AR-026"]
+level = "system"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-127"]
+verifies = ["AR-027"]
+level = "security"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-128"]
+verifies = ["AR-028"]
+level = "integration"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-129"]
+verifies = ["AR-029"]
+level = "performance"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-130"]
+verifies = ["AR-030"]
+level = "integration"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-131"]
+verifies = ["AR-031"]
+level = "unit"
+status = "planned"
+implementation = ""
+evidence = ""
+
+[tests."TC-132"]
+verifies = ["AR-032"]
+level = "inspection"
+status = "planned"
+implementation = ""
+evidence = ""

@@ -15,7 +15,7 @@ In order of consequence:
 | # | Asset | Why it matters |
 |---|---|---|
 | 1 | **Integrity of service changes** | A forged or altered decision diverts real buses and strands real passengers. |
-| 2 | **Integrity of the audit record** | If it can be altered, nothing that happened can be shown to have happened ([P-2](../../methodology/architecture-principles.md#p-2--every-decision-is-auditable)). |
+| 2 | **Integrity of the audit record** | If it can be altered, nothing that happened can be shown to have happened ([P-2](../methodology/architecture-principles.md#p-2--every-decision-is-auditable)). |
 | 3 | **Availability of the decision path** | The system is needed when the network is disrupted, which is when load is highest. |
 | 4 | **Integrity of inputs** | A false incident report or spoofed position produces a wrong recommendation that looks right. |
 | 5 | **Confidentiality of SEC and LINK data** | Incident-scene detail and anything that can be resolved to a person ([data flows §1](../phase-c-information-systems/data-architecture/data-flows.md#1-classification-scheme)). |
@@ -87,7 +87,7 @@ flowchart LR
 | Authentication | OIDC with MFA, from the operator's identity provider |
 | Authorisation | Role plus **authority grant checked at decision time** ([INV-05](../phase-c-information-systems/data-architecture/logical-data-model.md#14-invariants)) — not at login, not at presentation |
 | Session | Short-lived access tokens; re-authentication for approving contingency routes and changing grants |
-| Separation of duties | The person who authors a contingency route cannot approve it; the person who holds the approver role cannot change autonomy thresholds ([autonomy §6](../../phase-b-business-architecture/autonomy-model.md#6-what-is-never-automatic)) |
+| Separation of duties | The person who authors a contingency route cannot approve it; the person who holds the approver role cannot change autonomy thresholds ([autonomy §6](../phase-b-business-architecture/autonomy-model.md#6-what-is-never-automatic)) |
 | Request integrity | Idempotency keys; `presented_at` required on decisions; decisions on superseded recommendations rejected as `stale` |
 | Transport | TLS only |
 
@@ -99,7 +99,7 @@ flowchart LR
 | Authority by channel | A report is `authoritative` only if it arrived on a source configured as authoritative — never because it says so ([integration §4](../phase-c-information-systems/application-architecture/integration-architecture.md#4-anti-corruption)) |
 | Schema validation | Malformed messages rejected at the edge, counted, never cached |
 | Plausibility checks | Positions that jump impossibly, conditions contradicting other sources → `inconsistent` in DD-10, lowering confidence |
-| Human confirmation | No detected disruption produces a service change without confirmation ([BR-005](../../phase-b-business-architecture/business-requirements.md#disruption-awareness)) — the strongest control against spoofed incidents |
+| Human confirmation | No detected disruption produces a service change without confirmation ([BR-005](../phase-b-business-architecture/business-requirements.md#disruption-awareness)) — the strongest control against spoofed incidents |
 
 That last row is worth stating plainly: **the human confirmation step is a security control**, not only a quality one. An attacker who can inject incident reports can make RouteShield raise candidates; they cannot make it divert buses.
 
@@ -111,7 +111,7 @@ That last row is worth stating plainly: **the human confirmation step is a secur
 | Replay protection | Responses accepted once, before `respond_by` |
 | Silence is not consent | `no_response` recorded; activation not assumed ([INV-09](../phase-c-information-systems/data-architecture/logical-data-model.md#14-invariants)) |
 
-The driver channel is the least standardised interface and the one whose real security properties are least knowable ([A-005](../../../02-stage-two-reference-implementation/assumptions.md#a-005)).
+The driver channel is the least standardised interface and the one whose real security properties are least knowable ([A-005](../../02-stage-two-reference-implementation/assumptions.md#a-005)).
 
 ### TB-4 · Passenger channel
 
@@ -158,20 +158,20 @@ STRIDE, applied to the assets in §1. Only threats with a specific design respon
 |---|---|---|---|---|
 | **T-01** | Attacker injects a fake incident to trigger diversions | Spoofing | TB-2 | Authority by channel; human confirmation (BR-005) |
 | **T-02** | Insider approves a harmful diversion | Elevation / Repudiation | TB-1 | Authority at decision time; attribution; audit; blast-radius limits on grants |
-| **T-03** | Approver quietly broadens a contingency route so A2 fires more | Tampering | TB-1 | Separation of duties; expiry; usage review ([autonomy §5](../../phase-b-business-architecture/autonomy-model.md#5-governing-the-contingency-library)) |
+| **T-03** | Approver quietly broadens a contingency route so A2 fires more | Tampering | TB-1 | Separation of duties; expiry; usage review ([autonomy §5](../phase-b-business-architecture/autonomy-model.md#5-governing-the-contingency-library)) |
 | **T-04** | Someone alters the record of a decision afterwards | Tampering / Repudiation | TB-6 | Append-only permission; hash chain; separate custodian |
 | **T-05** | Forged driver acknowledgement hides a refusal | Spoofing | TB-3 | Signed, bound, single-use responses |
 | **T-06** | Forged passenger notice sends people away | Spoofing | TB-4 | Publication only for an existing activation |
 | **T-07** | Flooding sources or the workspace during a disruption | Denial of service | TB-2, TB-1 | Rate limits at adapters; cache decouples decision path from sources; manual fallback |
 | **T-08** | Spoofed positions make vehicles appear past a closure | Tampering | TB-2 | Plausibility checks; `inconsistent` lowers confidence; A2 disabled under low confidence |
 | **T-09** | Incident-scene detail leaks through notices or exports | Information disclosure | TB-4, F9 | FR-D6; export scope rules |
-| **T-10** | Analytics used to profile drivers | Information disclosure | TB-6 | Driver identity never in audit; analytics reads only audit ([BR-042](../../phase-b-business-architecture/business-requirements.md#accountability-and-learning)) |
+| **T-10** | Analytics used to profile drivers | Information disclosure | TB-6 | Driver identity never in audit; analytics reads only audit ([BR-042](../phase-b-business-architecture/business-requirements.md#accountability-and-learning)) |
 | **T-11** | Compromised dependency alters recommendation logic | Tampering | TB-7 | Pinning, scanning, review; determinism allows replay comparison against known snapshots |
 | **T-12** | Automation widens its own autonomy | Elevation | Internal | Thresholds changeable only by a human role distinct from approvers |
 
 **T-01 and T-12 are the architecture's two most important threats.** T-01 because injecting false incidents is cheap and the consequence is physical. T-12 because it is not an attack at all — it is how a system drifts, one reasonable change at a time, into acting without people.
 
-**T-11 has an unusual defence.** Because assessment is a pure function of a stored snapshot ([ADR-0004](../../../05-architecture-decisions/adr-0004-decisions-reference-immutable-input-snapshots.md)), a new build can be replayed against past snapshots and its recommendations compared with the recorded ones. Unexplained differences are a signal.
+**T-11 has an unusual defence.** Because assessment is a pure function of a stored snapshot ([ADR-0004](../../05-architecture-decisions/adr-0004-decisions-reference-immutable-input-snapshots.md)), a new build can be replayed against past snapshots and its recommendations compared with the recorded ones. Unexplained differences are a signal.
 
 ## 5. Secrets management
 
@@ -194,7 +194,7 @@ STRIDE, applied to the assets in §1. Only threats with a specific design respon
 | Schema validation at adapters | **Real** |
 | Hash-chained audit and verification | **Real** |
 | Append-only at permission level | **Not possible** — visitor controls local storage |
-| Authentication | **Simulated** ([ADR-0012](../../../05-architecture-decisions/adr-0012-simulated-identity-in-demonstrator.md)) |
+| Authentication | **Simulated** ([ADR-0012](../../05-architecture-decisions/adr-0012-simulated-identity-in-demonstrator.md)) |
 | TLS | Provided by the static host |
 | Supply-chain controls | **Real**, in CI |
 | Content Security Policy | **Real** — no third-party scripts at runtime |

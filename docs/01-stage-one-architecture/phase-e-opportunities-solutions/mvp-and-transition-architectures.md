@@ -14,7 +14,7 @@
 
 > **A controller can go from a declared disruption to an approved, recorded and reconstructable diversion, with the affected services and the cost of each option in front of them.**
 
-That is a complete outcome for the controller (S-05), the duty manager (S-06) and anyone who later asks why (S-08, S-09). It is not a technical layer. It spans every layer thinly ([P-9](../../methodology/architecture-principles.md#p-9--build-the-smallest-thing-that-delivers-an-outcome)).
+That is a complete outcome for the controller (S-05), the duty manager (S-06) and anyone who later asks why (S-08, S-09). It is not a technical layer. It spans every layer thinly ([P-9](../methodology/architecture-principles.md#p-9--build-the-smallest-thing-that-delivers-an-outcome)).
 
 ### Scope
 

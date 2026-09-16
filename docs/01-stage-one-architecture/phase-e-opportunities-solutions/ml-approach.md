@@ -19,7 +19,7 @@ The proposal assigns ML three jobs: classify the disruption type, estimate its d
 Consequences:
 
 - On day one, ML cannot outperform a controller's declared type and a rule-of-thumb duration.
-- Every model in the reference implementation is trained on **synthetic** incidents produced by the project's own generator. It will learn the generator's rules, and its accuracy measures how well it recovers them — not how well it would predict real disruptions ([P-5](../../methodology/architecture-principles.md#p-5--distinguish-what-is-known-from-what-is-supposed)).
+- Every model in the reference implementation is trained on **synthetic** incidents produced by the project's own generator. It will learn the generator's rules, and its accuracy measures how well it recovers them — not how well it would predict real disruptions ([P-5](../methodology/architecture-principles.md#p-5--distinguish-what-is-known-from-what-is-supposed)).
 - The most valuable "learning" in the architecture is not a model. It is the **decision record** (C7.1) and the **governed contingency library** (C3.5, C7.4). Both work without ML.
 
 ML is therefore placed in T4, after the system can already function and record.
@@ -38,17 +38,17 @@ M-3 is deliberately simple — counting and clustering, not a learned model — 
 
 | Guardrail | Why |
 |---|---|
-| No model output changes service without human confirmation or prior approval | [P-1](../../methodology/architecture-principles.md#p-1--the-human-decides) |
+| No model output changes service without human confirmation or prior approval | [P-1](../methodology/architecture-principles.md#p-1--the-human-decides) |
 | Low-confidence predictions are shown as "unknown", not as the top class | Avoid anchoring the controller |
 | Duration is always an interval | A point estimate would be over-trusted |
 | Model version recorded in every recommendation that used it | Reconstruction ([BR-038](../phase-b-business-architecture/business-requirements.md#accountability-and-learning)) |
 | No driver-related features | [BR-042](../phase-b-business-architecture/business-requirements.md#accountability-and-learning) |
-| Metrics reported as "on synthetic data" wherever shown | Avoid synthetic laundering ([fact/assumption model §5](../../../02-stage-two-reference-implementation/fact-vs-assumption-model.md#5-degradation-modes-to-watch-for)) |
+| Metrics reported as "on synthetic data" wherever shown | Avoid synthetic laundering ([fact/assumption model §5](../../02-stage-two-reference-implementation/fact-vs-assumption-model.md#5-degradation-modes-to-watch-for)) |
 | A rule-based baseline is always reported alongside | A model that does not beat the baseline is not deployed |
 
 ## 5. Technology
 
-Training in Python with scikit-learn-compatible gradient-boosted or random-forest tree models; export to JSON; evaluation in TypeScript in the browser ([ADR-0016](../../../05-architecture-decisions/adr-0016-tree-models-exported-as-json.md)). Parity between Python and TypeScript predictions is tested in CI on a fixed fixture set.
+Training in Python with scikit-learn-compatible gradient-boosted or random-forest tree models; export to JSON; evaluation in TypeScript in the browser ([ADR-0016](../../05-architecture-decisions/adr-0016-tree-models-exported-as-json.md)). Parity between Python and TypeScript predictions is tested in CI on a fixed fixture set.
 
 ## 6. What would make ML genuinely useful
 

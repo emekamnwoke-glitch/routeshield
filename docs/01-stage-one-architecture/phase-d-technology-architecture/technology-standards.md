@@ -27,7 +27,7 @@ Apply to both profiles.
 | Identifiers | Opaque, immutable, globally unique | All owned entities |
 | API | HTTP + JSON, version in path | Workspace API (operator profile) |
 
-Modelling fictional interfaces on these standards keeps the fiction disciplined ([P-4](../../methodology/architecture-principles.md#p-4--open-and-standard-before-proprietary)). It does not assert that any operator uses them.
+Modelling fictional interfaces on these standards keeps the fiction disciplined ([P-4](../methodology/architecture-principles.md#p-4--open-and-standard-before-proprietary)). It does not assert that any operator uses them.
 
 ## 2. Reference profile stack
 
@@ -52,7 +52,7 @@ Specific libraries (routing graph library, UI build tool, test runners, map rend
 | Area | Standard |
 |---|---|
 | Versioning | Semantic versioning for releases; milestone tags per the roadmap |
-| Commits | Conventional commits ([CONTRIBUTING](../../../../CONTRIBUTING.md)) |
+| Commits | Conventional commits ([CONTRIBUTING](../../../CONTRIBUTING.md)) |
 | Dependencies | Pinned via lock files; no runtime dependency loaded from a third-party CDN |
 | Formatting and linting | Enforced in CI for both languages |
 | Types | Strict type checking in TypeScript; type hints checked in Python |

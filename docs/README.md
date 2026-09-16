@@ -39,6 +39,6 @@ If you have time for three documents, read 4, 6 and 7. The principles say what t
 
 ## Current state
 
-Project Phase 1 (foundation) is complete. Phase 2 produces the Stage One architecture artefacts; every phase folder currently holds a README stating what will go in it and the exit condition it must satisfy.
+**Stage One is complete** (`v1.0.0`). Every phase has its artefacts and a README stating its exit condition and whether it is met. Phase H's process is defined; its exit condition closes with the Stage Two feedback loop. Stage Two begins with the full fictional operating model and the Stage Two requirements.
 
 The [roadmap](../README.md#15-roadmap) tracks milestones as Git tags.

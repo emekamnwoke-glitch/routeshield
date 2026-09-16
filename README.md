@@ -73,10 +73,10 @@ Stage One follows a lifecycle **inspired by the TOGAF Architecture Development M
 | C — Application Architecture | Landscape, components, service boundaries, integration | 🟢 Complete |
 | D — Technology Architecture | Infrastructure, runtime, network, security, observability | 🟢 Complete |
 | E — Opportunities & Solutions | Building blocks, MVP, transition states | 🟢 Complete |
-| F — Migration Planning | Roadmap, releases, dependencies, risk | ⬜ Planned |
-| G — Implementation Governance | Compliance, traceability, change control | ⬜ Planned |
-| H — Change Management | Architecture evolution, continuous improvement | ⬜ Planned |
-| Requirements Management | Continuous across all phases | ⬜ Planned |
+| F — Migration Planning | Roadmap, releases, dependencies, risk | 🟢 Complete |
+| G — Implementation Governance | Compliance, traceability, change control | 🟢 Complete |
+| H — Change Management | Architecture evolution, continuous improvement | 🟡 Process defined; closes with the Stage Two feedback loop |
+| Requirements Management | Continuous across all phases | 🟢 [Machine-checked traceability](docs/01-stage-one-architecture/phase-g-implementation-governance/traceability-matrix.md) |
 
 Method definition: [`docs/01-stage-one-architecture/methodology/`](docs/01-stage-one-architecture/methodology/)
 
@@ -160,7 +160,13 @@ Pull requests run lint → unit → integration → security → build. Merges t
 
 ## 13. Running locally
 
-> Not yet available. The runnable MVP arrives in Phase 5 — see the [roadmap](#15-roadmap). Instructions will be added here when there is something to run, and not before.
+The demonstrator arrives with Stage Two — see the [roadmap](#15-roadmap).
+
+What runs today is the architecture's own governance check, which validates the traceability model against the architecture documents and regenerates the matrix. It needs only Python 3.11+:
+
+```bash
+python tools/traceability/check.py --render
+```
 
 ## 14. Repository structure
 
@@ -178,6 +184,7 @@ routeshield/
 ├── frontend/                                Control dashboard & simulation UI
 ├── pipeline/                                Build-time data & ML pipeline
 ├── tests/                                   Test suites
+├── tools/                                   Governance tooling (traceability checker)
 ├── data/                                    Synthetic datasets & fixtures
 ├── infrastructure/                          Local containerised environment
 └── .github/                                 Workflows, templates
@@ -194,13 +201,13 @@ Milestones are published as Git tags, so the repository history reads as the arc
 | `v0.3.0` | Business Architecture | 🟢 |
 | `v0.4.0` | Information Systems Architecture | 🟢 |
 | `v0.5.0` | Technology Architecture | 🟢 |
-| `v0.6.0` | Solution Blueprint | 🟢 Current |
-| `v1.0.0` | **Stage One complete** | ⬜ |
+| `v0.6.0` | Solution Blueprint | 🟢 |
+| `v1.0.0` | **Stage One complete** | 🟢 Current |
 | `v1.1.0` | Stage Two foundation | ⬜ |
 | `v1.2.0` | Disruption engine | ⬜ |
 | `v1.3.0` | Routing engine | ⬜ |
-| `v1.4.0` | Control dashboard | ⬜ |
-| `v1.5.0` | Notifications | ⬜ |
+| `v1.4.0` | Notifications | ⬜ |
+| `v1.5.0` | Control dashboard | ⬜ |
 | `v1.6.0` | ML prototype | ⬜ |
 | `v2.0.0` | **Reference implementation complete** | ⬜ |
 
