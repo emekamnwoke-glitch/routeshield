@@ -237,7 +237,7 @@ Beyond `v2.0.0`: multimodal disruption response across rail and light rail, cont
 
 [MIT](LICENSE) — Copyright © 2026 Chukwuemeka Nwoke
 
-The MIT licence covers code and documentation only. Network data in [`data/fixtures/gtfs-sample/`](data/fixtures/gtfs-sample/) contains National Transport Authority data, licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+The MIT licence covers code and documentation only. Network data in [`data/fixtures/gtfs-sample/`](data/fixtures/gtfs-sample/) contains National Transport Authority data, licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The road graph in [`data/fixtures/osm-graph/`](data/fixtures/osm-graph/) contains data © OpenStreetMap contributors and is available under the [Open Database Licence](https://opendatacommons.org/licenses/odbl/1-0/).
 
 ## Author
 
