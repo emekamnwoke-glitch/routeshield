@@ -160,26 +160,26 @@ Runs the thing at three in the morning.
 
 ```mermaid
 quadrantChart
-    title Stakeholder influence vs. interest
-    x-axis "Low interest" --> "High interest"
-    y-axis "Low influence" --> "High influence"
-    quadrant-1 "Manage closely"
-    quadrant-2 "Keep satisfied"
-    quadrant-3 "Monitor"
-    quadrant-4 "Keep informed"
-    "Controller S-05": [0.95, 0.80]
-    "Duty manager S-06": [0.85, 0.75]
-    "Driver S-04": [0.80, 0.45]
-    "Executive S-08": [0.55, 0.90]
-    "Authority S-09": [0.50, 0.95]
-    "Union S-13": [0.45, 0.72]
-    "DPO S-11": [0.40, 0.70]
-    "Platform ops S-12": [0.70, 0.40]
-    "Planner S-07": [0.55, 0.30]
-    "Waiting passenger S-01": [0.95, 0.12]
-    "Onboard passenger S-02": [0.80, 0.10]
-    "Dependent passenger S-03": [0.95, 0.08]
-    "Emergency services S-10": [0.30, 0.60]
+    title Stakeholder influence vs interest
+    x-axis Low interest --> High interest
+    y-axis Low influence --> High influence
+    quadrant-1 Manage closely
+    quadrant-2 Keep satisfied
+    quadrant-3 Monitor
+    quadrant-4 Keep informed
+    Controller S-05: [0.95, 0.80]
+    Duty manager S-06: [0.85, 0.75]
+    Driver S-04: [0.80, 0.45]
+    Executive S-08: [0.55, 0.90]
+    Authority S-09: [0.50, 0.95]
+    Union S-13: [0.45, 0.72]
+    DPO S-11: [0.40, 0.70]
+    Platform ops S-12: [0.70, 0.40]
+    Planner S-07: [0.55, 0.30]
+    Waiting passenger S-01: [0.95, 0.12]
+    Onboard passenger S-02: [0.80, 0.10]
+    Dependent passenger S-03: [0.95, 0.08]
+    Emergency services S-10: [0.30, 0.60]
 ```
 
 The shape of this chart is the finding. **The stakeholders with the highest interest have the least influence.** Passengers — especially S-03, whose journeys are most at risk — sit at the extreme of interest and the bottom of influence. They are not consulted, cannot escalate, and have no representation in the decision.
