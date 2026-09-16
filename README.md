@@ -56,7 +56,9 @@ Most portfolios show one end of that chain or the other. Architecture repositori
 
 ### Origin
 
-The underlying concept was developed as a submission to the **Dublin Bus Innovation Challenge** (Challenge 4: Smart Cities, April 2026). That proposal is the authoritative baseline for the business concept and is treated as a source document, not as a specification. Where the proposal is silent, this repository fills the gap and says so. Where the proposal asserts something that cannot be verified, this repository reclassifies it as an assumption and says so.
+Walking through the blocked streets of O'Connell Street in Dublin City Centre, I experienced a hardship in getting transport to commute from one end of Dublin to the other. The event was the 2026 Irish Fuel Protests - https://en.wikipedia.org/wiki/2026_Irish_fuel_protests, thereby blocking most traffic. I stumbled upon a flyer on a bus during my commute, which was the Dublin Bus Innovation Challenge and with the power of AI, I did let my thoughts do the talking. The underlying concept was developed as a submission to the **Dublin Bus Innovation Challenge** (Challenge 4: Smart Cities, April 2026). My submitted proposal is the authoritative baseline for the business concept and is treated as a source document, not as a specification. Where the proposal is silent, this repository fills the gap and says so. 
+
+Please note: Where the proposal asserts something that cannot be verified, this repository reclassifies it as an assumption and says so.
 
 ## 4. Architecture methodology
 
