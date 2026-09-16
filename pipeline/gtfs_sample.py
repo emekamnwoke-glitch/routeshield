@@ -142,7 +142,7 @@ def main(argv: list[str] | None = None) -> int:
         "filter": {"routes": sorted(routes), "service_id": args.service},
         "files": files,
     }
-    (args.out / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    (args.out / "manifest.json").write_bytes((json.dumps(manifest, indent=2) + "\n").encode("utf-8"))
     for name, meta in files.items():
         print(f"{name:20} {meta['rows']:>8} rows {meta['bytes']:>10} bytes")
     return 0
