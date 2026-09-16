@@ -16,7 +16,7 @@ For each affected trip, find the response that loses the least service, where:
 - a set of road segments is blocked;
 - the vehicle must stay on roads it can physically use;
 - a response is one of **reroute**, **hold**, **split** or **terminate** ([BR-018](../phase-b-business-architecture/business-requirements.md#response-options));
-- "least service lost" is defined by the objective in §4, not by travel time ([P-6](../../methodology/architecture-principles.md#p-6--minimise-service-loss-not-travel-time)).
+- "least service lost" is defined by the objective in §4, not by travel time ([P-6](../methodology/architecture-principles.md#p-6--minimise-service-loss-not-travel-time)).
 
 This is not shortest path. Shortest path is a subroutine.
 
@@ -47,7 +47,7 @@ Bounding the enumeration keeps it cheap: typically the last three stops before t
 - **Graph:** OSM-derived road graph, directed, edge weight = expected traversal time.
 - **Removed edges:** blocked segments from the disruption footprint; edges violating a vehicle constraint (height, weight, length, bus ban).
 - **Turn restrictions:** applied where known.
-- **Algorithm:** A* with a straight-line-time heuristic ([ADR-0014](../../../05-architecture-decisions/adr-0014-constrained-shortest-path-with-rejoin-enumeration.md)).
+- **Algorithm:** A* with a straight-line-time heuristic ([ADR-0014](../../05-architecture-decisions/adr-0014-constrained-shortest-path-with-rejoin-enumeration.md)).
 - **Feasibility tag:** `verified_open` when only open constraints were checked; `verified_operator` when operator constraint data covered every edge; `unverified` otherwise. The reference profile never reaches `verified_operator`.
 
 ## 3. Non-reroute options
@@ -83,7 +83,7 @@ with **hard constraints** first: infeasible options are discarded, not penalised
 
 ### Weight ordering
 
-The weights encode [P-6](../../methodology/architecture-principles.md#p-6--minimise-service-loss-not-travel-time). Their *ordering* is the design decision; their values are not:
+The weights encode [P-6](../methodology/architecture-principles.md#p-6--minimise-service-loss-not-travel-time). Their *ordering* is the design decision; their values are not:
 
 ```
 w_u  ≫  w_c  >  w_p  >  w_d  ≫  w_t
@@ -94,11 +94,11 @@ w_u  ≫  w_c  >  w_p  >  w_d  ≫  w_t
 - Passengers affected and delay matter in proportion.
 - Vehicle time matters least; it is the cost the operator bears, not the passenger.
 
-The reference profile uses **demonstration values** chosen to respect that ordering and labels them as such in the UI and in every recommendation. Values for an operator depend on its obligations and its passengers and cannot be set here ([ADR-0015](../../../05-architecture-decisions/adr-0015-weighted-service-loss-objective.md)).
+The reference profile uses **demonstration values** chosen to respect that ordering and labels them as such in the UI and in every recommendation. Values for an operator depend on its obligations and its passengers and cannot be set here ([ADR-0015](../../05-architecture-decisions/adr-0015-weighted-service-loss-objective.md)).
 
 ### What the objective does not do
 
-`K`, the criticality-weighted loss required by [P-7](../../methodology/architecture-principles.md#p-7--stop-skipping-is-not-neutral) and [BR-016](../phase-b-business-architecture/business-requirements.md#response-options), is present in the cost model and **always null**, because no data exists to fill it. Every recommendation displays "equity weighting unavailable". The objective therefore treats all stops as interchangeable, which the architecture says they are not. That is the most important known deficiency of the optimiser, and it is shown rather than hidden.
+`K`, the criticality-weighted loss required by [P-7](../methodology/architecture-principles.md#p-7--stop-skipping-is-not-neutral) and [BR-016](../phase-b-business-architecture/business-requirements.md#response-options), is present in the cost model and **always null**, because no data exists to fill it. Every recommendation displays "equity weighting unavailable". The objective therefore treats all stops as interchangeable, which the architecture says they are not. That is the most important known deficiency of the optimiser, and it is shown rather than hidden.
 
 ### Pareto set, not a single answer
 

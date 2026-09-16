@@ -13,7 +13,7 @@ What the system runs on, and how it is secured, observed and deployed. This is w
 | [Observability and KPIs](observability.md) | Operational telemetry, health semantics, alerts, 16 service KPIs with how each can mislead |
 | [Technology Standards](technology-standards.md) | Interface standards, reference stack, engineering standards |
 
-Decisions: [ADR-0008](../../../05-architecture-decisions/adr-0008-browser-hosted-static-demonstrator.md) hosting · [ADR-0009](../../../05-architecture-decisions/adr-0009-typescript-core-python-build-pipeline.md) languages · [ADR-0010](../../../05-architecture-decisions/adr-0010-sqlite-wasm-as-embedded-store.md) store · [ADR-0011](../../../05-architecture-decisions/adr-0011-open-network-data-via-build-time-pipeline.md) network data · [ADR-0012](../../../05-architecture-decisions/adr-0012-simulated-identity-in-demonstrator.md) identity · [ADR-0013](../../../05-architecture-decisions/adr-0013-otel-shaped-telemetry-without-a-backend.md) telemetry
+Decisions: [ADR-0008](../../05-architecture-decisions/adr-0008-browser-hosted-static-demonstrator.md) hosting · [ADR-0009](../../05-architecture-decisions/adr-0009-typescript-core-python-build-pipeline.md) languages · [ADR-0010](../../05-architecture-decisions/adr-0010-sqlite-wasm-as-embedded-store.md) store · [ADR-0011](../../05-architecture-decisions/adr-0011-open-network-data-via-build-time-pipeline.md) network data · [ADR-0012](../../05-architecture-decisions/adr-0012-simulated-identity-in-demonstrator.md) identity · [ADR-0013](../../05-architecture-decisions/adr-0013-otel-shaped-telemetry-without-a-backend.md) telemetry
 
 ## What this settles
 

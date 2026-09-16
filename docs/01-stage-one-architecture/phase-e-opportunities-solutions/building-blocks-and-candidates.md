@@ -17,26 +17,26 @@ An **architecture building block** (ABB) is what is needed, independent of how. 
 | **Network model** | DD-1, NetworkPort | Python pipeline over NTA GTFS + OSM → versioned static files | Operator network data + constraint set |
 | **Live fleet feed** | DD-2, FleetPort | Seeded fleet and GPS simulator *(fictional)* | Operator AVL / fleet system |
 | **Road condition feed** | DD-3, RoadConditionPort | Seeded traffic simulator *(fictional)* | Traffic data provider |
-| **Incident feed** | DD-3, IncidentPort | Scenario-driven incident simulator *(fictional)* | Authoritative incident source, if obtainable ([A-002](../../../02-stage-two-reference-implementation/assumptions.md#a-002)) |
+| **Incident feed** | DD-3, IncidentPort | Scenario-driven incident simulator *(fictional)* | Authoritative incident source, if obtainable ([A-002](../../02-stage-two-reference-implementation/assumptions.md#a-002)) |
 | **Disruption lifecycle engine** | AC-02 | TypeScript module | Same core |
 | **Spatial impact engine** | AC-04 | TypeScript module + prebuilt spatial index | Same core, spatial store |
-| **Route optimiser** | AC-05 | TypeScript module in a dedicated worker — [ADR-0014](../../../05-architecture-decisions/adr-0014-constrained-shortest-path-with-rejoin-enumeration.md), [ADR-0015](../../../05-architecture-decisions/adr-0015-weighted-service-loss-objective.md) | Same core |
+| **Route optimiser** | AC-05 | TypeScript module in a dedicated worker — [ADR-0014](../../05-architecture-decisions/adr-0014-constrained-shortest-path-with-rejoin-enumeration.md), [ADR-0015](../../05-architecture-decisions/adr-0015-weighted-service-loss-objective.md) | Same core |
 | **Decision support** | AC-06 | TypeScript module | Same core |
 | **Decision and authority** | AC-07, AC-14 | TypeScript modules; simulated personas | Same core; OIDC |
 | **Service state** | AC-08 | TypeScript module | Same core |
 | **Communication hub** | AC-09 | TypeScript module + simulated driver and passenger channels *(fictional)* | Same core + operator channels |
 | **Contingency library** | AC-10 | TypeScript module | Same core |
 | **Audit ledger** | AC-11 | TypeScript module over SQLite, hash-chained | Same core, append-only store |
-| **Service analytics** | AC-12 | TypeScript module; offline models from Python — [ADR-0016](../../../05-architecture-decisions/adr-0016-tree-models-exported-as-json.md) | Same |
+| **Service analytics** | AC-12 | TypeScript module; offline models from Python — [ADR-0016](../../05-architecture-decisions/adr-0016-tree-models-exported-as-json.md) | Same |
 | **Control workspace** | AC-13 | React application | Same, served by operator |
-| **Transactional store** | All owned domains | SQLite WASM ([ADR-0010](../../../05-architecture-decisions/adr-0010-sqlite-wasm-as-embedded-store.md)) | Spatial relational store |
+| **Transactional store** | All owned domains | SQLite WASM ([ADR-0010](../../05-architecture-decisions/adr-0010-sqlite-wasm-as-embedded-store.md)) | Spatial relational store |
 | **Scenario runner** | Simulation, tests | TypeScript, seeded | — |
 
-Every core module is the same code in both profiles. Only adapters, simulators and the store binding differ — the practical meaning of [ADR-0006](../../../05-architecture-decisions/adr-0006-modular-monolith-with-ports-and-adapters.md).
+Every core module is the same code in both profiles. Only adapters, simulators and the store binding differ — the practical meaning of [ADR-0006](../../05-architecture-decisions/adr-0006-modular-monolith-with-ports-and-adapters.md).
 
 ## 2. Candidate solutions for an operator
 
-The question an operator would ask first is whether to build at all. Recorded here at category level; no specific product is assessed, because no product evaluation was performed and inventing one would be exactly the kind of unsupported claim [P-5](../../methodology/architecture-principles.md#p-5--distinguish-what-is-known-from-what-is-supposed) forbids.
+The question an operator would ask first is whether to build at all. Recorded here at category level; no specific product is assessed, because no product evaluation was performed and inventing one would be exactly the kind of unsupported claim [P-5](../methodology/architecture-principles.md#p-5--distinguish-what-is-known-from-what-is-supposed) forbids.
 
 | Option | For | Against | Fit |
 |---|---|---|---|

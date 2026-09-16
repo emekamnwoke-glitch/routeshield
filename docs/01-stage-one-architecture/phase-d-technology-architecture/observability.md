@@ -28,7 +28,7 @@ They are kept separate on purpose. Operational telemetry is high-volume, short-l
 | **Traces** | Spans across modules for one disruption's path | Correlation id = disruption version id |
 | **Health** | Liveness, readiness, dependency state | See §2.2 |
 
-Format is **OpenTelemetry-shaped** so that the operator profile can ship to any compatible collector and the reference profile can render the same data in the browser ([ADR-0013](../../../05-architecture-decisions/adr-0013-otel-shaped-telemetry-without-a-backend.md)).
+Format is **OpenTelemetry-shaped** so that the operator profile can ship to any compatible collector and the reference profile can render the same data in the browser ([ADR-0013](../../05-architecture-decisions/adr-0013-otel-shaped-telemetry-without-a-backend.md)).
 
 **Audit logging is not logging.** Audit events are business records written transactionally (FR-D3). Application logs may duplicate them for diagnosis; they are never the source of truth.
 
@@ -40,7 +40,7 @@ Format is **OpenTelemetry-shaped** so that the operator profile can ship to any 
 | **Readiness** | This instance can safely accept decisions | Store or audit store unreachable (FR-D3); identity validation unavailable for new sessions |
 | **Degraded** | Ready, but with reduced capability | Any source `stale` or `absent` |
 
-Readiness deliberately **does not** fail when sources fail. A system that takes itself out of service because traffic data is late has turned a degradation into an outage ([P-3](../../methodology/architecture-principles.md#p-3--degrade-do-not-fail)). It fails only when a change could not be recorded.
+Readiness deliberately **does not** fail when sources fail. A system that takes itself out of service because traffic data is late has turned a degradation into an outage ([P-3](../methodology/architecture-principles.md#p-3--degrade-do-not-fail)). It fails only when a change could not be recorded.
 
 ### 2.3 Metrics
 
@@ -99,7 +99,7 @@ Every KPI has a definition, a source in the audit record, and a note on how it c
 
 ### The rubber-stamping indicator
 
-[BR-024](../../phase-b-business-architecture/business-requirements.md#decision) requires the system to detect approvals made faster than the reasoning could be read.
+[BR-024](../phase-b-business-architecture/business-requirements.md#decision) requires the system to detect approvals made faster than the reasoning could be read.
 
 | Input | Source |
 |---|---|
@@ -107,7 +107,7 @@ Every KPI has a definition, a source in the audit record, and a note on how it c
 | Reading load | Length of rationale and number of options presented |
 | Context | Queue depth at the time; autonomy band |
 
-The indicator is the proportion of approvals whose deliberation time falls below a reading-time floor scaled by reading load, **aggregated per period and per corridor, not per person**. Surfacing it per controller would turn a system-design signal into a performance measure on individuals, which is the misuse [SC-018](../../phase-a-architecture-vision/stakeholder-map.md#s-05--control-room-controller) and [SC-041](../../phase-a-architecture-vision/stakeholder-map.md#s-13--driver-representative-body) warn against. A rising value means the system is producing more than people can evaluate — a design problem to fix, not a staff problem.
+The indicator is the proportion of approvals whose deliberation time falls below a reading-time floor scaled by reading load, **aggregated per period and per corridor, not per person**. Surfacing it per controller would turn a system-design signal into a performance measure on individuals, which is the misuse [SC-018](../phase-a-architecture-vision/stakeholder-map.md#s-05--control-room-controller) and [SC-041](../phase-a-architecture-vision/stakeholder-map.md#s-13--driver-representative-body) warn against. A rising value means the system is producing more than people can evaluate — a design problem to fix, not a staff problem.
 
 The floor value cannot be set from a desk. Stage Two uses a demonstration value and labels it.
 
@@ -120,7 +120,7 @@ The floor value cannot be set from a desk. Stage Two uses a demonstration value 
 | **Service outcomes** | Duty manager, executive | KPIs per period, per corridor, with the "how it misleads" notes inline |
 | **Governance** | Authority, audit | A2 share, contingency approvals nearing expiry, rubber-stamping indicator, reconstruction access |
 
-The governance dashboard exists because [OBJ-10](../../phase-a-architecture-vision/objectives.md#obj-10--make-the-capability-governable-and-explicable) requires the autonomy model to be observable from outside, not just enforced inside.
+The governance dashboard exists because [OBJ-10](../phase-a-architecture-vision/objectives.md#obj-10--make-the-capability-governable-and-explicable) requires the autonomy model to be observable from outside, not just enforced inside.
 
 ## 5. Reference profile
 

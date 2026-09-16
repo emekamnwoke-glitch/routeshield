@@ -13,7 +13,7 @@ What actually gets built, in what order, and the smallest first version worth bu
 | [Routing and Optimisation Design](routing-and-optimisation.md) | Divert/rejoin enumeration, the service-loss objective, coverage, performance budget |
 | [Machine Learning Approach](ml-approach.md) | Three models, the cold-start problem, guardrails |
 
-Decisions: [ADR-0014](../../../05-architecture-decisions/adr-0014-constrained-shortest-path-with-rejoin-enumeration.md) routing · [ADR-0015](../../../05-architecture-decisions/adr-0015-weighted-service-loss-objective.md) objective · [ADR-0016](../../../05-architecture-decisions/adr-0016-tree-models-exported-as-json.md) ML · [ADR-0017](../../../05-architecture-decisions/adr-0017-banded-autonomy-with-prior-human-approval.md) autonomy
+Decisions: [ADR-0014](../../05-architecture-decisions/adr-0014-constrained-shortest-path-with-rejoin-enumeration.md) routing · [ADR-0015](../../05-architecture-decisions/adr-0015-weighted-service-loss-objective.md) objective · [ADR-0016](../../05-architecture-decisions/adr-0016-tree-models-exported-as-json.md) ML · [ADR-0017](../../05-architecture-decisions/adr-0017-banded-autonomy-with-prior-human-approval.md) autonomy
 
 ## What this settles
 
