@@ -158,3 +158,14 @@ The last rule is how [BR-042](../../phase-b-business-architecture/business-requi
 | C8 Resilience | DD-10 |
 
 Every capability is served; every owned domain serves at least one capability.
+
+## 7. Refinements from application architecture
+
+Drawing component boundaries against these domains exposed two conflicts, resolved inside Phase C before baseline. Full reasoning is in [application components §2](../application-architecture/application-components.md#2-two-refinements-to-the-data-domains).
+
+| Original | Refined into | Why |
+|---|---|---|
+| **DD-5 Response** | **DD-5a Impact** · **DD-5b Options** · **DD-5c Recommendation** | Impact assessment and optimisation must fail independently ([BR-011](../../phase-b-business-architecture/business-requirements.md#impact-assessment)). With one writer per domain, that requires separate domains. |
+| **DD-6 Decision** | **DD-6 Decision** · **DD-13 Authority** | Actors and authority grants are administered by different people on a different cadence from decisions. |
+
+The diagram in §2 and the tables in §3 show DD-5 and DD-6 as first drawn; read them with this refinement applied. Every other document in Phase C uses the refined domains.

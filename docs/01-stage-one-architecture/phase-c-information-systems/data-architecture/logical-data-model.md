@@ -86,7 +86,9 @@ stateDiagram-v2
 
 `clearing → closed` requires **every** trip diverted for this disruption to have been reverted or explicitly retained by decision. That transition guard is where [BR-035](../../phase-b-business-architecture/business-requirements.md#closure) is enforced.
 
-## 6. DD-5 Response — owned, immutable
+## 6. DD-5a Impact · DD-5b Options · DD-5c Recommendation — owned, immutable
+
+Impact: `ImpactAssessment`, `AffectedTrip`, `AffectedStop`. Options: `ResponseOption`, `OptionCost`. Recommendation: `Recommendation`, `ConfidenceState`. Split per [data domains §7](data-domains.md#7-refinements-from-application-architecture).
 
 | Entity | Key attributes |
 |---|---|
@@ -104,12 +106,15 @@ stateDiagram-v2
 >
 > `OptionCost.criticality_weighted_loss` is always null in Stage Two. It is carried so that the absence of equity weighting is visible on every recommendation rather than silently omitted.
 
-## 7. DD-6 Decision — owned, immutable
+## 7. DD-13 Authority · DD-6 Decision — owned
+
+| Entity | Domain | Key attributes |
+|---|---|---|
+| **Actor** | DD-13 | `id`, `role: enum{controller, duty_manager, contingency_approver, administrator}`, `on_duty: bool` |
+| **AuthorityGrant** | DD-13 | `actor: ref(Actor)`, `scope`, `max_blast_radius`, `valid_from: ts`, `valid_to?: ts` |
 
 | Entity | Key attributes |
 |---|---|
-| **Actor** | `id`, `role: enum{controller, duty_manager, contingency_approver, administrator}` |
-| **AuthorityGrant** | `actor: ref(Actor)`, `scope`, `max_blast_radius`, `valid_from: ts`, `valid_to?: ts` |
 | **Decision** | `id`, `recommendation: ref(Recommendation)`, `actor: ref(Actor)`, `decided_at: ts`, `outcome: enum{approve, modify, reject, escalate}`, `chosen_option?: ref(ResponseOption)`, `modification?`, `basis: enum{in_moment, contingency_approval}`, `contingency_approval?: ref(ContingencyApproval)`, `presented_at: ts`, `reason?` |
 | **Activation** | `id`, `decision: ref(Decision)`, `kind: enum{divert, revert, retain}`, `activated_at: ts`, `revocable_until?: ts` |
 

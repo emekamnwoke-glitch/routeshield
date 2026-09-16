@@ -70,8 +70,11 @@ erDiagram
 | DD-2 Fleet Operations | Vehicle, Trip, Trip Assignment, Position |
 | DD-3 Road Conditions | Road Condition Observation, Incident Report *(omitted from diagram for legibility)* |
 | DD-4 Disruption | Disruption, Disruption Version, Footprint, Confirmation |
-| DD-5 Response | Impact Assessment, Affected Trip, Affected Stop, Response Option, Option Cost, Recommendation, Confidence State |
-| DD-6 Decision | Decision, Activation, Actor, Authority Grant |
+| DD-5a Impact | Impact Assessment, Affected Trip, Affected Stop |
+| DD-5b Options | Response Option, Option Cost |
+| DD-5c Recommendation | Recommendation, Confidence State |
+| DD-6 Decision | Decision, Activation |
+| DD-13 Authority | Actor, Authority Grant |
 | DD-7 Service State | Service State |
 | DD-8 Communication | Driver Instruction, Driver Response, Passenger Notice |
 | DD-9 Contingency | Contingency Route, Contingency Approval |

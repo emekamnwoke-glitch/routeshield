@@ -63,7 +63,7 @@ flowchart TB
     HLT[("DD-10<br/>Source Health")]
     DIS[("DD-4<br/>Disruption")]
     SNAP[("DD-11<br/>Input Snapshots")]
-    RSP[("DD-5<br/>Response")]
+    RSP[("DD-5a/b/c<br/>Impact · Options ·<br/>Recommendation")]
     DEC[("DD-6<br/>Decision")]
     SVC[("DD-7<br/>Service State")]
     COM[("DD-8<br/>Communication")]
@@ -92,7 +92,7 @@ flowchart TB
     DEC -->|F16| COM
     COM -->|F6 instruction| DRV(("Driver"))
     DRV -->|F7 response| COM
-    COM -->|F17 refusal| RSP
+    COM -->|F17 refusal| DEC
     COM -->|F8 notice| PAX(("Passengers"))
 
     DIS & RSP & DEC & SVC & COM & CON -->|F18 events| AUD
@@ -117,7 +117,7 @@ The Phase C data exit condition requires every flow to have a source, a sink and
 | **F3** | Road & incident sources | Cache | Segment conditions, incident reports | OPS / SEC | Seconds–minutes |
 | **F4a** | Controller | Disruption | Declaration, confirmation, dismissal | OPS | Immediate |
 | **F4b** | Controller | Decision | Approve, modify, reject, escalate | OPS | Immediate |
-| **F5** | Response | Controller | Ranked recommendation, rationale, cost, confidence | OPS | ≤ 5 s from confirmation ([OBJ-1](../../phase-a-architecture-vision/objectives.md#obj-1--compress-the-time-from-disruption-confirmation-to-actionable-driver-instruction)) |
+| **F5** | Recommendation (DD-5c) | Controller | Ranked recommendation, rationale, cost, confidence | OPS | ≤ 5 s from confirmation ([OBJ-1](../../phase-a-architecture-vision/objectives.md#obj-1--compress-the-time-from-disruption-confirmation-to-actionable-driver-instruction)) |
 | **F6** | Communication | Driver | Revised sequence, respond-by time | OPS + LINK | Before diversion point |
 | **F7** | Driver | Communication | Acknowledge / refuse + reason | OPS | Before respond-by |
 | **F8** | Communication | Passengers | Stop-level effect and alternative | PUB | ≤ 30 s from approval ([OBJ-4](../../phase-a-architecture-vision/objectives.md#obj-4--inform-affected-passengers-while-their-alternatives-still-exist)) |
@@ -129,7 +129,7 @@ The Phase C data exit condition requires every flow to have a source, a sink and
 | **F14** | Snapshot | Assessment | Frozen inputs | AUD → OPS | Immediate |
 | **F15** | Contingency | Assessment | Approved routes matching corridor and type | OPS | Immediate |
 | **F16** | Decision | Communication | Activation to deliver | OPS | Immediate |
-| **F17** | Communication | Response | Refusal re-entering decision ([BR-028](../../phase-b-business-architecture/business-requirements.md#activation)) | OPS | Immediate |
+| **F17** | Communication | Decision (DD-6) | Refusal re-entering decision ([BR-028](../../phase-b-business-architecture/business-requirements.md#activation)) | OPS | Immediate |
 | **F18** | All owned domains | Audit | Domain events | AUD | Synchronous with the change |
 | **F19** | Audit | Analytics | Events **with LINK fields removed** | OPS | Batch |
 | **F20** | Analytics | Contingency | Candidate routes, **unapproved** | OPS | Batch |
