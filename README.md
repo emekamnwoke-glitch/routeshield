@@ -68,7 +68,7 @@ Stage One follows a lifecycle **inspired by the TOGAF Architecture Development M
 |---|---|---|
 | Preliminary | Architecture capability, principles, governance, scope | 🟢 Complete |
 | A — Architecture Vision | Problem, vision, stakeholders, target outcomes | 🟢 Complete |
-| B — Business Architecture | Capabilities, actors, value streams, as-is/to-be | ⬜ Planned |
+| B — Business Architecture | Capabilities, actors, value streams, as-is/to-be | 🟢 Complete |
 | C — Data Architecture | Domains, conceptual & logical models, lifecycle, governance | ⬜ Planned |
 | C — Application Architecture | Landscape, components, service boundaries, integration | ⬜ Planned |
 | D — Technology Architecture | Infrastructure, runtime, network, security, observability | ⬜ Planned |
@@ -186,8 +186,8 @@ Milestones are published as Git tags, so the repository history reads as the arc
 | Tag | Milestone | Status |
 |---|---|---|
 | `v0.1.0` | Project foundation | 🟢 |
-| `v0.2.0` | Architecture Vision | 🟢 Current |
-| `v0.3.0` | Business Architecture | ⬜ |
+| `v0.2.0` | Architecture Vision | 🟢 |
+| `v0.3.0` | Business Architecture | 🟢 Current |
 | `v0.4.0` | Information Systems Architecture | ⬜ |
 | `v0.5.0` | Technology Architecture | ⬜ |
 | `v0.6.0` | Solution Blueprint | ⬜ |

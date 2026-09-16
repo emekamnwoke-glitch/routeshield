@@ -18,7 +18,7 @@ It is technology-neutral and stands on its own. Its value does not depend on Sta
 |---|---|---|
 | Preliminary | Are we set up to do architecture work here at all? | 🟢 Complete |
 | [A — Architecture Vision](phase-a-architecture-vision/) | What are we trying to achieve, for whom, and how will we know? | 🟢 Complete |
-| [B — Business Architecture](phase-b-business-architecture/) | What does the business need to be able to do? | ⬜ |
+| [B — Business Architecture](phase-b-business-architecture/) | What does the business need to be able to do? | 🟢 Complete |
 | [C — Data Architecture](phase-c-information-systems/data-architecture/) | What information does this depend on, and who owns it? | ⬜ |
 | [C — Application Architecture](phase-c-information-systems/application-architecture/) | What components exist, and where are the boundaries? | ⬜ |
 | [D — Technology Architecture](phase-d-technology-architecture/) | What does this run on, and how is it secured and observed? | ⬜ |
