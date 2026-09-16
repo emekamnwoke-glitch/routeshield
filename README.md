@@ -71,7 +71,7 @@ Stage One follows a lifecycle **inspired by the TOGAF Architecture Development M
 | B — Business Architecture | Capabilities, actors, value streams, as-is/to-be | 🟢 Complete |
 | C — Data Architecture | Domains, conceptual & logical models, lifecycle, governance | 🟢 Complete |
 | C — Application Architecture | Landscape, components, service boundaries, integration | 🟢 Complete |
-| D — Technology Architecture | Infrastructure, runtime, network, security, observability | ⬜ Planned |
+| D — Technology Architecture | Infrastructure, runtime, network, security, observability | 🟢 Complete |
 | E — Opportunities & Solutions | Building blocks, MVP, transition states | ⬜ Planned |
 | F — Migration Planning | Roadmap, releases, dependencies, risk | ⬜ Planned |
 | G — Implementation Governance | Compliance, traceability, change control | ⬜ Planned |
@@ -127,20 +127,22 @@ Every diagram in this repository exists to communicate a decision. There are no 
 
 Stage Two is constrained to run **entirely in the browser** with no hosted backend, so the project can be published and demonstrated at zero cost and never sleeps behind a cold start. This is a real constraint with real architectural consequences, and it is recorded as a design decision rather than hidden.
 
-The stack is selected in Phase D and recorded through ADRs. Candidates under evaluation:
+Selected in Phase D. Each choice names the rejected alternatives in its ADR.
 
-| Concern | Candidate | Note |
-|---|---|---|
-| Domain engine | TypeScript | Runs in-browser and under Node; no runtime lock-in |
-| Embedded store | DuckDB-WASM | In-browser analytical + spatial queries |
-| Network data | NTA GTFS / GTFS-Realtime, OpenStreetMap | Open, citable, free |
-| Routing | Graph search over an OSM-derived network | Algorithm selected by ADR |
-| ML | Trained offline in Python, exported to ONNX, inferred in-browser | Training is reproducible in CI |
-| Frontend | React + TypeScript | Control dashboard and simulation UI |
-| Build data pipeline | Python | Runs at build time, not runtime |
-| CI/CD | GitHub Actions | Lint, test, scan, build, publish |
+| Concern | Choice | Decision | Rejected |
+|---|---|---|---|
+| Hosting | Static site, GitHub Pages | [ADR-0008](docs/05-architecture-decisions/adr-0008-browser-hosted-static-demonstrator.md) | Free-tier servers (sleep, expire) |
+| Architecture style | Modular monolith, ports and adapters | [ADR-0006](docs/05-architecture-decisions/adr-0006-modular-monolith-with-ports-and-adapters.md) | Microservices |
+| Core and UI | TypeScript, React; core in a Web Worker | [ADR-0009](docs/05-architecture-decisions/adr-0009-typescript-core-python-build-pipeline.md) | Python via Pyodide; FastAPI server |
+| Store | SQLite WASM with OPFS persistence | [ADR-0010](docs/05-architecture-decisions/adr-0010-sqlite-wasm-as-embedded-store.md) | DuckDB-WASM, PGlite, IndexedDB |
+| Network data | NTA GTFS (CC BY 4.0) + OpenStreetMap (ODbL), processed at build time | [ADR-0011](docs/05-architecture-decisions/adr-0011-open-network-data-via-build-time-pipeline.md) | Live GTFS-Realtime; commercial traffic APIs |
+| Build pipeline and ML training | Python | [ADR-0009](docs/05-architecture-decisions/adr-0009-typescript-core-python-build-pipeline.md) | — |
+| Identity | Simulated personas, real authorisation logic | [ADR-0012](docs/05-architecture-decisions/adr-0012-simulated-identity-in-demonstrator.md) | Browser-only sign-in |
+| Telemetry | OpenTelemetry-shaped, in-browser | [ADR-0013](docs/05-architecture-decisions/adr-0013-otel-shaped-telemetry-without-a-backend.md) | Hosted telemetry SaaS |
+| Routing, ML framework | Selected in Phase E | — | — |
+| CI/CD | GitHub Actions | — | — |
 
-These are **candidates, not commitments**. Each is argued for or against in an ADR before adoption.
+The operator profile — what a transport operator would actually deploy — is specified separately in [Phase D](docs/01-stage-one-architecture/phase-d-technology-architecture/technology-architecture.md) and is not constrained by any of the above.
 
 ## 10. SDLC
 
@@ -188,8 +190,8 @@ Milestones are published as Git tags, so the repository history reads as the arc
 | `v0.1.0` | Project foundation | 🟢 |
 | `v0.2.0` | Architecture Vision | 🟢 |
 | `v0.3.0` | Business Architecture | 🟢 |
-| `v0.4.0` | Information Systems Architecture | 🟢 Current |
-| `v0.5.0` | Technology Architecture | ⬜ |
+| `v0.4.0` | Information Systems Architecture | 🟢 |
+| `v0.5.0` | Technology Architecture | 🟢 Current |
 | `v0.6.0` | Solution Blueprint | ⬜ |
 | `v1.0.0` | **Stage One complete** | ⬜ |
 | `v1.1.0` | Stage Two foundation | ⬜ |
