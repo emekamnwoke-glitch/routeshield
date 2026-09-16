@@ -72,7 +72,7 @@ Stage One follows a lifecycle **inspired by the TOGAF Architecture Development M
 | C — Data Architecture | Domains, conceptual & logical models, lifecycle, governance | 🟢 Complete |
 | C — Application Architecture | Landscape, components, service boundaries, integration | 🟢 Complete |
 | D — Technology Architecture | Infrastructure, runtime, network, security, observability | 🟢 Complete |
-| E — Opportunities & Solutions | Building blocks, MVP, transition states | ⬜ Planned |
+| E — Opportunities & Solutions | Building blocks, MVP, transition states | 🟢 Complete |
 | F — Migration Planning | Roadmap, releases, dependencies, risk | ⬜ Planned |
 | G — Implementation Governance | Compliance, traceability, change control | ⬜ Planned |
 | H — Change Management | Architecture evolution, continuous improvement | ⬜ Planned |
@@ -139,7 +139,9 @@ Selected in Phase D. Each choice names the rejected alternatives in its ADR.
 | Build pipeline and ML training | Python | [ADR-0009](docs/05-architecture-decisions/adr-0009-typescript-core-python-build-pipeline.md) | — |
 | Identity | Simulated personas, real authorisation logic | [ADR-0012](docs/05-architecture-decisions/adr-0012-simulated-identity-in-demonstrator.md) | Browser-only sign-in |
 | Telemetry | OpenTelemetry-shaped, in-browser | [ADR-0013](docs/05-architecture-decisions/adr-0013-otel-shaped-telemetry-without-a-backend.md) | Hosted telemetry SaaS |
-| Routing, ML framework | Selected in Phase E | — | — |
+| Routing | Divert/rejoin enumeration over constrained A* | [ADR-0014](docs/05-architecture-decisions/adr-0014-constrained-shortest-path-with-rejoin-enumeration.md) | k-shortest paths, MILP, server routing engines |
+| Ranking | Weighted service-loss score over the Pareto set | [ADR-0015](docs/05-architecture-decisions/adr-0015-weighted-service-loss-objective.md) | Stops-skipped only; lexicographic |
+| ML | scikit-learn trees → JSON → TypeScript evaluator | [ADR-0016](docs/05-architecture-decisions/adr-0016-tree-models-exported-as-json.md) | ONNX Runtime Web; neural models |
 | CI/CD | GitHub Actions | — | — |
 
 The operator profile — what a transport operator would actually deploy — is specified separately in [Phase D](docs/01-stage-one-architecture/phase-d-technology-architecture/technology-architecture.md) and is not constrained by any of the above.
@@ -191,8 +193,8 @@ Milestones are published as Git tags, so the repository history reads as the arc
 | `v0.2.0` | Architecture Vision | 🟢 |
 | `v0.3.0` | Business Architecture | 🟢 |
 | `v0.4.0` | Information Systems Architecture | 🟢 |
-| `v0.5.0` | Technology Architecture | 🟢 Current |
-| `v0.6.0` | Solution Blueprint | ⬜ |
+| `v0.5.0` | Technology Architecture | 🟢 |
+| `v0.6.0` | Solution Blueprint | 🟢 Current |
 | `v1.0.0` | **Stage One complete** | ⬜ |
 | `v1.1.0` | Stage Two foundation | ⬜ |
 | `v1.2.0` | Disruption engine | ⬜ |

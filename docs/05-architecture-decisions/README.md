@@ -23,6 +23,10 @@ Template: [`adr-template.md`](adr-template.md).
 | [ADR-0011](adr-0011-open-network-data-via-build-time-pipeline.md) | Source the network from NTA GTFS and OpenStreetMap, processed at build time | Accepted | D | 2026-09-16 |
 | [ADR-0012](adr-0012-simulated-identity-in-demonstrator.md) | Simulate identity in the demonstrator; keep authorisation logic real | Accepted | D | 2026-09-16 |
 | [ADR-0013](adr-0013-otel-shaped-telemetry-without-a-backend.md) | OpenTelemetry-shaped telemetry, rendered in-browser in the demonstrator | Accepted | D | 2026-09-16 |
+| [ADR-0014](adr-0014-constrained-shortest-path-with-rejoin-enumeration.md) | Generate reroutes by divert/rejoin enumeration over constrained A* | Accepted | E | 2026-09-16 |
+| [ADR-0015](adr-0015-weighted-service-loss-objective.md) | Rank options by a weighted service-loss score with hard feasibility constraints | Accepted | E | 2026-09-16 |
+| [ADR-0016](adr-0016-tree-models-exported-as-json.md) | Train tree models in Python and evaluate them in TypeScript from JSON | Accepted | E | 2026-09-16 |
+| [ADR-0017](adr-0017-banded-autonomy-with-prior-human-approval.md) | Bound automation by bands, with prior human approval as the only basis for acting unattended | Accepted | E | 2026-09-16 |
 
 ## Planned
 
@@ -30,9 +34,5 @@ Decisions identified as needing an ADR, recorded here so their absence is visibl
 
 | Phase | Decision |
 |---|---|
-| E | Routing algorithm |
-| E | Multi-objective optimisation formulation and weights |
-| E | Autonomy model — when, if ever, the system acts without approval |
 | F | Release and milestone strategy |
 | G | Automated traceability checking |
-| H | ML framework and training/inference split |
