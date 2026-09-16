@@ -29,7 +29,7 @@ Scales: **L**ikelihood and **I**mpact, each 1 (low) – 3 (high). Score = L × I
 | **R-008** | Snapshot write or optimisation exceeds the 5 s machine budget | 2 | 2 | 4 | Measure from v1.3.0; area-scoped snapshots; time-boxed optimiser | Open |
 | **R-009** | Hand-written tree evaluator diverges from trained model | 2 | 2 | 4 | CI parity test (ADR-0016) | Open |
 | **R-010** | Open data sources change URL, format or licence | 1 | 2 | 2 | Manifest with checksums; pinned processed outputs committed | Open |
-| **R-011** | GitHub Pages unavailable for a private repository | 3 | 1 | 3 | Make public at v1.0.0, or Cloudflare Pages (ADR-0008) | Open — decision pending |
+| **R-011** | GitHub Pages unavailable for a private repository | — | — | — | Repository made public on 2026-09-16 after v1.0.0; GitHub Pages available (ADR-0008) | **Closed** |
 | **R-012** | Single author — no independent review | 3 | 2 | 6 | Structural controls ([governance](../methodology/architecture-governance.md)); CI-checked traceability | Accepted |
 | **R-013** | The feedback loop is staged rather than genuine | 2 | 3 | 6 | Subject and trigger fixed in advance (ADR-0005, BS-2); outcome recorded whatever it is, including "no change needed" | Open |
 

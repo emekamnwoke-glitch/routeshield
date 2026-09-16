@@ -31,7 +31,7 @@ Decisions: [ADR-0008](../../05-architecture-decisions/adr-0008-browser-hosted-st
 
 ## Hosting note
 
-GitHub Pages serves private repositories only on paid plans. The repository is private until `v1.0.0`; the build is host-agnostic, and Cloudflare Pages is the documented free alternative if it stays private.
+GitHub Pages serves private repositories only on paid plans. The repository was made public on 2026-09-16, after `v1.0.0`, so the reference implementation deploys to GitHub Pages as ADR-0008 intended. The build stays host-agnostic.
 
 ## Exit condition
 
