@@ -21,7 +21,7 @@ It is technology-neutral and stands on its own. Its value does not depend on Sta
 | [B — Business Architecture](phase-b-business-architecture/) | What does the business need to be able to do? | 🟢 Complete |
 | [C — Data Architecture](phase-c-information-systems/data-architecture/) | What information does this depend on, and who owns it? | 🟢 Complete |
 | [C — Application Architecture](phase-c-information-systems/application-architecture/) | What components exist, and where are the boundaries? | 🟢 Complete |
-| [D — Technology Architecture](phase-d-technology-architecture/) | What does this run on, and how is it secured and observed? | ⬜ |
+| [D — Technology Architecture](phase-d-technology-architecture/) | What does this run on, and how is it secured and observed? | 🟢 Complete |
 | [E — Opportunities & Solutions](phase-e-opportunities-solutions/) | What gets built, in what order? | ⬜ |
 | [F — Migration Planning](phase-f-migration-planning/) | How do we get there, and what could stop us? | ⬜ |
 | [G — Implementation Governance](phase-g-implementation-governance/) | Is the thing being built the thing that was designed? | ⬜ |
