@@ -237,6 +237,8 @@ Beyond `v2.0.0`: multimodal disruption response across rail and light rail, cont
 
 [MIT](LICENSE) — Copyright © 2026 Chukwuemeka Nwoke
 
+The MIT licence covers code and documentation only. Network data in [`data/fixtures/gtfs-sample/`](data/fixtures/gtfs-sample/) contains National Transport Authority data, licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+
 ## Author
 
 **Chukwuemeka Nwoke** — MSc Computer Science, University College Dublin. Business & Enterprise Architect.

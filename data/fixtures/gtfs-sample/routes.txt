@@ -1,0 +1,12 @@
+route_id,agency_id,route_short_name,route_long_name,route_desc,route_type,route_url,route_color,route_text_color
+1 142 e a,1,142,Portmarnock - UCD (Belfield),,3,,,
+1 23 a,1,23,Merrion Square - Charlestown SC,,3,,,
+1 24 a,1,24,Merrion Square - Dublin Airport,,3,,,
+1 39A c a,1,39A,Ongar - UCD Belfield,,3,,,
+1 40D c a,1,40D,Tyrrelstown - Parnell Street,,3,,,
+1 41X c a,1,41X,Swords - UCD Belfield,,3,,,
+1 E1 a,1,E1,Ballywaltrim - Northwood,,3,,,
+1 E2 a,1,E2,Dun Laoghaire - Harristown,,3,,,
+1 F1 a,1,F1,The Square Tallaght - IKEA,,3,,,
+1 F2 a,1,F2,Charlestown SC - Rossmore,,3,,,
+1 N4,1,N4,Blanchardstown - Point Village,,3,,,
