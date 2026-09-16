@@ -23,13 +23,18 @@ It is technology-neutral and stands on its own. Its value does not depend on Sta
 | [C — Application Architecture](phase-c-information-systems/application-architecture/) | What components exist, and where are the boundaries? | 🟢 Complete |
 | [D — Technology Architecture](phase-d-technology-architecture/) | What does this run on, and how is it secured and observed? | 🟢 Complete |
 | [E — Opportunities & Solutions](phase-e-opportunities-solutions/) | What gets built, in what order? | 🟢 Complete |
-| [F — Migration Planning](phase-f-migration-planning/) | How do we get there, and what could stop us? | ⬜ |
-| [G — Implementation Governance](phase-g-implementation-governance/) | Is the thing being built the thing that was designed? | ⬜ |
-| [H — Change Management](phase-h-change-management/) | What do we do when we learn we were wrong? | ⬜ |
+| [F — Migration Planning](phase-f-migration-planning/) | How do we get there, and what could stop us? | 🟢 Complete |
+| [G — Implementation Governance](phase-g-implementation-governance/) | Is the thing being built the thing that was designed? | 🟢 Complete |
+| [H — Change Management](phase-h-change-management/) | What do we do when we learn we were wrong? | 🟡 Process defined — exit pending Stage Two |
+| Requirements Management | Is every requirement justified, realised and verified? | 🟢 Continuous — [traceability matrix](phase-g-implementation-governance/traceability-matrix.md) |
 
 Each phase completes on an **exit condition**, not on its folder being full. The conditions are stated in the [method](methodology/architecture-method.md#5-phase-definitions) and repeated in each phase README.
 
 Data Architecture precedes Application Architecture within Phase C. That ordering is deliberate: boundaries that cut across data ownership are the most expensive kind to get wrong ([P-8](methodology/architecture-principles.md#p-8--boundaries-follow-data-ownership)).
+
+## Stage One completion
+
+Stage One is complete at `v1.0.0`: Preliminary and Phases A–G have met their exit conditions. Phase H's exit condition requires a change that originated in implementation and so, by design, cannot be met before Stage Two. Its process is defined, its subject was fixed in advance, and it closes at `v2.0.0`.
 
 ## Relationship to Stage Two
 
