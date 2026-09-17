@@ -42,7 +42,10 @@ HIGHWAYS = "^(motorway|trunk|primary|secondary|tertiary|unclassified|residential
 KEEP_TAGS = (
     "highway", "name", "ref", "oneway", "junction", "maxspeed", "maxheight", "maxweight",
     "access", "motor_vehicle", "bus", "psv", "oneway:bus", "oneway:psv", "busway", "lanes",
+    "busway:left", "busway:right", "busway:both", "lanes:bus:backward", "lanes:psv:backward",
+    "bus:lanes:backward", "psv:lanes:backward",
 )
+CONTRAFLOW_BUSWAY = "opposite_lane"
 NO_ACCESS = {"no", "private"}
 YES_ACCESS = {"yes", "designated", "permissive"}
 COORD_DP = 6
@@ -59,6 +62,18 @@ LICENCE = {
 def query(bbox: tuple[float, float, float, float]) -> str:
     s, w, n, e = bbox
     return f'[out:json][timeout:300];way["highway"~"{HIGHWAYS}"]({s},{w},{n},{e});out body;>;out skel qt;'
+
+
+def bus_route_query(bbox: tuple[float, float, float, float]) -> str:
+    """Service roads that OSM bus route relations use: hospital, airport and campus roads.
+
+    All other service roads (car parks, driveways) stay out of the graph.
+    """
+    s, w, n, e = bbox
+    return (
+        f'[out:json][timeout:300];rel["route"="bus"]({s},{w},{n},{e})->.r;'
+        f'way(r.r)["highway"="service"]({s},{w},{n},{e});out body;>;out skel qt;'
+    )
 
 
 def tiles(bbox: tuple[float, float, float, float], n: int) -> list[tuple[float, float, float, float]]:
@@ -117,7 +132,24 @@ def download(bbox: tuple[float, float, float, float], n: int, dest: Path) -> Non
         osm_base = osm_base or resp.get("osm3s", {}).get("timestamp_osm_base")
         for el in resp["elements"]:
             elements[(el["type"], el["id"])] = el
-    merged = {"osm3s": {"timestamp_osm_base": osm_base}, "endpoints": sorted(set(used)), "elements": list(elements.values())}
+    path = cache / "bus_route_service_roads.json"
+    if path.exists():
+        print("  bus route service roads (cached)")
+    else:
+        print("  bus route service roads")
+        url, data = fetch(bus_route_query(bbox))
+        path.write_bytes(json.dumps({"endpoint": url, **json.loads(data)}, separators=(",", ":")).encode("utf-8"))
+    resp = json.loads(path.read_bytes())
+    used.append(resp.get("endpoint", "unknown"))
+    bus_route_ways = sorted(el["id"] for el in resp["elements"] if el["type"] == "way")
+    for el in resp["elements"]:
+        elements[(el["type"], el["id"])] = el
+    merged = {
+        "osm3s": {"timestamp_osm_base": osm_base},
+        "endpoints": sorted(set(used)),
+        "bus_route_ways": bus_route_ways,
+        "elements": list(elements.values()),
+    }
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_bytes(json.dumps(merged, separators=(",", ":")).encode("utf-8"))
 
@@ -162,6 +194,15 @@ def direction(tags: dict[str, str]) -> int:
     """1 = forward only, -1 = reverse only, 0 = both ways, for a bus."""
     if tags.get("oneway:bus") == "no" or tags.get("oneway:psv") == "no":
         return 0
+    # A contraflow bus lane on a one-way street.
+    if CONTRAFLOW_BUSWAY in {tags.get(k) for k in ("busway", "busway:left", "busway:right", "busway:both")}:
+        return 0
+    for k in ("lanes:bus:backward", "lanes:psv:backward"):
+        if tags.get(k, "0").isdigit() and int(tags.get(k, "0")) > 0:
+            return 0
+    for k in ("bus:lanes:backward", "psv:lanes:backward"):
+        if "designated" in tags.get(k, "").split("|"):
+            return 0
     oneway = tags.get("oneway")
     if oneway == "-1":
         return -1
@@ -176,9 +217,13 @@ def direction(tags: dict[str, str]) -> int:
 
 def build(raw: dict) -> dict:
     coords = {el["id"]: (el["lat"], el["lon"]) for el in raw["elements"] if el["type"] == "node"}
+    # A road in an OSM bus route relation is one buses use, whatever its access tags say.
+    bus_route = set(raw.get("bus_route_ways", []))
     ways = [
         el for el in raw["elements"]
-        if el["type"] == "way" and bus_allowed(el.get("tags", {})) and all(n in coords for n in el["nodes"])
+        if el["type"] == "way"
+        and (el["id"] in bus_route or bus_allowed(el.get("tags", {})))
+        and all(n in coords for n in el["nodes"])
     ]
     uses = Counter(n for w in ways for n in set(w["nodes"]))
     ends = {n for w in ways for n in (w["nodes"][0], w["nodes"][-1])}
@@ -287,6 +332,8 @@ def main(argv: list[str] | None = None) -> int:
             "endpoints": raw.get("endpoints", []),
             "query": query(bbox),
             "tiles": args.tiles,
+            "bus_route_query": bus_route_query(bbox),
+            "bus_route_ways": len(raw.get("bus_route_ways", [])),
             "file": src.name,
             "sha256": hashlib.sha256(raw_bytes).hexdigest(),
             "osm_base": raw.get("osm3s", {}).get("timestamp_osm_base"),

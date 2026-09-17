@@ -66,6 +66,20 @@ def test_keeps_bus_relevant_tags_only() -> None:
     assert graph["feasibility"] == "verified_open"
 
 
+def test_roads_in_bus_route_relations_are_kept_even_if_closed() -> None:
+    raw = {
+        "bus_route_ways": [2],
+        "elements": [
+            node(1, 53.3, -6.3), node(2, 53.3, -6.29), node(3, 53.3, -6.28),
+            way(1, [1, 2]),
+            {"type": "way", "id": 2, "nodes": [2, 3], "tags": {"highway": "service", "access": "private"}},
+        ],
+    }
+    assert edges(osm_graph.build(raw)) == [(1, 2, 1, 0), (2, 3, 2, 0)]
+    del raw["bus_route_ways"]
+    assert edges(osm_graph.build(raw)) == [(1, 2, 1, 0)]
+
+
 def test_identical_tag_sets_are_stored_once() -> None:
     raw = {
         "elements": [
@@ -141,6 +155,11 @@ def test_bus_allowed(tags: dict[str, str], allowed: bool) -> None:
         ({"highway": "motorway"}, 1),
         ({"highway": "motorway", "oneway": "no"}, 0),
         ({"oneway": "yes", "oneway:bus": "no"}, 0),
+        ({"oneway": "yes", "busway:right": "opposite_lane"}, 0),
+        ({"oneway": "yes", "lanes:psv:backward": "1"}, 0),
+        ({"oneway": "yes", "lanes:psv:backward": "0"}, 1),
+        ({"oneway": "yes", "bus:lanes:backward": "none|designated"}, 0),
+        ({"oneway": "yes", "psv:lanes": "yes|designated"}, 1),
     ],
 )
 def test_direction(tags: dict[str, str], expected: int) -> None:
@@ -184,8 +203,8 @@ def test_committed_graph_matches_manifest_and_reaches_sample_stops() -> None:
             distances.append(min((to_segment(p, *s) for s in near), default=math.inf))
     distances.sort()
 
-    # Stops reached only by service roads (hospital grounds, the airport) sit
-    # further out, because service roads are not in the graph.
+    # Stops in Blanchardstown Corporate Park sit further out: their service roads
+    # are not in OSM's bus route relations, so they are not in the graph.
     assert distances[int(len(distances) * 0.95)] < 25
     assert distances[-1] < 250
 

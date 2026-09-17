@@ -3,13 +3,14 @@
     "publisher": "OpenStreetMap contributors",
     "endpoints": [
       "https://overpass-api.de/api/interpreter",
-      "https://overpass.kumi.systems/api/interpreter",
-      "https://overpass.private.coffee/api/interpreter"
+      "unknown"
     ],
     "query": "[out:json][timeout:300];way[\"highway\"~\"^(motorway|trunk|primary|secondary|tertiary|unclassified|residential|busway)(_link)?$\"](53.18,-6.45,53.48,-6.1);out body;>;out skel qt;",
     "tiles": 4,
+    "bus_route_query": "[out:json][timeout:300];rel[\"route\"=\"bus\"](53.18,-6.45,53.48,-6.1)->.r;way(r.r)[\"highway\"=\"service\"](53.18,-6.45,53.48,-6.1);out body;>;out skel qt;",
+    "bus_route_ways": 231,
     "file": "osm_dublin_roads.json",
-    "sha256": "3498be084e70f8a2801acec7682fd27e768f12b0530ac0b8af342adad4c0e1c7",
+    "sha256": "1502c80da2991936f3d837027a43a6193aeb1da5f985acd8421bb0862066d7b5",
     "osm_base": "2026-09-16T15:14:14Z"
   },
   "licence": {
@@ -17,7 +18,7 @@
     "url": "https://opendatacommons.org/licenses/odbl/1-0/",
     "attribution": "Contains data \u00a9 OpenStreetMap contributors, available under the Open Database Licence."
   },
-  "generated_at": "2026-09-16T15:50:38Z",
+  "generated_at": "2026-09-17T11:05:57Z",
   "bbox": {
     "south": 53.18,
     "west": -6.45,
@@ -26,12 +27,12 @@
   },
   "files": {
     "road_graph.json": {
-      "nodes": 48778,
-      "edges": 55892,
-      "ways": 36956,
-      "tag_sets": 16162,
-      "bytes": 5882438,
-      "sha256": "215f8397e636fc8b55d59a91682501941f8646082437aa4466d705e01d61da47"
+      "nodes": 48945,
+      "edges": 56129,
+      "ways": 37187,
+      "tag_sets": 16272,
+      "bytes": 5913350,
+      "sha256": "4f7dc9170cd5568bee95b5ff7475c06688d826be576b6bd320d951ab03ad921a"
     }
   }
 }
