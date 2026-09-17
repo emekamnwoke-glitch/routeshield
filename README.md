@@ -156,7 +156,14 @@ Unit, integration, system, acceptance, security, performance and resilience test
 
 ## 12. CI/CD
 
-Pull requests run lint → unit → integration → security → build. Merges to `main` additionally build and publish the demonstrator. Workflows in [`.github/workflows/`](.github/workflows/).
+Every pull request and every push to `main` runs two workflows in [`.github/workflows/`](.github/workflows/):
+
+| Workflow | Checks |
+|---|---|
+| `ci.yml` | **TypeScript:** type check, ESLint, and Vitest over SQLite WASM. **Python:** ruff format and lint, mypy (strict), and pytest. **Architecture:** the component boundary check. **Dependencies:** `npm audit`, plus dependency review on pull requests. |
+| `architecture.yml` | Traceability model against the architecture documents; Markdown links; secret scanning |
+
+A build and deployment of the demonstrator to GitHub Pages will be added when the site exists (v1.3.0 in the [roadmap](#15-roadmap)).
 
 ## 13. Running locally
 

@@ -1,0 +1,70 @@
+name: CI
+
+# Engineering checks for Stage Two (technology standards §3): formatting,
+# linting and type checking for both languages, both test suites, the
+# component boundary check, and dependency scanning.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  typescript:
+    name: TypeScript (type check, lint, tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - name: Type check
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Tests (Vitest over SQLite WASM)
+        run: npm test
+
+  python:
+    name: Python (format, lint, types, tests, boundaries)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - run: pip install -r requirements-dev.txt
+      - name: Format
+        run: ruff format --check
+      - name: Lint
+        run: ruff check
+      - name: Type check
+        run: mypy
+      - name: Tests (pipeline, fixtures, tools)
+        run: pytest
+      - name: Component boundaries (TC-105)
+        run: python tools/architecture/check_boundaries.py
+
+  dependencies:
+    name: Dependency scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: npm audit (runtime and dev dependencies)
+        run: npm audit --audit-level=high
+      - name: Review dependency changes
+        if: github.event_name == 'pull_request'
+        uses: actions/dependency-review-action@v5
+        with:
+          fail-on-severity: high
