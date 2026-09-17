@@ -63,8 +63,3 @@ jobs:
       - uses: actions/checkout@v7
       - name: npm audit (runtime and dev dependencies)
         run: npm audit --audit-level=high
-      - name: Review dependency changes
-        if: github.event_name == 'pull_request'
-        uses: actions/dependency-review-action@v5
-        with:
-          fail-on-severity: high

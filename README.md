@@ -160,7 +160,7 @@ Every pull request and every push to `main` runs two workflows in [`.github/work
 
 | Workflow | Checks |
 |---|---|
-| `ci.yml` | **TypeScript:** type check, ESLint, and Vitest over SQLite WASM. **Python:** ruff format and lint, mypy (strict), and pytest. **Architecture:** the component boundary check. **Dependencies:** `npm audit`, plus dependency review on pull requests. |
+| `ci.yml` | **TypeScript:** type check, ESLint, and Vitest over SQLite WASM. **Python:** ruff format and lint, mypy (strict), and pytest. **Architecture:** the component boundary check. **Dependencies:** `npm audit` at high severity. |
 | `architecture.yml` | Traceability model against the architecture documents; Markdown links; secret scanning |
 
 A build and deployment of the demonstrator to GitHub Pages will be added when the site exists (v1.3.0 in the [roadmap](#15-roadmap)).
