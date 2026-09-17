@@ -160,11 +160,22 @@ Pull requests run lint → unit → integration → security → build. Merges t
 
 ## 13. Running locally
 
-The demonstrator arrives with Stage Two — see the [roadmap](#15-roadmap).
+The demonstrator site arrives later in Stage Two; see the [roadmap](#15-roadmap). What runs today:
 
-What runs today is the architecture's own governance check, which validates the traceability model against the architecture documents and regenerates the matrix. It needs only Python 3.11+:
+- **The core** (TypeScript, Node 24+): every component running over SQLite WASM, exercised end to end by the tests.
+- **The data pipeline** (Python 3.11+): the network fixtures under `data/fixtures/`.
+- **The governance checks:** traceability, component boundaries and links.
 
 ```bash
+npm ci
+npm test
+npm run typecheck
+npm run lint
+```
+
+```bash
+python -m pytest tests
+python tools/architecture/check_boundaries.py
 python tools/traceability/check.py --render
 ```
 
@@ -180,11 +191,11 @@ routeshield/
 │   ├── 04-operations/                       Runbooks, observability, KPIs
 │   └── 05-architecture-decisions/           ADRs
 ├── architecture/                            Diagrams, models, views
-├── src/                                     Domain engine
+├── src/                                     Core components (TypeScript) and adapters
 ├── frontend/                                Control dashboard & simulation UI
 ├── pipeline/                                Build-time data & ML pipeline
 ├── tests/                                   Test suites
-├── tools/                                   Governance tooling (traceability checker)
+├── tools/                                   Governance tooling (traceability, boundaries, links)
 ├── data/                                    Synthetic datasets & fixtures
 ├── infrastructure/                          Local containerised environment
 └── .github/                                 Workflows, templates
