@@ -13,18 +13,24 @@ leaves the graph, usually onto a service road the graph does not hold, the
 matcher breaks and the pieces are joined by a shortest path; the skipped shape
 length is recorded on the pattern.
 """
+
 from __future__ import annotations
 
 import argparse
 import csv
 import hashlib
 import heapq
+import itertools
 import json
 import math
 import sys
 from collections import Counter, defaultdict
-from datetime import datetime, timezone
+from collections.abc import Callable, Set
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
+
+JsonDict = dict[str, Any]
 
 ROOT = Path(__file__).resolve().parents[1]
 GTFS_DIR = ROOT / "data" / "fixtures" / "gtfs-sample"
@@ -34,18 +40,18 @@ OUT_DIR = ROOT / "data" / "fixtures" / "network"
 M_PER_DEG = 111_320.0
 K_LON = math.cos(math.radians(53.35))  # Dublin; local equirectangular projection
 
-STEP_M = 25.0        # shape resampling interval
-RADIUS_M = 60.0      # candidate search radius around each shape point
+STEP_M = 25.0  # shape resampling interval
+RADIUS_M = 60.0  # candidate search radius around each shape point
 MAX_CANDIDATES = 12  # nearest road edges kept per point
 KEEP_RADIUS_M = 120.0  # a road already being followed stays a candidate this far out
-SIGMA_M = 20.0       # how far a drawn GTFS shape strays from its road
-BETA_M = 10.0        # tolerance for road distance differing from shape distance
-UTURN_M = 50.0       # extra cost for turning back onto the same road
-MAX_SKIP_M = 400.0   # shape skipped before the matcher gives up and starts a new stretch
+SIGMA_M = 20.0  # how far a drawn GTFS shape strays from its road
+BETA_M = 10.0  # tolerance for road distance differing from shape distance
+UTURN_M = 50.0  # extra cost for turning back onto the same road
+MAX_SKIP_M = 400.0  # shape skipped before the matcher gives up and starts a new stretch
 # The published schedule outranks OSM one-way tags: a pattern may run against
 # one, at a cost, when its shape clearly does (A-008). Detour search does not.
 CONTRA_FACTOR = 4.0  # cost per metre against a one-way restriction
-CONTRA_STEP = 2.0    # extra emission cost per shape point matched against one
+CONTRA_STEP = 2.0  # extra emission cost per shape point matched against one
 GAP_ALLOWANCE_M = 2_000.0  # extra road distance allowed when joining across an unmatched gap
 BRIDGE_M = 20_000.0  # longest shortest-path join across an unmatched stretch
 INDEX_CELL_M = 250.0  # spatial index cell size
@@ -58,7 +64,7 @@ def xy(lat: float, lon: float) -> tuple[float, float]:
 def project(p: tuple[float, float], line: list[tuple[float, float]]) -> tuple[float, float]:
     """Distance from p to a polyline, and how far along the polyline the closest point is."""
     best, along, run = math.inf, 0.0, 0.0
-    for (x1, y1), (x2, y2) in zip(line, line[1:]):
+    for (x1, y1), (x2, y2) in itertools.pairwise(line):
         dx, dy = x2 - x1, y2 - y1
         seg = math.hypot(dx, dy)
         t = 0.0 if seg == 0 else max(0.0, min(1.0, ((p[0] - x1) * dx + (p[1] - y1) * dy) / (seg * seg)))
@@ -72,7 +78,7 @@ def project(p: tuple[float, float], line: list[tuple[float, float]]) -> tuple[fl
 def resample(line: list[tuple[float, float]], step: float) -> list[tuple[float, float]]:
     out = [line[0]]
     carry = 0.0
-    for (x1, y1), (x2, y2) in zip(line, line[1:]):
+    for (x1, y1), (x2, y2) in itertools.pairwise(line):
         seg = math.hypot(x2 - x1, y2 - y1)
         pos = step - carry
         while pos <= seg:
@@ -93,24 +99,25 @@ class Graph:
     restriction costs CONTRA_FACTOR per metre.
     """
 
-    def __init__(self, raw: dict):
+    def __init__(self, raw: JsonDict):
         self.raw = raw
         coord = raw["nodes"]["coord"]
         e = raw["edges"]
-        self.length = e["length_m"]
+        self.length: list[float] = e["length_m"]
         self.lines: list[list[tuple[float, float]]] = [
-            [xy(*coord[u]), *(xy(*p) for p in g), xy(*coord[v])] for u, v, g in zip(e["u"], e["v"], e["geom"])
+            [xy(*coord[u]), *(xy(*p) for p in g), xy(*coord[v])]
+            for u, v, g in zip(e["u"], e["v"], e["geom"], strict=True)
         ]
-        self.line_m = [sum(math.dist(a, b) for a, b in zip(ln, ln[1:])) or 1.0 for ln in self.lines]
-        self.ends = list(zip(e["u"], e["v"]))
-        self.dir = e["dir"]
+        self.line_m = [sum(math.dist(a, b) for a, b in itertools.pairwise(ln)) or 1.0 for ln in self.lines]
+        self.ends: list[tuple[int, int]] = list(zip(e["u"], e["v"], strict=True))
+        self.dir: list[int] = e["dir"]
         self.out: dict[int, list[tuple[int, int, float]]] = defaultdict(list)
         for i, (u, v) in enumerate(self.ends):
             self.out[u].append((2 * i, v, self.length[i] * self.factor(2 * i)))
             self.out[v].append((2 * i + 1, u, self.length[i] * self.factor(2 * i + 1)))
         self.cells: dict[tuple[int, int], set[int]] = defaultdict(set)
         for i, line in enumerate(self.lines):
-            for (x1, y1), (x2, y2) in zip(line, line[1:]):
+            for (x1, y1), (x2, y2) in itertools.pairwise(line):
                 for cx in range(int(min(x1, x2) // RADIUS_M), int(max(x1, x2) // RADIUS_M) + 1):
                     for cy in range(int(min(y1, y2) // RADIUS_M), int(max(y1, y2) // RADIUS_M) + 1):
                         self.cells[(cx, cy)].add(i)
@@ -129,7 +136,7 @@ class Graph:
     def factor(self, de: int) -> float:
         return CONTRA_FACTOR if self.contra(de) else 1.0
 
-    def candidates(self, p: tuple[float, float], keep: set[int] = frozenset()) -> list[tuple[int, float, float]]:
+    def candidates(self, p: tuple[float, float], keep: Set[int] = frozenset()) -> list[tuple[int, float, float]]:
         """Directed edges near p, as (directed edge, offset from its tail, distance).
 
         Edges in keep stay candidates out to KEEP_RADIUS_M, so a road the shape
@@ -156,7 +163,9 @@ class Graph:
             out.append((2 * i + 1, self.length[i] - off, d))
         return out
 
-    def dijkstra(self, source: int, limit: float, targets: set[int] | None = None):
+    def dijkstra(
+        self, source: int, limit: float, targets: set[int] | None = None
+    ) -> tuple[dict[int, float], dict[int, int]]:
         """Shortest distances from a node, up to limit metres; stops early once all targets are settled."""
         dist = {source: 0.0}
         pred: dict[int, int] = {}
@@ -197,11 +206,9 @@ def match(graph: Graph, points: list[tuple[float, float]]) -> tuple[list[int], l
     cands: list[list[tuple[int, float, float]]] = []
     for p in points:
         cands.append(graph.candidates(p, {de >> 1 for de, _, _ in cands[-1]} if cands else set()))
-    emits = [
-        [0.5 * (d / SIGMA_M) ** 2 + (CONTRA_STEP if graph.contra(de) else 0.0) for de, _, d in cs] for cs in cands
-    ]
+    emits = [[0.5 * (d / SIGMA_M) ** 2 + (CONTRA_STEP if graph.contra(de) else 0.0) for de, _, d in cs] for cs in cands]
     along = [0.0]
-    for a, b in zip(points, points[1:]):
+    for a, b in itertools.pairwise(points):
         along.append(along[-1] + math.dist(a, b))
 
     chains: list[list[tuple[int, int]]] = []  # each: [(point index, candidate index)]
@@ -212,7 +219,7 @@ def match(graph: Graph, points: list[tuple[float, float]]) -> tuple[list[int], l
 
     def finish() -> None:
         if score:
-            t, c = last_t, min(score, key=score.get)
+            t, c = last_t, min(score, key=lambda j: score[j])
             chain = [(t, c)]
             while (t, c) in back:
                 t, c, _ = back[(t, c)]
@@ -227,7 +234,7 @@ def match(graph: Graph, points: list[tuple[float, float]]) -> tuple[list[int], l
         cs, prev = cands[t], cands[last_t]
         gc = along[t] - along[last_t]
         new: dict[int, float] = {}
-        trees: dict[int, tuple[dict, dict]] = {}
+        trees: dict[int, tuple[dict[int, float], dict[int, int]]] = {}
         tails = {graph.tail(de) for de, _, _ in cs}
         for a, sa in score.items():
             de_a, off_a, _ = prev[a]
@@ -346,10 +353,10 @@ def place_stops(
     return placed
 
 
-def edge_index(graph: Graph) -> dict:
+def edge_index(graph: Graph) -> JsonDict:
     cells: dict[str, set[int]] = defaultdict(set)
     for i, line in enumerate(graph.lines):
-        for (x1, y1), (x2, y2) in zip(line, line[1:]):
+        for (x1, y1), (x2, y2) in itertools.pairwise(line):
             for cx in range(int(min(x1, x2) // INDEX_CELL_M), int(max(x1, x2) // INDEX_CELL_M) + 1):
                 for cy in range(int(min(y1, y2) // INDEX_CELL_M), int(max(y1, y2) // INDEX_CELL_M) + 1):
                     cells[f"{cx},{cy}"].add(i)
@@ -365,7 +372,7 @@ def read_csv(path: Path) -> list[dict[str, str]]:
         return list(csv.DictReader(f))
 
 
-def build(gtfs: Path, graph_dir: Path, log=print) -> dict:
+def build(gtfs: Path, graph_dir: Path, log: Callable[[str], None] = print) -> JsonDict:
     graph = Graph(json.loads((graph_dir / "road_graph.json").read_bytes()))
     routes = read_csv(gtfs / "routes.txt")
     stops = read_csv(gtfs / "stops.txt")
@@ -384,7 +391,7 @@ def build(gtfs: Path, graph_dir: Path, log=print) -> dict:
         t = trips[trip_id]
         groups[(t["route_id"], t["direction_id"], tuple(x for _, x in sorted(s)))].append(trip_id)
 
-    patterns = []
+    patterns: list[JsonDict] = []
     trip_pattern: dict[str, int] = {}
     order = sorted(groups, key=lambda k: (routes[route_index[k[0]]]["route_short_name"], k[1], -len(groups[k])))
     for n, key in enumerate(order):
@@ -394,40 +401,48 @@ def build(gtfs: Path, graph_dir: Path, log=print) -> dict:
         line = [xy(lat, lon) for _, lat, lon in sorted(shapes[shape_id])]
         points = resample(line, STEP_M)
         path, where, bridged = match(graph, points)
-        stop_xy = [xy(float(stops[stop_index[s]]["stop_lat"]), float(stops[stop_index[s]]["stop_lon"])) for s in stop_ids]
+        stop_xy = [
+            xy(float(stops[stop_index[s]]["stop_lat"]), float(stops[stop_index[s]]["stop_lon"])) for s in stop_ids
+        ]
         placed = place_stops(graph, path, where, points, stop_xy)
         matched = [t for t, w in enumerate(where) if w >= 0]
         contra = [de for de in path if graph.contra(de)]
         code = routes[route_index[route_id]]["route_short_name"]
         pattern_id = f"{code}-{direction}-{n}"
-        patterns.append({
-            "id": pattern_id,
-            "route": route_index[route_id],
-            "direction": int(direction),
-            "gtfs_shape_id": shape_id,
-            "trips": len(trip_ids),
-            "stops": [stop_index[s] for s in stop_ids],
-            "path": path,
-            "stop_positions": [list(p) for p in placed],
-            "quality": {
-                "shape_m": round(sum(math.dist(a, b) for a, b in zip(line, line[1:])), 1),
-                "path_m": round(sum(graph.length[de >> 1] for de in path), 1),
-                "matched_share": round(len(matched) / len(points), 4),
-                "bridged_m": round(bridged, 1),
-                "stop_distance_max_m": max(p[2] for p in placed),
-                # Where the schedule runs against an OSM one-way tag: evidence for A-008.
-                "contraflow_m": round(sum(graph.length[de >> 1] for de in contra), 1),
-                "contraflow_osm_ways": sorted(
-                    {graph.raw["ways"]["osm_id"][graph.raw["edges"]["way"][de >> 1]] for de in contra}
-                ),
-            },
-        })
-        for t in trip_ids:
-            trip_pattern[t] = n
+        patterns.append(
+            {
+                "id": pattern_id,
+                "route": route_index[route_id],
+                "direction": int(direction),
+                "gtfs_shape_id": shape_id,
+                "trips": len(trip_ids),
+                "stops": [stop_index[s] for s in stop_ids],
+                "path": path,
+                "stop_positions": [list(p) for p in placed],
+                "quality": {
+                    "shape_m": round(sum(math.dist(a, b) for a, b in itertools.pairwise(line)), 1),
+                    "path_m": round(sum(graph.length[de >> 1] for de in path), 1),
+                    "matched_share": round(len(matched) / len(points), 4),
+                    "bridged_m": round(bridged, 1),
+                    "stop_distance_max_m": max(p[2] for p in placed),
+                    # Where the schedule runs against an OSM one-way tag: evidence for A-008.
+                    "contraflow_m": round(sum(graph.length[de >> 1] for de in contra), 1),
+                    "contraflow_osm_ways": sorted(
+                        {graph.raw["ways"]["osm_id"][graph.raw["edges"]["way"][de >> 1]] for de in contra}
+                    ),
+                },
+            }
+        )
+        for tid in trip_ids:
+            trip_pattern[tid] = n
         q = patterns[-1]["quality"]
-        log(f"  {pattern_id:14} {len(stop_ids):3} stops  shape {q['shape_m'] / 1000:5.1f} km  path {q['path_m'] / 1000:5.1f} km"
-            f"  matched {q['matched_share']:.1%}  bridged {q['bridged_m']:.0f} m  worst stop {q['stop_distance_max_m']:.0f} m"
-            f"  contraflow {q['contraflow_m']:.0f} m")
+        log(
+            f"  {pattern_id:14} {len(stop_ids):3} stops"
+            f"  shape {q['shape_m'] / 1000:5.1f} km  path {q['path_m'] / 1000:5.1f} km"
+            f"  matched {q['matched_share']:.1%}  bridged {q['bridged_m']:.0f} m"
+            f"  worst stop {q['stop_distance_max_m']:.0f} m"
+            f"  contraflow {q['contraflow_m']:.0f} m"
+        )
 
     return {
         "format": "routeshield-network/1",
@@ -437,8 +452,12 @@ def build(gtfs: Path, graph_dir: Path, log=print) -> dict:
             for r in routes
         ],
         "stops": [
-            {"gtfs_stop_id": s["stop_id"], "code": s["stop_code"], "name": s["stop_name"],
-             "location": [float(s["stop_lat"]), float(s["stop_lon"])]}
+            {
+                "gtfs_stop_id": s["stop_id"],
+                "code": s["stop_code"],
+                "name": s["stop_name"],
+                "location": [float(s["stop_lat"]), float(s["stop_lon"])],
+            }
             for s in stops
         ],
         "patterns": patterns,
@@ -459,15 +478,21 @@ def main(argv: list[str] | None = None) -> int:
     data = json.dumps(network, separators=(",", ":")).encode("utf-8")
     (args.out / "network.json").write_bytes(data)
     manifest = {
-        "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "generated_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "inputs": {
-            str(p.relative_to(ROOT)).replace("\\", "/") if p.is_relative_to(ROOT) else p.name:
-                hashlib.sha256(p.read_bytes()).hexdigest()
+            str(p.relative_to(ROOT)).replace("\\", "/") if p.is_relative_to(ROOT) else p.name: hashlib.sha256(
+                p.read_bytes()
+            ).hexdigest()
             for p in (args.gtfs / "manifest.json", args.graph / "manifest.json")
         },
         "parameters": {
-            "step_m": STEP_M, "radius_m": RADIUS_M, "max_candidates": MAX_CANDIDATES,
-            "sigma_m": SIGMA_M, "beta_m": BETA_M, "uturn_m": UTURN_M, "index_cell_m": INDEX_CELL_M,
+            "step_m": STEP_M,
+            "radius_m": RADIUS_M,
+            "max_candidates": MAX_CANDIDATES,
+            "sigma_m": SIGMA_M,
+            "beta_m": BETA_M,
+            "uturn_m": UTURN_M,
+            "index_cell_m": INDEX_CELL_M,
         },
         "licence": [
             "Contains National Transport Authority data, licensed under CC BY 4.0.",

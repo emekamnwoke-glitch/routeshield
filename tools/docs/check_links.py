@@ -1,11 +1,13 @@
 """Check that relative Markdown links and their #anchors resolve.
 
-    python tools/docs/check_links.py
+python tools/docs/check_links.py
 """
+
 from __future__ import annotations
 
 import re
 import sys
+from collections.abc import Iterator
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -42,7 +44,7 @@ def anchors(path: Path) -> set[str]:
     return out
 
 
-def links(path: Path):
+def links(path: Path) -> Iterator[tuple[int, str]]:
     in_fence = False
     for i, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
         if FENCE.match(line):
@@ -56,7 +58,8 @@ def links(path: Path):
 def main() -> int:
     cache: dict[Path, set[str]] = {}
     problems = []
-    files = [p for p in ROOT.rglob("*.md") if ".git" not in p.parts and "node_modules" not in p.parts]
+    skip = {".git", "node_modules", ".venv"}
+    files = [p for p in ROOT.rglob("*.md") if not skip.intersection(p.relative_to(ROOT).parts)]
     for f in files:
         for line, target in links(f):
             if re.match(r"^[a-z]+:", target):

@@ -9,10 +9,12 @@ ways are split wherever they meet another way, and only the tags that bear on
 whether a bus can use a road are kept (A-008). Every edge is feasibility
 `verified_open`, never `verified_operator` (ADR-0011).
 """
+
 from __future__ import annotations
 
 import argparse
 import hashlib
+import itertools
 import json
 import math
 import sys
@@ -20,8 +22,13 @@ import time
 import urllib.parse
 import urllib.request
 from collections import Counter, defaultdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
+
+JsonDict = dict[str, Any]
+# (from node, to node, way index, length m, direction, intermediate node ids)
+Edge = tuple[int, int, int, float, int, list[int]]
 
 ROOT = Path(__file__).resolve().parents[1]
 RAW_JSON = ROOT / "data" / "raw" / "osm_dublin_roads.json"
@@ -40,10 +47,29 @@ HIGHWAYS = "^(motorway|trunk|primary|secondary|tertiary|unclassified|residential
 
 # Tags kept on each way: road class, and what OSM says about bus access and limits.
 KEEP_TAGS = (
-    "highway", "name", "ref", "oneway", "junction", "maxspeed", "maxheight", "maxweight",
-    "access", "motor_vehicle", "bus", "psv", "oneway:bus", "oneway:psv", "busway", "lanes",
-    "busway:left", "busway:right", "busway:both", "lanes:bus:backward", "lanes:psv:backward",
-    "bus:lanes:backward", "psv:lanes:backward",
+    "highway",
+    "name",
+    "ref",
+    "oneway",
+    "junction",
+    "maxspeed",
+    "maxheight",
+    "maxweight",
+    "access",
+    "motor_vehicle",
+    "bus",
+    "psv",
+    "oneway:bus",
+    "oneway:psv",
+    "busway",
+    "lanes",
+    "busway:left",
+    "busway:right",
+    "busway:both",
+    "lanes:bus:backward",
+    "lanes:psv:backward",
+    "bus:lanes:backward",
+    "psv:lanes:backward",
 )
 CONTRAFLOW_BUSWAY = "opposite_lane"
 NO_ACCESS = {"no", "private"}
@@ -81,7 +107,8 @@ def tiles(bbox: tuple[float, float, float, float], n: int) -> list[tuple[float, 
     dy, dx = (north - s) / n, (e - w) / n
     return [
         (round(s + i * dy, 5), round(w + j * dx, 5), round(s + (i + 1) * dy, 5), round(w + (j + 1) * dx, 5))
-        for i in range(n) for j in range(n)
+        for i in range(n)
+        for j in range(n)
     ]
 
 
@@ -105,7 +132,7 @@ def fetch(q: str, rounds: int = 4, wait_s: int = 60) -> tuple[str, bytes]:
                 return url, data
             except (OSError, ValueError) as exc:
                 errors.append(f"{url}: {exc}")
-    raise SystemExit("all Overpass endpoints failed:\n  " + "\n  ".join(errors[-len(ENDPOINTS):]))
+    raise SystemExit("all Overpass endpoints failed:\n  " + "\n  ".join(errors[-len(ENDPOINTS) :]))
 
 
 def download(bbox: tuple[float, float, float, float], n: int, dest: Path) -> None:
@@ -116,7 +143,7 @@ def download(bbox: tuple[float, float, float, float], n: int, dest: Path) -> Non
     """
     cache = dest.parent / f"{dest.stem}_tiles"
     cache.mkdir(parents=True, exist_ok=True)
-    elements: dict[tuple[str, int], dict] = {}
+    elements: dict[tuple[str, int], JsonDict] = {}
     used, osm_base = [], None
     for k, tile in enumerate(tiles(bbox, n), 1):
         path = cache / ("_".join(f"{c:g}" for c in tile) + ".json")
@@ -215,12 +242,13 @@ def direction(tags: dict[str, str]) -> int:
     return 0
 
 
-def build(raw: dict) -> dict:
+def build(raw: JsonDict) -> JsonDict:
     coords = {el["id"]: (el["lat"], el["lon"]) for el in raw["elements"] if el["type"] == "node"}
     # A road in an OSM bus route relation is one buses use, whatever its access tags say.
     bus_route = set(raw.get("bus_route_ways", []))
     ways = [
-        el for el in raw["elements"]
+        el
+        for el in raw["elements"]
         if el["type"] == "way"
         and (el["id"] in bus_route or bus_allowed(el.get("tags", {})))
         and all(n in coords for n in el["nodes"])
@@ -229,8 +257,8 @@ def build(raw: dict) -> dict:
     ends = {n for w in ways for n in (w["nodes"][0], w["nodes"][-1])}
     junction = {n for n, c in uses.items() if c > 1} | ends
 
-    edges = []  # (u, v, way index, length, dir, intermediate node ids)
-    way_rows = []
+    edges: list[Edge] = []
+    way_rows: list[JsonDict] = []
     for w in ways:
         tags = w.get("tags", {})
         wi = len(way_rows)
@@ -241,7 +269,7 @@ def build(raw: dict) -> dict:
             seg.append(n)
             # A way that loops back through a node it already passed is split there too.
             if n in junction or n == seg[0]:
-                length = sum(haversine_m(*coords[a], *coords[b]) for a, b in zip(seg, seg[1:]))
+                length = sum(haversine_m(*coords[a], *coords[b]) for a, b in itertools.pairwise(seg))
                 if seg[0] != seg[-1] or len(seg) > 2:
                     edges.append((seg[0], seg[-1], wi, length, d, seg[1:-1]))
                 seg = [n]
@@ -275,15 +303,13 @@ def build(raw: dict) -> dict:
     def rounded(p: tuple[float, float]) -> list[float]:
         return [round(p[0], COORD_DP), round(p[1], COORD_DP)]
 
-    def shape(e: tuple) -> list[list[float]]:
+    def shape(e: Edge) -> list[list[float]]:
         full = [coords[e[0]], *(coords[n] for n in e[5]), coords[e[1]]]
         return [rounded(p) for p in simplify(full, SIMPLIFY_M)[1:-1]]
 
     # Many ways share identical tags (a street split into pieces), so each tag set is stored once.
     tag_sets: dict[str, int] = {}
-    way_tags = [
-        tag_sets.setdefault(json.dumps(way_rows[w]["tags"], sort_keys=True), len(tag_sets)) for w in used_ways
-    ]
+    way_tags = [tag_sets.setdefault(json.dumps(way_rows[w]["tags"], sort_keys=True), len(tag_sets)) for w in used_ways]
 
     return {
         "format": "routeshield-road-graph/1",
@@ -326,7 +352,7 @@ def main(argv: list[str] | None = None) -> int:
     data = json.dumps(graph, separators=(",", ":")).encode("utf-8")
     (args.out / "road_graph.json").write_bytes(data)
 
-    manifest = {
+    manifest: JsonDict = {
         "source": {
             "publisher": "OpenStreetMap contributors",
             "endpoints": raw.get("endpoints", []),
@@ -339,7 +365,7 @@ def main(argv: list[str] | None = None) -> int:
             "osm_base": raw.get("osm3s", {}).get("timestamp_osm_base"),
         },
         "licence": LICENCE,
-        "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "generated_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "bbox": {"south": bbox[0], "west": bbox[1], "north": bbox[2], "east": bbox[3]},
         "files": {
             "road_graph.json": {

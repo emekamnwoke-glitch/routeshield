@@ -1,4 +1,5 @@
 """Tests for tools/architecture/check_boundaries.py (TC-105)."""
+
 from __future__ import annotations
 
 import sys
@@ -11,7 +12,7 @@ sys.path.insert(0, str(ROOT / "tools" / "architecture"))
 
 import check_boundaries  # noqa: E402
 
-GOOD_MODULE = '''import type { Tx } from "../../kernel/store";
+GOOD_MODULE = """import type { Tx } from "../../kernel/store";
 import type { Other } from "../ac-02-other/contract";
 
 export class Thing {
@@ -23,13 +24,13 @@ export class Thing {
     throw new Error("cannot read from the source");
   }
 }
-'''
+"""
 
-OTHER_MODULE = '''export class Other {
+OTHER_MODULE = """export class Other {
   readonly id = "AC-02";
   readonly tablePrefix = "ot_";
 }
-'''
+"""
 
 
 def tree(tmp_path: Path, files: dict[str, str]) -> Path:
@@ -67,7 +68,11 @@ def test_a_clean_tree_passes(tmp_path: Path) -> None:
             "the kernel must not import",
         ),
         (
-            {"src/core/modules/ac-01-thing/extra.ts": 'import { SqliteStore } from "../../../adapters/sqlite/sqlite-store";\n'},
+            {
+                "src/core/modules/ac-01-thing/extra.ts": (
+                    'import { SqliteStore } from "../../../adapters/sqlite/sqlite-store";\n'
+                )
+            },
             "must not import adapters",
         ),
         (

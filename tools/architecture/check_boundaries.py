@@ -10,6 +10,7 @@ Rules:
      the kernel's tables use kn_.
   5. Each component's folder, id and table prefix agree, and prefixes are unique.
 """
+
 from __future__ import annotations
 
 import re

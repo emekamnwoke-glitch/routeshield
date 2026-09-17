@@ -1,0 +1,30 @@
+# Tool configuration for the Python side: the build-time pipeline, governance
+# tools and their tests. Not a package; pins are in requirements-dev.txt.
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+include = ["pipeline/**/*.py", "tools/**/*.py", "tests/**/*.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.12"
+files = ["pipeline", "tools", "tests"]
+mypy_path = ["pipeline", "tools/architecture"]
+explicit_package_bases = true
+strict = true
+warn_unreachable = true
+
+# Tests build loose JSON-shaped fixtures; the code under test stays fully strict.
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+disallow_any_generics = false
+warn_return_any = false
+strict_equality = false  # misfires on pytest.approx
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

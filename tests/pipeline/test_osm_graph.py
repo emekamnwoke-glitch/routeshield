@@ -1,8 +1,10 @@
 """Tests for pipeline/osm_graph.py."""
+
 from __future__ import annotations
 
 import csv
 import hashlib
+import itertools
 import json
 import math
 import sys
@@ -13,6 +15,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "pipeline"))
+
 
 import osm_graph  # noqa: E402
 
@@ -33,9 +36,13 @@ def way(i: int, nodes: list[int], **tags: str) -> dict:
 #   8 --- 9              (way 13, not connected)
 RAW = {
     "elements": [
-        node(1, 53.30, -6.30), node(2, 53.30, -6.29), node(3, 53.30, -6.28),
-        node(4, 53.29, -6.29), node(5, 53.29, -6.28),
-        node(8, 53.20, -6.40), node(9, 53.20, -6.39),
+        node(1, 53.30, -6.30),
+        node(2, 53.30, -6.29),
+        node(3, 53.30, -6.28),
+        node(4, 53.29, -6.29),
+        node(5, 53.29, -6.28),
+        node(8, 53.20, -6.40),
+        node(9, 53.20, -6.39),
         way(10, [1, 2, 3], name="Main Street"),
         way(11, [2, 4], oneway="yes", maxheight="4.2"),
         way(12, [4, 5], access="private"),
@@ -48,7 +55,7 @@ def edges(graph: dict) -> list[tuple[int, int, int, int]]:
     ids = graph["nodes"]["osm_id"]
     e = graph["edges"]
     ways = graph["ways"]["osm_id"]
-    return sorted((ids[u], ids[v], ways[w], d) for u, v, w, d in zip(e["u"], e["v"], e["way"], e["dir"]))
+    return sorted((ids[u], ids[v], ways[w], d) for u, v, w, d in zip(e["u"], e["v"], e["way"], e["dir"], strict=True))
 
 
 def tags_of(graph: dict, way_id: int) -> dict[str, str]:
@@ -70,7 +77,9 @@ def test_roads_in_bus_route_relations_are_kept_even_if_closed() -> None:
     raw = {
         "bus_route_ways": [2],
         "elements": [
-            node(1, 53.3, -6.3), node(2, 53.3, -6.29), node(3, 53.3, -6.28),
+            node(1, 53.3, -6.3),
+            node(2, 53.3, -6.29),
+            node(3, 53.3, -6.28),
             way(1, [1, 2]),
             {"type": "way", "id": 2, "nodes": [2, 3], "tags": {"highway": "service", "access": "private"}},
         ],
@@ -83,8 +92,11 @@ def test_roads_in_bus_route_relations_are_kept_even_if_closed() -> None:
 def test_identical_tag_sets_are_stored_once() -> None:
     raw = {
         "elements": [
-            node(1, 53.3, -6.3), node(2, 53.3, -6.29), node(3, 53.3, -6.28),
-            way(1, [1, 2], name="Main Street"), way(2, [2, 3], name="Main Street"),
+            node(1, 53.3, -6.3),
+            node(2, 53.3, -6.29),
+            node(3, 53.3, -6.28),
+            way(1, [1, 2], name="Main Street"),
+            way(2, [2, 3], name="Main Street"),
         ]
     }
     graph = osm_graph.build(raw)
@@ -97,19 +109,28 @@ def test_edge_length_uses_full_shape_and_geometry_keeps_real_bends() -> None:
     # apart from node 5, 0.1 m off the line, which is dropped but still measured.
     raw = {
         "elements": [
-            node(1, 53.3, -6.3), node(2, 53.3009, -6.299), node(3, 53.3, -6.298),
-            node(4, 53.3, -6.297), node(5, 53.300001, -6.296), node(6, 53.3, -6.295),
-            way(1, [1, 2, 3]), way(2, [3, 4, 5, 6]),
+            node(1, 53.3, -6.3),
+            node(2, 53.3009, -6.299),
+            node(3, 53.3, -6.298),
+            node(4, 53.3, -6.297),
+            node(5, 53.300001, -6.296),
+            node(6, 53.3, -6.295),
+            way(1, [1, 2, 3]),
+            way(2, [3, 4, 5, 6]),
         ]
     }
     graph = osm_graph.build(raw)
-    geom = dict(zip(graph["edges"]["way"], graph["edges"]["geom"]))
-    lengths = dict(zip(graph["edges"]["way"], graph["edges"]["length_m"]))
+    geom = dict(zip(graph["edges"]["way"], graph["edges"]["geom"], strict=True))
+    lengths = dict(zip(graph["edges"]["way"], graph["edges"]["length_m"], strict=True))
     assert geom == {0: [[53.3009, -6.299]], 1: []}
     assert lengths[0] == pytest.approx(2 * osm_graph.haversine_m(53.3, -6.3, 53.3009, -6.299), abs=0.1)
     full = sum(
         osm_graph.haversine_m(*a, *b)
-        for a, b in [((53.3, -6.298), (53.3, -6.297)), ((53.3, -6.297), (53.300001, -6.296)), ((53.300001, -6.296), (53.3, -6.295))]
+        for a, b in [
+            ((53.3, -6.298), (53.3, -6.297)),
+            ((53.3, -6.297), (53.300001, -6.296)),
+            ((53.300001, -6.296), (53.3, -6.295)),
+        ]
     )
     assert lengths[1] == round(full, 1)
 
@@ -124,7 +145,9 @@ def test_simplify_keeps_endpoints_and_drops_near_straight_points() -> None:
 def test_closed_way_becomes_a_loop_edge() -> None:
     raw = {
         "elements": [
-            node(1, 53.3, -6.3), node(2, 53.3, -6.29), node(3, 53.31, -6.29),
+            node(1, 53.3, -6.3),
+            node(2, 53.3, -6.29),
+            node(3, 53.31, -6.29),
             way(1, [1, 2, 3, 1], junction="roundabout"),
         ]
     }
@@ -181,9 +204,9 @@ def test_committed_graph_matches_manifest_and_reaches_sample_stops() -> None:
     coord, e = graph["nodes"]["coord"], graph["edges"]
     k, cell = math.cos(math.radians(53.35)), 0.002
     grid: dict[tuple[int, int], list] = defaultdict(list)
-    for u, v, geom in zip(e["u"], e["v"], e["geom"]):
+    for u, v, geom in zip(e["u"], e["v"], e["geom"], strict=True):
         pts = [coord[u], *geom, coord[v]]
-        for a, b in zip(pts, pts[1:]):
+        for a, b in itertools.pairwise(pts):
             for lat, lon in (a, b, ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)):
                 grid[(int(lat // cell), int(lon // cell))].append((a, b))
 

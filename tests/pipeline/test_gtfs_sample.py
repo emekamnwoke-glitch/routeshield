@@ -1,4 +1,5 @@
 """Tests for pipeline/gtfs_sample.py and the committed GTFS sample."""
+
 from __future__ import annotations
 
 import csv

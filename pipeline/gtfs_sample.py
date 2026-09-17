@@ -7,6 +7,7 @@ The full feed is downloaded to data/raw/ (git-ignored). Only the trimmed files
 and a manifest recording source, licence, fetch date and checksums are written
 to data/fixtures/gtfs-sample/ (ADR-0011). Rows are filtered, never edited.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -17,7 +18,8 @@ import json
 import sys
 import urllib.request
 import zipfile
-from datetime import datetime, timezone
+from collections.abc import Callable
+from datetime import UTC, datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -55,7 +57,9 @@ def read(feed: zipfile.ZipFile, name: str) -> tuple[list[str], list[dict[str, st
         return list(reader.fieldnames or []), list(reader)
 
 
-def filter_rows(feed: zipfile.ZipFile, name: str, keep) -> tuple[list[str], list[dict[str, str]]]:
+def filter_rows(
+    feed: zipfile.ZipFile, name: str, keep: Callable[[dict[str, str]], bool]
+) -> tuple[list[str], list[dict[str, str]]]:
     """Filter row by row, so large files are never held in memory whole."""
     with feed.open(name) as f:
         reader = csv.DictReader(io.TextIOWrapper(f, encoding="utf-8-sig"))
@@ -138,7 +142,7 @@ def main(argv: list[str] | None = None) -> int:
             "feed_end_date": feed_info.get("feed_end_date"),
         },
         "licence": LICENCE,
-        "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "generated_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "filter": {"routes": sorted(routes), "service_id": args.service},
         "files": files,
     }

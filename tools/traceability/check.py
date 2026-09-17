@@ -1,23 +1,31 @@
 """Check and render the RouteShield traceability model.
 
-    python tools/traceability/check.py            # check only
-    python tools/traceability/check.py --render   # check, then rewrite the matrix
-    python tools/traceability/check.py --verify-rendered   # CI: fail if the matrix is stale
+python tools/traceability/check.py            # check only
+python tools/traceability/check.py --render   # check, then rewrite the matrix
+python tools/traceability/check.py --verify-rendered   # CI: fail if the matrix is stale
 """
+
 from __future__ import annotations
 
 import argparse
 import re
 import sys
 import tomllib
+from collections.abc import Iterable
 from pathlib import Path
+from typing import Any
+
+Model = dict[str, Any]
 
 ROOT = Path(__file__).resolve().parents[2]
 MODEL = ROOT / "architecture/models/traceability.toml"
 MATRIX = ROOT / "docs/01-stage-one-architecture/phase-g-implementation-governance/traceability-matrix.md"
 BR_DOC = ROOT / "docs/01-stage-one-architecture/phase-b-business-architecture/business-requirements.md"
 CAP_DOC = ROOT / "docs/01-stage-one-architecture/phase-b-business-architecture/capability-map.md"
-COMP_DOC = ROOT / "docs/01-stage-one-architecture/phase-c-information-systems/application-architecture/application-components.md"
+COMP_DOC = (
+    ROOT
+    / "docs/01-stage-one-architecture/phase-c-information-systems/application-architecture/application-components.md"
+)
 PRINCIPLES_DOC = ROOT / "docs/01-stage-one-architecture/methodology/architecture-principles.md"
 ADR_DIR = ROOT / "docs/05-architecture-decisions"
 
@@ -29,7 +37,7 @@ def ids_in(path: Path, pattern: str) -> set[str]:
     return set(re.findall(pattern, path.read_text(encoding="utf-8")))
 
 
-def check(m: dict) -> list[str]:
+def check(m: Model) -> list[str]:
     errors: list[str] = []
     caps = m["capabilities"]
     tech = m["technical"]
@@ -45,7 +53,7 @@ def check(m: dict) -> list[str]:
     principles = ids_in(PRINCIPLES_DOC, r"(?m)^## (P-\d+)")
     adrs = {f"ADR-{p.name[4:8]}" for p in ADR_DIR.glob("adr-[0-9][0-9][0-9][0-9]-*.md")}
 
-    def diff(label, model_ids, doc_ids):
+    def diff(label: str, model_ids: Iterable[str], doc_ids: set[str]) -> None:
         for x in sorted(set(model_ids) - doc_ids):
             errors.append(f"{label}: {x} is in the model but not in the architecture documents")
         for x in sorted(doc_ids - set(model_ids)):
@@ -147,29 +155,37 @@ def check(m: dict) -> list[str]:
     return errors
 
 
-def render(m: dict) -> str:
-    caps, comps, brs, ars, tests = (m["capabilities"], m["components"], m["business_requirements"],
-                                    m["architecture_requirements"], m["tests"])
+def render(m: Model) -> str:
+    caps, comps, brs, ars, tests = (
+        m["capabilities"],
+        m["components"],
+        m["business_requirements"],
+        m["architecture_requirements"],
+        m["tests"],
+    )
     br_ar = {b: [a for a, v in ars.items() if b in v["sources"]] for b in brs}
     by_target: dict[str, list[str]] = {}
     for tid, t in tests.items():
         for v in t["verifies"]:
             by_target.setdefault(v, []).append(tid)
 
-    def status_of(ids):
+    def status_of(ids: list[str]) -> str:
         s = {tests[i]["status"] for i in ids}
         return "planned" if s == {"planned"} else ", ".join(sorted(s))
 
-    counts = {}
+    counts: dict[str, int] = {}
     for t in tests.values():
         counts[t["status"]] = counts.get(t["status"], 0) + 1
 
-    out = []
+    out: list[str] = []
     w = out.append
     w("# Traceability Matrix")
     w("")
-    w("> **Generated** from [`architecture/models/traceability.toml`](../../../architecture/models/traceability.toml) "
-      "by `tools/traceability/check.py --render`. Do not edit by hand.")
+    w(
+        "> **Generated** from "
+        "[`architecture/models/traceability.toml`](../../../architecture/models/traceability.toml) "
+        "by `tools/traceability/check.py --render`. Do not edit by hand."
+    )
     w("")
     w("## Summary")
     w("")
@@ -189,13 +205,13 @@ def render(m: dict) -> str:
     w('    BR["Business requirement<br/>BR-nnn"] --> CAP["Capability<br/>Cn.n"]')
     w('    BR --> AR["Architecture requirement<br/>AR-nnn"]')
     w('    CAP --> AC["Application component<br/>AC-nn"]')
-    w('    AR --> AC')
+    w("    AR --> AC")
     w('    AR --> TECH["Technical component"]')
     w('    BR --> US["User story<br/>US-nnn"]')
     w('    US --> IMPL["Implementation"]')
     w('    AR --> TC["Test case<br/>TC-nnn"]')
-    w('    BR --> TC')
-    w('    TC --> IMPL')
+    w("    BR --> TC")
+    w("    TC --> IMPL")
     w('    TC --> EV["Evidence"]')
     w("```")
     w("")
@@ -206,17 +222,21 @@ def render(m: dict) -> str:
     for bid, b in brs.items():
         comp_ids = sorted({c for a in br_ar[bid] for c in ars[a]["components"]})
         tids = sorted(by_target.get(bid, []) + [t for a in br_ar[bid] for t in by_target.get(a, [])])
-        w(f"| **{bid}** {b['title']} | {b['priority']} | {', '.join(b['capabilities'])} | "
-          f"{', '.join(br_ar[bid])} | {', '.join(comp_ids)} | {', '.join(b.get('stories', [])) or '—'} | "
-          f"{', '.join(tids)} | {status_of(tids)} |")
+        w(
+            f"| **{bid}** {b['title']} | {b['priority']} | {', '.join(b['capabilities'])} | "
+            f"{', '.join(br_ar[bid])} | {', '.join(comp_ids)} | {', '.join(b.get('stories', [])) or '—'} | "
+            f"{', '.join(tids)} | {status_of(tids)} |"
+        )
     w("")
     w("## Architecture requirements")
     w("")
     w("| AR | Statement | Sources | Components | Technical | Tests |")
     w("|---|---|---|---|---|---|")
     for aid, a in ars.items():
-        w(f"| **{aid}** | {a['statement']} | {', '.join(a['sources'])} | {', '.join(a['components'])} | "
-          f"{', '.join(a['technical'])} | {', '.join(by_target.get(aid, []))} |")
+        w(
+            f"| **{aid}** | {a['statement']} | {', '.join(a['sources'])} | {', '.join(a['components'])} | "
+            f"{', '.join(a['technical'])} | {', '.join(by_target.get(aid, []))} |"
+        )
     w("")
     w("## Capability realisation")
     w("")
@@ -232,8 +252,10 @@ def render(m: dict) -> str:
     w("| Test | Verifies | Level | Status | Implementation | Evidence |")
     w("|---|---|---|---|---|---|")
     for tid, t in tests.items():
-        w(f"| {tid} | {', '.join(t['verifies'])} | {t['level']} | {t['status']} | "
-          f"{t['implementation'] or '—'} | {t['evidence'] or '—'} |")
+        w(
+            f"| {tid} | {', '.join(t['verifies'])} | {t['level']} | {t['status']} | "
+            f"{t['implementation'] or '—'} | {t['evidence'] or '—'} |"
+        )
     w("")
     return "\n".join(out)
 
@@ -262,8 +284,10 @@ def main() -> int:
         if current != rendered:
             print("Traceability matrix is stale. Run: python tools/traceability/check.py --render")
             return 1
-    print(f"Traceability check passed: {len(model['business_requirements'])} BR, "
-          f"{len(model['architecture_requirements'])} AR, {len(model['tests'])} TC.")
+    print(
+        f"Traceability check passed: {len(model['business_requirements'])} BR, "
+        f"{len(model['architecture_requirements'])} AR, {len(model['tests'])} TC."
+    )
     return 0
 
 
