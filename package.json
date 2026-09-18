@@ -10,18 +10,26 @@
     "node": ">=24"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "dev": "vite --config frontend/vite.config.ts",
+    "build:site": "vite build --config frontend/vite.config.ts",
+    "preview:site": "vite preview --config frontend/vite.config.ts",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p frontend",
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
     "check:boundaries": "python tools/architecture/check_boundaries.py"
   },
   "dependencies": {
-    "@sqlite.org/sqlite-wasm": "3.53.4-build1"
+    "@sqlite.org/sqlite-wasm": "3.53.4-build1",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@types/node": "24.13.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.1",
     "eslint": "10.10.0",
     "typescript": "6.0.3",
     "typescript-eslint": "8.70.0",
