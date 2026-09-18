@@ -11,7 +11,7 @@
 | Business requirements | 47 |
 | Architecture requirements | 32 |
 | User stories | 0 |
-| Test cases | 79 — 5 implemented, 74 planned |
+| Test cases | 79 — 9 implemented, 70 planned |
 
 ## Chain
 
@@ -39,13 +39,13 @@ flowchart LR
 | **BR-003** Determine the type of disruption | SHOULD | C1.2 | AR-023 | AC-02, AC-12 | — | TC-003, TC-123 | planned |
 | **BR-004** Establish geographic extent and time window | MUST | C1.3 | AR-018 | AC-02, AC-07 | — | TC-004, TC-118 | planned |
 | **BR-005** Require human confirmation before any service change is proposed | MUST | C1.4 | AR-027 | AC-02, AC-06 | — | TC-005, TC-127 | planned |
-| **BR-006** Identify every route intersecting the disruption | MUST | C2.1 | AR-029 | AC-04 | — | TC-006, TC-129 | planned |
-| **BR-007** Identify affected vehicles, distinguishing past from approaching | MUST | C2.2 | AR-029 | AC-04 | — | TC-007, TC-129 | planned |
-| **BR-008** Identify every stop that becomes unservable | MUST | C2.3 | AR-029 | AC-04 | — | TC-008, TC-129 | planned |
+| **BR-006** Identify every route intersecting the disruption | MUST | C2.1 | AR-029 | AC-04 | — | TC-006, TC-129 | implemented, planned |
+| **BR-007** Identify affected vehicles, distinguishing past from approaching | MUST | C2.2 | AR-029 | AC-04 | — | TC-007, TC-129 | implemented, planned |
+| **BR-008** Identify every stop that becomes unservable | MUST | C2.3 | AR-029 | AC-04 | — | TC-008, TC-129 | implemented, planned |
 | **BR-009** Assess all affected services concurrently; time does not scale with count | MUST | C2.1, C2.2, C2.3 | AR-029 | AC-04 | — | TC-009, TC-129 | planned |
 | **BR-010** Estimate passengers affected | SHOULD | C2.4 | AR-029 | AC-04 | — | TC-010, TC-129 | planned |
 | **BR-011** Produce an impact assessment even when no viable response exists | MUST | C8.3 | AR-004 | AC-04, AC-05, AC-06 | — | TC-011, TC-104 | planned |
-| **BR-012** Generate candidate alternative paths | MUST | C3.1 | AR-016 | AC-05, AC-06 | — | TC-012, TC-116 | planned |
+| **BR-012** Generate candidate alternative paths | MUST | C3.1 | AR-016 | AC-05, AC-06 | — | TC-012, TC-116 | implemented, planned |
 | **BR-013** Establish that a candidate path is physically usable | MUST | C3.2 | AR-016 | AC-05, AC-06 | — | TC-013, TC-116 | planned |
 | **BR-014** Determine whether a skipped stop is served by a following service | SHOULD | C3.3 | AR-017 | AC-05 | — | TC-014, TC-117 | planned |
 | **BR-015** Rank by service continuity, not travel time | MUST | C3.4 | AR-016 | AC-05, AC-06 | — | TC-015, TC-116 | planned |
@@ -165,13 +165,13 @@ flowchart LR
 | TC-003 | BR-003 | unit | planned | — | — |
 | TC-004 | BR-004 | unit | planned | — | — |
 | TC-005 | BR-005 | system | planned | — | — |
-| TC-006 | BR-006 | unit | planned | — | — |
-| TC-007 | BR-007 | unit | planned | — | — |
-| TC-008 | BR-008 | unit | planned | — | — |
+| TC-006 | BR-006 | unit | implemented | tests/core/impact-and-bypass.test.ts | — |
+| TC-007 | BR-007 | unit | implemented | tests/core/impact-and-bypass.test.ts | — |
+| TC-008 | BR-008 | unit | implemented | tests/core/impact-and-bypass.test.ts | — |
 | TC-009 | BR-009 | performance | planned | — | — |
 | TC-010 | BR-010 | unit | planned | — | — |
 | TC-011 | BR-011 | resilience | planned | — | — |
-| TC-012 | BR-012 | unit | planned | — | — |
+| TC-012 | BR-012 | unit | implemented | tests/core/impact-and-bypass.test.ts | — |
 | TC-013 | BR-013 | unit | planned | — | — |
 | TC-014 | BR-014 | unit | planned | — | — |
 | TC-015 | BR-015 | unit | planned | — | — |
