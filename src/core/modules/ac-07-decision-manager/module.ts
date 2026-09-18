@@ -113,7 +113,16 @@ export class DecisionManagerModule implements CoreModule, DecisionManager {
   }
 
   decision(tx: Tx, id: string): Decision | undefined {
-    const r = tx.one<DecisionRow>("select * from dc_decision where id = ?", [id]);
+    return this.toDecision(tx.one<DecisionRow>("select * from dc_decision where id = ?", [id]));
+  }
+
+  forRecommendation(tx: Tx, recommendationId: string): Decision | undefined {
+    return this.toDecision(
+      tx.one<DecisionRow>("select * from dc_decision where recommendation_id = ?", [recommendationId]),
+    );
+  }
+
+  private toDecision(r: DecisionRow | undefined): Decision | undefined {
     return (
       r && {
         id: r.id,

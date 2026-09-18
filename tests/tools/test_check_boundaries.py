@@ -112,3 +112,12 @@ def test_violations_are_reported(tmp_path: Path, files: dict[str, str], expected
 
 def test_prose_in_strings_is_not_mistaken_for_sql() -> None:
     assert check_boundaries.sql_tables('throw new Error("event 3 does not chain from its predecessor");') == set()
+
+
+def test_join_aliases_are_not_tables_but_index_and_trigger_targets_are() -> None:
+    sql = "`select v.* from dm_a d join dm_b v on v.a_id = d.id and v.n = (select max(n) from dm_b)`"
+    assert check_boundaries.sql_tables(sql) == {"dm_a", "dm_b"}
+    assert check_boundaries.sql_tables('"create index if not exists x_i on ot_other(a)"') == {"ot_other"}
+    assert check_boundaries.sql_tables('"create trigger t before delete on ot_other begin select 1; end"') == {
+        "ot_other"
+    }

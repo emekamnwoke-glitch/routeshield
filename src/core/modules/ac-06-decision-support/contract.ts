@@ -21,4 +21,6 @@ export type RecommendationIssuedPayload = { recommendationId: string; disruption
 /** AC-06 Decision Support: sole writer of DD-5c. */
 export interface DecisionSupport {
   recommendation(tx: Tx, id: string): Recommendation | undefined;
+  /** The latest recommendation issued for a disruption. */
+  forDisruption(tx: Tx, disruptionId: string): Recommendation | undefined;
 }

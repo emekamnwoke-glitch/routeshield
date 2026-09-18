@@ -24,7 +24,10 @@ IMPORT = re.compile(r"""^\s*(?:import|export)\b[^'"]*?\bfrom\s+['"]([^'"]+)['"]"
 LITERAL = re.compile(r"`([^`]*)`|\"((?:[^\"\\\n]|\\.)*)\"")
 SQL_START = re.compile(r"^\s*(select|insert|update|delete|create|drop|with|alter)\b", re.I)
 TABLE_REF = re.compile(
-    r"\b(?:into|update|from|join|references|table(?:\s+if\s+(?:not\s+)?exists)?|on)\s+([A-Za-z_][\w$]*)", re.I
+    r"\b(?:into|update|from|join|references|table(?:\s+if\s+(?:not\s+)?exists)?"
+    r"|index(?:\s+if\s+not\s+exists)?\s+\w+\s+on"
+    r"|(?:before|after|instead\s+of)\s+(?:insert|update|delete)\s+on)\s+([A-Za-z_][\w$]*)",
+    re.I,
 )
 NOT_TABLES = {"set", "conflict", "if", "not", "exists", "select", "delete", "update", "insert", "sqlite_master"}
 MODULE_DIR = re.compile(r"^ac-(\d{2})-[a-z0-9-]+$")

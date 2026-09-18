@@ -28,6 +28,7 @@ export type DecisionMadePayload = {
 export interface DecisionManager {
   decide(actor: Actor, recommendationId: string, verdict: Verdict, reason: string): Promise<Decision>;
   decision(tx: Tx, id: string): Decision | undefined;
+  forRecommendation(tx: Tx, recommendationId: string): Decision | undefined;
 }
 
 /** Raised after a refused decision has been recorded in the audit chain. */

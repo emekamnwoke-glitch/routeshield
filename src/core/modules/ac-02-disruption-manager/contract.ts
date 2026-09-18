@@ -14,9 +14,18 @@ export type DisruptionVersion = {
   createdAt: string;
 };
 
+export type DisruptionSummary = {
+  id: string;
+  status: "reported" | "confirmed" | "cleared";
+  createdAt: string;
+  latest: DisruptionVersion;
+};
+
 export type DisruptionVersionedPayload = { disruptionId: string; versionId: string; version: number };
 
 /** AC-02 Disruption Manager: sole writer of DD-4. */
 export interface DisruptionManager {
   version(tx: Tx, versionId: string): DisruptionVersion | undefined;
+  /** Every disruption with its latest version, newest first. */
+  list(tx: Tx): DisruptionSummary[];
 }

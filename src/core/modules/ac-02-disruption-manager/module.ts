@@ -6,7 +6,12 @@ import type { Tx } from "../../kernel/store";
 import type { IncidentReportedPayload, SourceGateway } from "../ac-01-source-gateway/contract";
 import { INCIDENT_REPORTED } from "../ac-01-source-gateway/contract";
 import type { AuditLedger } from "../ac-11-audit-ledger/contract";
-import type { DisruptionManager, DisruptionVersion, DisruptionVersionedPayload } from "./contract";
+import type {
+  DisruptionManager,
+  DisruptionSummary,
+  DisruptionVersion,
+  DisruptionVersionedPayload,
+} from "./contract";
 import { DISRUPTION_VERSIONED } from "./contract";
 
 type VersionRow = {
@@ -86,7 +91,24 @@ export class DisruptionManagerModule implements CoreModule, DisruptionManager {
   }
 
   version(tx: Tx, versionId: string): DisruptionVersion | undefined {
-    const r = tx.one<VersionRow>("select * from dm_disruption_version where id = ?", [versionId]);
+    return this.toVersion(tx.one<VersionRow>("select * from dm_disruption_version where id = ?", [versionId]));
+  }
+
+  list(tx: Tx): DisruptionSummary[] {
+    const rows = tx.all<VersionRow & { status: DisruptionSummary["status"]; disruption_created_at: string }>(
+      `select v.*, d.status, d.created_at as disruption_created_at
+       from dm_disruption d
+       join dm_disruption_version v on v.disruption_id = d.id
+         and v.version = (select max(version) from dm_disruption_version where disruption_id = d.id)
+       order by d.created_at desc, d.rowid desc`,
+    );
+    return rows.flatMap((r) => {
+      const latest = this.toVersion(r);
+      return latest ? [{ id: r.disruption_id, status: r.status, createdAt: r.disruption_created_at, latest }] : [];
+    });
+  }
+
+  private toVersion(r: VersionRow | undefined): DisruptionVersion | undefined {
     return (
       r && {
         id: r.id,

@@ -84,7 +84,19 @@ export class DecisionSupportModule implements CoreModule, DecisionSupport {
   }
 
   recommendation(tx: Tx, id: string): Recommendation | undefined {
-    const r = tx.one<RecommendationRow>("select * from ds_recommendation where id = ?", [id]);
+    return this.toRecommendation(tx.one<RecommendationRow>("select * from ds_recommendation where id = ?", [id]));
+  }
+
+  forDisruption(tx: Tx, disruptionId: string): Recommendation | undefined {
+    return this.toRecommendation(
+      tx.one<RecommendationRow>(
+        "select * from ds_recommendation where disruption_id = ? order by issued_at desc, rowid desc limit 1",
+        [disruptionId],
+      ),
+    );
+  }
+
+  private toRecommendation(r: RecommendationRow | undefined): Recommendation | undefined {
     return (
       r && {
         id: r.id,
