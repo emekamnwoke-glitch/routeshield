@@ -1,0 +1,79 @@
+name: Deploy site
+
+# Builds the demonstrator and publishes it to GitHub Pages from main
+# (ADR-0008). The repository's Pages source must be set to "GitHub Actions".
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build site
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - name: Build
+        run: npm run build:site
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: frontend/dist
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
+
+  smoke:
+    name: Smoke test the live site
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Page, script, stylesheet, SQLite WASM and network data all load
+        env:
+          URL: ${{ needs.deploy.outputs.page_url }}
+        run: |
+          set -euo pipefail
+          html="$(curl -fsSL --retry 5 --retry-delay 10 --retry-all-errors "$URL")"
+          grep -q "<title>RouteShield</title>" <<<"$html"
+          for asset in $(grep -oE '(src|href)="[^"]+\.(js|css)"' <<<"$html" | sed -E 's/^(src|href)="//; s/"$//'); do
+            curl -fsSI --retry 3 "${URL%/}/${asset#/routeshield/}" >/dev/null
+            echo "ok $asset"
+          done
+          js="$(grep -oE 'src="[^"]+\.js"' <<<"$html" | head -1 | sed -E 's/^src="//; s/"$//')"
+          body="$(curl -fsSL "${URL%/}/${js#/routeshield/}")"
+          for kind in 'core\.worker-[A-Za-z0-9_-]+\.js' 'network-[A-Za-z0-9_-]+\.json'; do
+            file="$(grep -oE "$kind" <<<"$body" | head -1)"
+            test -n "$file"
+            curl -fsSI "${URL%/}/assets/$file" >/dev/null
+            echo "ok assets/$file"
+          done
+          worker="$(grep -oE 'core\.worker-[A-Za-z0-9_-]+\.js' <<<"$body" | head -1)"
+          wasm="$(curl -fsSL "${URL%/}/assets/$worker" | grep -oE 'sqlite3-[A-Za-z0-9_-]+\.wasm' | head -1)"
+          test -n "$wasm"
+          curl -fsSI "${URL%/}/assets/$wasm" | grep -qi '^content-type: application/wasm'
+          echo "ok assets/$wasm (application/wasm)"

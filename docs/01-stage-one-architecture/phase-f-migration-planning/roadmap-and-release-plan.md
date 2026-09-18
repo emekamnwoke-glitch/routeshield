@@ -43,6 +43,8 @@ The project brief suggested v1.4.0 *Control Dashboard* before v1.5.0 *Notificati
 
 The dashboard release also absorbs load handling, reversion and A2 — Transition T3 — rather than being a UI-only increment, so that it remains vertical.
 
+**Deployment brought forward to v1.1.0** (recorded 2026-09-18). The plan deployed the site from v1.3.0, once there was an MVP worth showing. It now deploys from v1.1.0, so the walking skeleton has a live address from the first release. The site states on every screen what it does not yet do. This changes when the site is published, not what any release contains.
+
 ## 3. Engineering cadence alongside releases
 
 | From | Practice |
@@ -51,7 +53,7 @@ The dashboard release also absorbs load handling, reversion and A2 — Transitio
 | v1.1.0 | CI: lint, type-check, unit tests, dependency scanning on every pull request |
 | v1.2.0 | Integration tests over the core worker with a real SQLite store |
 | v1.3.0 | Scenario (system) tests driven by seeded scenarios |
-| v1.3.0 | Deployment of the static site from `main`, with smoke test |
+| v1.1.0 | Deployment of the static site from `main`, with smoke test (brought forward from v1.3.0; see below) |
 | v1.4.0 | Resilience tests for each adapter failure |
 | v1.5.0 | Performance tests against the Phase E budget |
 | v1.6.0 | ML parity tests |
