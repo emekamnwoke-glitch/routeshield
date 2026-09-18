@@ -12,6 +12,7 @@ type NoticeRow = {
   id: string;
   idempotency_key: string;
   disruption_id: string;
+  pattern_index: number;
   channel: Notice["channel"];
   kind: Notice["kind"];
   created_at: string;
@@ -41,13 +42,14 @@ export class CommunicationHubModule implements CoreModule, CommunicationHub {
       id text primary key,
       idempotency_key text not null unique,
       disruption_id text not null,
+      pattern_index integer not null,
       channel text not null check (channel in ('passenger', 'driver')),
       kind text not null check (kind in ('not_served', 'diverted', 'resumed')),
       created_at text not null
     )`);
   }
 
-  /** Walking skeleton: one passenger notice per service state change. */
+  /** One passenger notice per pattern whose service state changes. */
   private async onStateChanged(tx: Tx, event: DomainEvent): Promise<void> {
     const s = event.payload as ServiceStateChangedPayload;
     const kind = NOTICE_FOR_STATE[s.state];
@@ -58,20 +60,22 @@ export class CommunicationHubModule implements CoreModule, CommunicationHub {
       id: newId("ntc"),
       idempotencyKey: key,
       disruptionId: s.disruptionId,
+      patternIndex: s.patternIndex,
       channel: "passenger",
       kind,
       createdAt: this.clock.now(),
     };
     tx.run(
-      "insert into ch_notice (id, idempotency_key, disruption_id, channel, kind, created_at) values (?, ?, ?, ?, ?, ?)",
-      [notice.id, notice.idempotencyKey, notice.disruptionId, notice.channel, notice.kind, notice.createdAt],
+      `insert into ch_notice (id, idempotency_key, disruption_id, pattern_index, channel, kind, created_at)
+       values (?, ?, ?, ?, ?, ?, ?)`,
+      [notice.id, notice.idempotencyKey, notice.disruptionId, notice.patternIndex, notice.channel, notice.kind, notice.createdAt],
     );
     await this.ledger.append(tx, {
       type: "notice.issued",
       component: this.id,
       subject: s.disruptionId,
       actor: { kind: "system", id: this.id },
-      payload: { noticeId: notice.id, channel: notice.channel, kind, stateId: s.stateId },
+      payload: { noticeId: notice.id, channel: notice.channel, kind, pattern: s.patternIndex, stateId: s.stateId },
     });
   }
 
@@ -82,6 +86,7 @@ export class CommunicationHubModule implements CoreModule, CommunicationHub {
         id: r.id,
         idempotencyKey: r.idempotency_key,
         disruptionId: r.disruption_id,
+        patternIndex: Number(r.pattern_index),
         channel: r.channel,
         kind: r.kind,
         createdAt: r.created_at,

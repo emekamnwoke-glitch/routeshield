@@ -1,5 +1,5 @@
 /**
- * The v1.1.0 walking skeleton: one trivial disruption through every core component.
+ * One disruption through every core component, over the real sample network.
  * TC-101 (AR-001): assessment reads a snapshot persisted before it starts.
  * TC-102 (AR-002): every state change commits with its audit event.
  * TC-106 (AR-006): authority is verified at decision time.
@@ -14,12 +14,14 @@ import { ManualClock } from "../../src/core/kernel/primitives";
 import { InMemoryTelemetry } from "../../src/core/kernel/telemetry";
 import { DecisionRefused } from "../../src/core/modules/ac-07-decision-manager/contract";
 import { AuthorityError } from "../../src/core/modules/ac-14-access-control/contract";
+import { dublin } from "./network-fixture";
 
+// Crofton Avenue, Dún Laoghaire: a 60 m closure there cuts only southbound E2.
 const incident = {
   source: "fictional-incident-feed",
   externalRef: "CAD-0001",
-  area: { lat: 53.3498, lon: -6.2603, radiusM: 150 },
-  description: "Road closed, O'Connell Street",
+  area: { lat: 53.2957927315715, lon: -6.13820878983198, radiusM: 60 },
+  description: "Road closed, Crofton Avenue",
 };
 
 let core: Core;
@@ -30,7 +32,7 @@ const identity = new PersonaSwitcher();
 beforeEach(async () => {
   clock = new ManualClock();
   telemetry = new InMemoryTelemetry();
-  core = await createCore({ store: await SqliteStore.inMemory(), clock, telemetry });
+  core = await createCore({ store: await SqliteStore.inMemory(), clock, telemetry, ...dublin() });
   identity.switchTo("controller");
 });
 
@@ -49,7 +51,7 @@ describe("walking skeleton", () => {
   it("carries one disruption from incident to passenger notice", async () => {
     const { recommendationId, disruptionId } = await reportAndRecommend();
     clock.advance(30);
-    const decision = await core.decisions.decide(identity.current(), recommendationId, "approve", "hold until cleared");
+    const decision = await core.decisions.decide(identity.current(), recommendationId, "approve", "take the bypass");
     await core.bus.dispatch();
     await core.analytics.refresh();
 
@@ -61,8 +63,8 @@ describe("walking skeleton", () => {
     }));
 
     expect(decision).toMatchObject({ verdict: "approve", decidedBy: { kind: "persona", id: "controller" } });
-    expect(state.service).toMatchObject({ state: "held", decisionId: decision.id });
-    expect(state.notices).toMatchObject([{ channel: "passenger", kind: "not_served" }]);
+    expect(state.service).toMatchObject([{ state: "diverted", decisionId: decision.id }]);
+    expect(state.notices).toMatchObject([{ channel: "passenger", kind: "diverted" }]);
     expect(state.trail).toEqual([
       "AC-02 disruption.declared",
       "AC-04 snapshot.frozen",
@@ -103,7 +105,12 @@ describe("walking skeleton", () => {
     const snapshot = await core.store.read((tx) => core.ledger.snapshot(tx, snapshotId));
     expect(snapshot?.sourceHealth).toEqual([
       { source: "fictional-incident-feed", lastSeenAt: "2026-09-21T08:00:00.000Z", status: "fresh" },
+      { source: "fictional-vehicle-gps", lastSeenAt: "2026-09-21T08:00:00.000Z", status: "fresh" },
     ]);
+    // Copies of the positions of every vehicle on the affected pattern, and nothing else.
+    const positions = snapshot?.positions as { vehicle: string; pattern: number }[];
+    expect(positions.length).toBeGreaterThan(0);
+    expect(new Set(positions.map((p) => p.pattern)).size).toBe(1);
   });
 
   it("replays the outbox without repeating any work", async () => {

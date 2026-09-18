@@ -5,14 +5,20 @@ export const RECOMMENDATION_ISSUED = "recommendation.issued";
 /** Autonomy bands (autonomy model §3): observe, recommend, pre-approved contingency, manual. */
 export type AutonomyBand = "A0" | "A1" | "A2" | "A3";
 
-/** DD-5c. */
+/** The option recommended for one affected pattern. */
+export type RecommendationItem = { patternIndex: number; optionId: string };
+
+/**
+ * DD-5c. One recommendation per assessment, with one item per affected
+ * pattern. Band A0 means nothing is affected: there is nothing to decide.
+ */
 export type Recommendation = {
   id: string;
   assessmentId: string;
   disruptionId: string;
-  optionId: string;
   band: AutonomyBand;
   confidence: "high" | "medium" | "low";
+  items: RecommendationItem[];
   issuedAt: string;
 };
 
