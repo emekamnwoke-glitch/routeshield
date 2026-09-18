@@ -229,7 +229,7 @@ Milestones are published as Git tags, so the repository history reads as the arc
 | `v0.6.0` | Solution Blueprint | 🟢 |
 | `v1.0.0` | **Stage One complete** | 🟢 Current |
 | `v1.1.0` | Stage Two foundation | ⬜ |
-| `v1.2.0` | Disruption engine | ⬜ |
+| `v1.2.0` | Disruption engine and first bypass | ⬜ |
 | `v1.3.0` | Routing engine | ⬜ |
 | `v1.4.0` | Notifications | ⬜ |
 | `v1.5.0` | Control dashboard | ⬜ |

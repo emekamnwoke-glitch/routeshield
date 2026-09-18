@@ -35,4 +35,4 @@ Then open <http://localhost:5173/routeshield/>. `npm run build:site` writes the 
 - Lets a persona approve or reject the recommendation, with authority checked at decision time.
 - Shows the audit trail and verifies its hash chain on every change.
 
-It does not yet find affected routes (v1.2.0) or propose detours (v1.3.0); the only option is to hold.
+It does not yet find affected routes or propose a bypass; the only option is to hold. v1.2.0 adds both: the affected routes and stops, and a suggested bypass drawn on the map and recommended for approval on the Disruptions card. v1.3.0 ranks several bypass options with their costs.

@@ -152,8 +152,8 @@ export function App() {
           <section className="card">
             <h2>2. Disruptions</h2>
             <p className="hint">
-              This release does not propose bypass routes yet: the only option is to hold. Finding the affected
-              routes and stops comes in v1.2.0, and detours around the blockage in v1.3.0.
+              This release does not propose bypass routes yet: the only option is to hold. v1.2.0 adds the affected
+              routes and stops, and a suggested bypass here for you to approve or reject. v1.3.0 ranks several.
             </p>
             {state?.disruptions.length ? (
               <ul className="disruptions">
