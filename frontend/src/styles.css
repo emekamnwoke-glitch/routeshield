@@ -16,6 +16,13 @@
   --map-stop: #0a3d2c;
   --map-footprint: #c62828;
   --map-pick: #1f4fd1;
+  --map-detour: #6a1fd1;
+  --map-vehicle: #7b8794;
+  --map-approaching: #d97706;
+  --chip-amber: #facc15;
+  --chip-amber-text: #3b2f00;
+  --chip-red: #c62828;
+  --chip-red-text: #ffffff;
   color-scheme: light;
 }
 
@@ -38,6 +45,13 @@
     --map-stop: #c9f5e2;
     --map-footprint: #ff6b6b;
     --map-pick: #7aa2ff;
+    --map-detour: #c9a7ff;
+    --map-vehicle: #8a96a3;
+    --map-approaching: #fbbf24;
+    --chip-amber: #facc15;
+    --chip-amber-text: #2a2100;
+    --chip-red: #ef4444;
+    --chip-red-text: #1a0000;
     color-scheme: dark;
   }
 }
@@ -249,7 +263,100 @@ h2 {
   gap: 10px;
 }
 
-.disruptions li + li {
+.disruptions h3 {
+  font-size: 0.9rem;
+  margin: 10px 0 4px;
+}
+
+.disruptions p {
+  margin: 4px 0;
+}
+
+.impact {
+  margin: 4px 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+}
+
+.impact li + li {
+  border-top: none;
+  padding-top: 0;
+}
+
+.route-chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.route-chip {
+  min-width: 48px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 1.05rem;
+  text-align: center;
+}
+
+.route-chip.amber {
+  background: var(--chip-amber);
+  color: var(--chip-amber-text);
+}
+
+.route-chip.red {
+  background: var(--chip-red);
+  color: var(--chip-red-text);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 0.85em;
+}
+
+.band {
+  font-weight: 400;
+  color: var(--muted);
+  font-size: 0.85em;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 6px;
+  font-size: 0.85em;
+  color: var(--muted);
+}
+
+.swatch {
+  display: inline-block;
+  width: 14px;
+  height: 4px;
+  border-radius: 2px;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+
+.swatch.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.disruptions > li + li {
   border-top: 1px solid var(--border);
   padding-top: 10px;
 }

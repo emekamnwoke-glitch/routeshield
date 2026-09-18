@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Circle } from "../../../src/core/kernel/primitives";
+import type { LatLon, VehicleView } from "../workspace/service";
 import type { SiteNetwork } from "./network";
 import type { View } from "./projection";
 import { fit, project, toScreen, toWorld, unproject, zoomAt } from "./projection";
@@ -8,11 +9,26 @@ type Props = {
   network: SiteNetwork;
   route: number | null;
   footprints: Circle[];
+  /** Road edges a disruption closes. */
+  blocked: LatLon[][];
+  /** Suggested bypasses. */
+  detours: LatLon[][];
+  vehicles: VehicleView[];
   pick: { lat: number; lon: number } | null;
   onPick: (lat: number, lon: number) => void;
 };
 
-type Colours = { bg: string; road: string; route: string; stop: string; footprint: string; pick: string };
+type Colours = {
+  bg: string;
+  road: string;
+  route: string;
+  stop: string;
+  footprint: string;
+  pick: string;
+  detour: string;
+  vehicle: string;
+  approaching: string;
+};
 
 function colours(el: HTMLElement): Colours {
   const css = getComputedStyle(el);
@@ -24,13 +40,16 @@ function colours(el: HTMLElement): Colours {
     stop: v("--map-stop"),
     footprint: v("--map-footprint"),
     pick: v("--map-pick"),
+    detour: v("--map-detour"),
+    vehicle: v("--map-vehicle"),
+    approaching: v("--map-approaching"),
   };
 }
 
 /** Pixels the pointer may move and still count as a click, not a drag. */
 const CLICK_SLOP = 4;
 
-export function NetworkMap({ network, route, footprints, pick, onPick }: Props) {
+export function NetworkMap({ network, route, footprints, blocked, detours, vehicles, pick, onPick }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [view, setView] = useState<View | null>(null);
@@ -134,6 +153,38 @@ export function NetworkMap({ network, route, footprints, pick, onPick }: Props) 
       ctx.stroke();
     }
 
+    const polyline = (lines: LatLon[][], colour: string, lineWidth: number, dash: number[] = []) => {
+      ctx.strokeStyle = colour;
+      ctx.lineWidth = lineWidth;
+      ctx.setLineDash(dash);
+      ctx.beginPath();
+      for (const line of lines) {
+        line.forEach(([lat, lon], j) => {
+          const [sx, sy] = toScreen(view, width, height, ...project(lat, lon));
+          if (j === 0) ctx.moveTo(sx, sy);
+          else ctx.lineTo(sx, sy);
+        });
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+    };
+    polyline(detours, c.detour, 3, [7, 5]);
+    polyline(blocked, c.footprint, 4);
+
+    for (const v of vehicles) {
+      const [sx, sy] = toScreen(view, width, height, ...project(v.lat, v.lon));
+      const affected = v.relation === "approaching" || v.relation === "inside";
+      ctx.fillStyle = v.relation === "inside" ? c.footprint : v.relation === "approaching" ? c.approaching : c.vehicle;
+      ctx.beginPath();
+      ctx.arc(sx, sy, affected ? 4.5 : 3, 0, Math.PI * 2);
+      ctx.fill();
+      if (affected) {
+        ctx.strokeStyle = c.bg;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+    }
+
     if (pick) {
       const [sx, sy] = toScreen(view, width, height, ...project(pick.lat, pick.lon));
       ctx.strokeStyle = c.pick;
@@ -145,9 +196,23 @@ export function NetworkMap({ network, route, footprints, pick, onPick }: Props) 
       ctx.lineTo(sx, sy + 8);
       ctx.stroke();
     }
-  }, [view, size, lines, routeEdges, routeStops, footprints, pick]);
+  }, [view, size, lines, routeEdges, routeStops, footprints, blocked, detours, vehicles, pick]);
 
-  const local = (e: React.PointerEvent | React.WheelEvent): [number, number] => {
+  // Wheel zoom needs a non-passive listener: React's is passive, so the page would scroll too.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const at: [number, number] = [e.clientX - rect.left, e.clientY - rect.top];
+      setView((v) => v && zoomAt(v, rect.width, rect.height, ...at, e.deltaY < 0 ? 1.25 : 0.8));
+    };
+    canvas.addEventListener("wheel", onWheel, { passive: false });
+    return () => canvas.removeEventListener("wheel", onWheel);
+  }, []);
+
+  const local = (e: React.PointerEvent): [number, number] => {
     const rect = e.currentTarget.getBoundingClientRect();
     return [e.clientX - rect.left, e.clientY - rect.top];
   };
@@ -186,7 +251,6 @@ export function NetworkMap({ network, route, footprints, pick, onPick }: Props) 
           const [lat, lon] = unproject(...toWorld(view, size.width, size.height, sx, sy));
           onPick(lat, lon);
         }}
-        onWheel={(e) => zoom(e.deltaY < 0 ? 1.25 : 0.8, local(e))}
         onKeyDown={(e) => {
           const step = 60;
           const actions: Record<string, () => void> = {

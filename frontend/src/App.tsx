@@ -2,7 +2,10 @@ import { useEffect, useState } from "react";
 import type { Verdict } from "../../src/core/modules/ac-07-decision-manager/contract";
 import type { PersonaId } from "../../src/core/modules/ac-14-access-control/contract";
 import { PERSONAS } from "../../src/core/modules/ac-14-access-control/contract";
+import { DisruptionCard } from "./DisruptionCard";
 import { NetworkMap } from "./map/NetworkMap";
+import { RouteStatusCard } from "./RouteStatusCard";
+import { routeStatuses } from "./routeStatus";
 import type { SiteNetwork } from "./map/network";
 import { loadNetwork } from "./map/network";
 import { CoreClient } from "./worker/client";
@@ -60,7 +63,7 @@ export function App() {
       <header className="header">
         <div>
           <h1>RouteShield</h1>
-          <p className="subtitle">Emergency bus rerouting · reference implementation · v1.1.0 walking skeleton</p>
+          <p className="subtitle">Emergency bus rerouting · reference implementation · v1.2.0</p>
         </div>
         <label className="persona">
           <span>Acting as</span>
@@ -105,18 +108,56 @@ export function App() {
               network={network}
               route={route}
               footprints={state?.disruptions.map((d) => d.footprint) ?? []}
+              blocked={state?.disruptions.flatMap((d) => d.impact?.blockedLines ?? []) ?? []}
+              detours={
+                state?.disruptions.flatMap((d) =>
+                  d.recommendation?.items.flatMap((i) => (i.detour.length ? [i.detour] : [])) ?? [],
+                ) ?? []
+              }
+              vehicles={state?.vehicles ?? []}
               pick={pick}
               onPick={(lat, lon) => setPick({ lat, lon })}
             />
           ) : (
             <p className="loading">{error ? "The network could not be loaded." : "Loading the Dublin network…"}</p>
           )}
+          <div className="legend" aria-label="Map legend">
+            <span>
+              <span className="swatch" style={{ background: "var(--map-route)" }} />
+              Highlighted route
+            </span>
+            <span>
+              <span className="swatch" style={{ background: "var(--map-footprint)" }} />
+              Closed road
+            </span>
+            <span>
+              <span className="swatch" style={{ background: "repeating-linear-gradient(90deg, var(--map-detour) 0 5px, transparent 5px 8px)" }} />
+              Suggested bypass
+            </span>
+            <span>
+              <span className="swatch dot" style={{ background: "var(--map-approaching)" }} />
+              Vehicle approaching
+            </span>
+            <span>
+              <span className="swatch dot" style={{ background: "var(--map-footprint)" }} />
+              Vehicle inside
+            </span>
+            <span>
+              <span className="swatch dot" style={{ background: "var(--map-vehicle)" }} />
+              Other vehicle (synthetic)
+            </span>
+          </div>
         </section>
 
         <aside className="side">
+          <RouteStatusCard routes={routeStatuses(state)} />
+
           <section className="card">
             <h2>1. Report an incident</h2>
-            <p className="hint">Click the map to place it. It starts on O'Connell Street.</p>
+            <p className="hint">
+              Click the map to place it. It starts on O'Connell Street. Vehicles are a synthetic fleet placed from the
+              timetable for Monday 08:00.
+            </p>
             <dl className="facts">
               <dt>Location</dt>
               <dd>
@@ -142,7 +183,7 @@ export function App() {
             <button
               type="button"
               className="primary"
-              disabled={busy || !state}
+              disabled={busy || !state?.network.loaded}
               onClick={() => send({ kind: "report", incident: { ...pick, radiusM, description: description || "Incident" } })}
             >
               Report incident
@@ -152,46 +193,13 @@ export function App() {
           <section className="card">
             <h2>2. Disruptions</h2>
             <p className="hint">
-              This release does not propose bypass routes yet: the only option is to hold. v1.2.0 adds the affected
-              routes and stops, and a suggested bypass here for you to approve or reject. v1.3.0 ranks several.
+              Each affected route pattern gets one suggested bypass, dashed on the map, for a person to approve or
+              reject. v1.3.0 ranks several options with their costs.
             </p>
             {state?.disruptions.length ? (
               <ul className="disruptions">
                 {state.disruptions.map((d) => (
-                  <li key={d.id}>
-                    <p className="mono">{d.id.slice(0, 12)}…</p>
-                    <dl className="facts">
-                      <dt>Status</dt>
-                      <dd>{d.status}</dd>
-                      <dt>Footprint</dt>
-                      <dd>{d.footprint.radiusM} m radius</dd>
-                      {d.recommendation && (
-                        <>
-                          <dt>Recommendation</dt>
-                          <dd>
-                            {d.recommendation.optionKind}, band {d.recommendation.band}, {d.recommendation.confidence}{" "}
-                            confidence
-                          </dd>
-                        </>
-                      )}
-                      <dt>Decision</dt>
-                      <dd>{d.decision ? `${d.decision.verdict} by ${d.decision.decidedBy}` : "awaiting a person"}</dd>
-                      <dt>Service</dt>
-                      <dd>{d.serviceState ?? "as planned"}</dd>
-                      <dt>Notices</dt>
-                      <dd>{d.notices.length ? d.notices.map((n) => `${n.channel}: ${n.kind}`).join(", ") : "none"}</dd>
-                    </dl>
-                    {d.recommendation && !d.decision && (
-                      <div className="row">
-                        <button type="button" className="primary" disabled={busy} onClick={() => decide(d.recommendation?.id ?? "", "approve")}>
-                          Approve
-                        </button>
-                        <button type="button" disabled={busy} onClick={() => decide(d.recommendation?.id ?? "", "reject")}>
-                          Reject
-                        </button>
-                      </div>
-                    )}
-                  </li>
+                  <DisruptionCard key={d.id} d={d} busy={busy} onDecide={decide} />
                 ))}
               </ul>
             ) : (
@@ -233,7 +241,7 @@ export function App() {
           </section>
 
           <p className="status" role="status" aria-live="polite">
-            {error ? `Error: ${error}` : notice}
+            {error ? `Error: ${error}` : !state ? "Loading the road network and fleet…" : notice}
           </p>
         </aside>
       </main>
