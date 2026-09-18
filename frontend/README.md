@@ -28,11 +28,13 @@ npm run dev
 
 Then open <http://localhost:5173/routeshield/>. `npm run build:site` writes the static site to `frontend/dist/`.
 
-## What v1.1.0 does
+## What v1.2.0 does
 
-- Draws the real Dublin sample network and highlights any route.
-- Places an incident on the map and runs it through every core component.
-- Lets a persona approve or reject the recommendation, with authority checked at decision time.
+- Draws the real Dublin sample network, and a synthetic fleet placed from the timetable for Monday 08:00.
+- Places an incident on the map, closes the roads inside it, and finds every route pattern, stop and vehicle it affects.
+- Suggests one bypass per affected pattern, dashed on the map, with the stops it misses and the extra distance.
+- Puts the recommendation on the Disruptions card for a persona to approve or reject, with authority checked at decision time.
+- Shows the affected bus numbers on a route status card: yellow while a bypass awaits approval, red once it is in effect.
 - Shows the audit trail and verifies its hash chain on every change.
 
-It does not yet find affected routes or propose a bypass; the only option is to hold. v1.2.0 adds both: the affected routes and stops, and a suggested bypass drawn on the map and recommended for approval on the Disruptions card. v1.3.0 ranks several bypass options with their costs.
+The core worker loads the full road graph (about 1.6 MB compressed) once, for detour search. v1.3.0 ranks several bypass options with their costs.

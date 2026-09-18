@@ -15,7 +15,6 @@ type DecisionRow = {
   recommendation_id: string;
   disruption_id: string;
   verdict: Verdict;
-  option_id: string;
   decided_by: string;
   decided_at: string;
 };
@@ -41,7 +40,6 @@ export class DecisionManagerModule implements CoreModule, DecisionManager {
       recommendation_id text not null unique,
       disruption_id text not null,
       verdict text not null check (verdict in ('approve', 'reject')),
-      option_id text not null,
       decided_by text not null,
       decided_at text not null
     )`);
@@ -54,6 +52,7 @@ export class DecisionManagerModule implements CoreModule, DecisionManager {
       if (tx.one("select 1 from dc_decision where recommendation_id = ?", [recommendationId])) {
         return { refused: `recommendation ${recommendationId} has already been decided` };
       }
+      if (rec.band === "A0") return { refused: "nothing to decide: no route is affected" };
       // Authority is checked now, not when the recommendation was issued (AR-006).
       const authority = this.access.authorise(tx, actor, "decide");
       if (!authority.allowed) {
@@ -66,26 +65,28 @@ export class DecisionManagerModule implements CoreModule, DecisionManager {
         });
         return { refused: authority.reason };
       }
-      const option = this.optimiser.options(tx, rec.assessmentId).find((o) => o.id === rec.optionId);
-      if (!option) throw new Error(`option ${rec.optionId} not found`);
+      const options = new Map(this.optimiser.options(tx, rec.assessmentId).map((o) => [o.id, o]));
+      const items = rec.items.map((item) => {
+        const option = options.get(item.optionId);
+        if (!option) throw new Error(`option ${item.optionId} not found`);
+        return { patternIndex: item.patternIndex, optionId: option.id, optionKind: option.kind };
+      });
       const decision: Decision = {
         id: newId("dec"),
         recommendationId,
         disruptionId: rec.disruptionId,
         verdict,
-        optionId: rec.optionId,
         decidedBy: actor,
         decidedAt: this.clock.now(),
       };
       tx.run(
-        `insert into dc_decision (id, recommendation_id, disruption_id, verdict, option_id, decided_by, decided_at)
-         values (?, ?, ?, ?, ?, ?, ?)`,
+        `insert into dc_decision (id, recommendation_id, disruption_id, verdict, decided_by, decided_at)
+         values (?, ?, ?, ?, ?, ?)`,
         [
           decision.id,
           decision.recommendationId,
           decision.disruptionId,
           decision.verdict,
-          decision.optionId,
           JSON.stringify(actor),
           decision.decidedAt,
         ],
@@ -95,14 +96,13 @@ export class DecisionManagerModule implements CoreModule, DecisionManager {
         component: this.id,
         subject: rec.disruptionId,
         actor,
-        payload: { decisionId: decision.id, recommendationId, verdict, optionId: option.id, reason },
+        payload: { decisionId: decision.id, recommendationId, verdict, items, reason },
       });
       const payload: DecisionMadePayload = {
         decisionId: decision.id,
         disruptionId: rec.disruptionId,
         verdict,
-        optionId: option.id,
-        optionKind: option.kind,
+        items,
       };
       this.bus.publish(tx, { type: DECISION_MADE, source: this.id, subject: rec.disruptionId, payload });
       return decision;
@@ -129,7 +129,6 @@ export class DecisionManagerModule implements CoreModule, DecisionManager {
         recommendationId: r.recommendation_id,
         disruptionId: r.disruption_id,
         verdict: r.verdict,
-        optionId: r.option_id,
         decidedBy: JSON.parse(r.decided_by) as Actor,
         decidedAt: r.decided_at,
       }

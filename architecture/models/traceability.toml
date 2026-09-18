@@ -613,22 +613,22 @@ evidence = ""
 [tests."TC-006"]
 verifies = ["BR-006"]
 level = "unit"
-status = "planned"
-implementation = ""
+status = "implemented"
+implementation = "tests/core/impact-and-bypass.test.ts"
 evidence = ""
 
 [tests."TC-007"]
 verifies = ["BR-007"]
 level = "unit"
-status = "planned"
-implementation = ""
+status = "implemented"
+implementation = "tests/core/impact-and-bypass.test.ts"
 evidence = ""
 
 [tests."TC-008"]
 verifies = ["BR-008"]
 level = "unit"
-status = "planned"
-implementation = ""
+status = "implemented"
+implementation = "tests/core/impact-and-bypass.test.ts"
 evidence = ""
 
 [tests."TC-009"]
@@ -655,8 +655,8 @@ evidence = ""
 [tests."TC-012"]
 verifies = ["BR-012"]
 level = "unit"
-status = "planned"
-implementation = ""
+status = "implemented"
+implementation = "tests/core/impact-and-bypass.test.ts"
 evidence = ""
 
 [tests."TC-013"]

@@ -5,6 +5,7 @@ export type Notice = {
   id: string;
   idempotencyKey: string;
   disruptionId: string;
+  patternIndex: number;
   channel: "passenger" | "driver";
   kind: "not_served" | "diverted" | "resumed";
   createdAt: string;

@@ -53,7 +53,7 @@ jobs:
     needs: deploy
     runs-on: ubuntu-latest
     steps:
-      - name: Page, script, stylesheet, SQLite WASM and network data all load
+      - name: Page, scripts, SQLite WASM, and the network, road graph and fleet data all load
         env:
           URL: ${{ needs.deploy.outputs.page_url }}
         run: |
@@ -73,7 +73,15 @@ jobs:
             echo "ok assets/$file"
           done
           worker="$(grep -oE 'core\.worker-[A-Za-z0-9_-]+\.js' <<<"$body" | head -1)"
-          wasm="$(curl -fsSL "${URL%/}/assets/$worker" | grep -oE 'sqlite3-[A-Za-z0-9_-]+\.wasm' | head -1)"
+          worker_body="$(curl -fsSL "${URL%/}/assets/$worker")"
+          wasm="$(grep -oE 'sqlite3-[A-Za-z0-9_-]+\.wasm' <<<"$worker_body" | head -1)"
           test -n "$wasm"
           curl -fsSI "${URL%/}/assets/$wasm" | grep -qi '^content-type: application/wasm'
           echo "ok assets/$wasm (application/wasm)"
+          # The data the core worker loads: road graph, network and synthetic fleet.
+          for kind in 'road_graph-[A-Za-z0-9_-]+\.json' 'network-[A-Za-z0-9_-]+\.json' 'fleet-[A-Za-z0-9_-]+\.json'; do
+            file="$(grep -oE "$kind" <<<"$worker_body" | head -1)"
+            test -n "$file"
+            curl -fsSI "${URL%/}/assets/$file" >/dev/null
+            echo "ok assets/$file"
+          done

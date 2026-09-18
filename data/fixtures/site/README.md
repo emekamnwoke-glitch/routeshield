@@ -8,7 +8,7 @@ What the demonstrator site draws, cut down by `pipeline/site_bundle.py` from the
 | Size | about 300 KB, 75 KB compressed |
 | Format | `routeshield-site-network/1`; the checksums of its two sources are in `sources` |
 
-The full road graph (5.9 MB) stays out of the page. Detour search needs it, and the site will load it when that arrives.
+This is what the page draws. The full road graph (5.9 MB, 1.6 MB compressed) is loaded separately by the core worker, for impact assessment and detour search.
 
 Each edge is a flat `[lat, lon, lat, lon, …]` line at five decimal places, about 1 m. A pattern's `path` lists directed edges: `2 × i` runs edge `i` forwards, `2 × i + 1` backwards.
 

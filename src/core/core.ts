@@ -7,11 +7,14 @@
  */
 import { EventBus } from "./kernel/events";
 import type { CoreModule } from "./kernel/module";
+import type { Network } from "./kernel/network";
 import type { Clock } from "./kernel/primitives";
 import { systemClock } from "./kernel/primitives";
+import { checkSchema, writeSchema } from "./kernel/schema";
 import type { Store } from "./kernel/store";
 import type { Telemetry } from "./kernel/telemetry";
 import { InMemoryTelemetry } from "./kernel/telemetry";
+import type { FleetScene } from "./modules/ac-01-source-gateway/contract";
 import { SourceGatewayModule } from "./modules/ac-01-source-gateway/module";
 import { DisruptionManagerModule } from "./modules/ac-02-disruption-manager/module";
 import { ImpactAssessorModule } from "./modules/ac-04-impact-assessor/module";
@@ -29,17 +32,27 @@ export type CoreOptions = {
   store: Store;
   clock?: Clock;
   telemetry?: Telemetry;
+  /** The published network (DD-1). Without it, nothing is ever affected. */
+  network?: Network;
+  /** The synthetic fleet the vehicle platform reports. */
+  fleet?: FleetScene;
 };
 
-export async function createCore({ store, clock = systemClock, telemetry = new InMemoryTelemetry() }: CoreOptions) {
+export async function createCore({
+  store,
+  clock = systemClock,
+  telemetry = new InMemoryTelemetry(),
+  network,
+  fleet,
+}: CoreOptions) {
   const bus = new EventBus(store, clock, telemetry);
   const ledger = new AuditLedgerModule(clock, telemetry);
   const access = new AccessControlModule(clock, ledger);
-  const sources = new SourceGatewayModule(store, bus, clock);
+  const sources = new SourceGatewayModule(store, bus, clock, network, fleet);
   const disruptions = new DisruptionManagerModule(bus, clock, ledger, sources);
   const impact = new ImpactAssessorModule(bus, clock, ledger, disruptions, sources);
   const contingencies = new ContingencyLibraryModule(clock);
-  const optimiser = new RouteOptimiserModule(bus, ledger, contingencies);
+  const optimiser = new RouteOptimiserModule(bus, ledger, contingencies, impact, sources);
   const support = new DecisionSupportModule(bus, clock, ledger, impact, optimiser);
   const decisions = new DecisionManagerModule(store, bus, clock, ledger, support, optimiser, access);
   const serviceState = new ServiceStateModule(bus, clock, ledger);
@@ -73,9 +86,12 @@ export async function createCore({ store, clock = systemClock, telemetry = new I
   });
 
   await store.transaction(async (tx) => {
+    checkSchema(tx);
+    writeSchema(tx);
     EventBus.migrate(tx);
     for (const m of modules) m.migrate(tx);
     await access.seed(tx);
+    sources.loadFleet(tx);
   });
 
   return {

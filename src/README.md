@@ -33,21 +33,21 @@ The core is a modular monolith ([ADR-0006](../docs/05-architecture-decisions/adr
 
 Every state change and its audit event commit in one transaction ([ADR-0007](../docs/05-architecture-decisions/adr-0007-in-process-events-with-synchronous-audit.md)). Events go through a transactional outbox, and a subscriber's work commits with its delivery record, so replaying events never repeats work.
 
-## Status: walking skeleton (v1.1.0)
+## Status: v1.2.0
 
-One trivial disruption runs through every component:
+A disruption runs through every component over the real sample network:
 
-1. AC-01 reports an incident.
-2. AC-02 declares a disruption.
-3. AC-04 has AC-11 freeze a snapshot, then assesses the impact.
-4. AC-05 generates options, consulting AC-10.
-5. AC-06 recommends one of them.
+1. AC-01 reports an incident, and serves the network and the synthetic fleet's positions.
+2. AC-02 declares a disruption with a static footprint.
+3. AC-04 has AC-11 freeze a snapshot of the affected vehicles' positions, then finds the closed road edges, the cut patterns, the stops on the closed stretch, and whether each vehicle is approaching, inside or past.
+4. AC-05 offers "hold" for each cut pattern and searches for one bypass (ADR-0014), consulting AC-10.
+5. AC-06 recommends the bypass where one exists, in band A1; with nothing affected, band A0.
 6. A persona decides through AC-07, with AC-14 checking authority.
-7. AC-08 records the new service state.
-8. AC-09 issues a passenger notice.
+7. AC-08 records each pattern's new service state.
+8. AC-09 issues a passenger notice for each.
 9. AC-12 derives counts from the audit record.
 
-The logic inside each step is deliberately trivial: the skeleton has no network or fleet loaded, and its only option is "hold". The later v1.x releases replace each step with the real thing.
+The network model (`kernel/network.ts`) is read-only DD-1 reference data built from the pipeline's outputs, with footprint intersection and A* search in TypeScript (ADR-0010). The store records its schema version; the site clears a store written by an older release.
 
 ## Tooling
 

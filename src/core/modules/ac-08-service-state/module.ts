@@ -13,6 +13,8 @@ type StateRow = {
   id: string;
   disruption_id: string;
   decision_id: string;
+  pattern_index: number;
+  option_id: string;
   state: ServiceState["state"];
   since: string;
 };
@@ -40,52 +42,71 @@ export class ServiceStateModule implements CoreModule, ServiceStateStore {
     tx.run(`create table if not exists ss_state (
       id text primary key,
       disruption_id text not null,
-      decision_id text not null unique,
+      decision_id text not null,
+      pattern_index integer not null,
+      option_id text not null,
       state text not null check (state in ('planned', 'held', 'diverted')),
-      since text not null
+      since text not null,
+      unique (decision_id, pattern_index)
     )`);
-    tx.run("create index if not exists ss_state_disruption on ss_state(disruption_id, since)");
+    tx.run("create index if not exists ss_state_disruption on ss_state(disruption_id, pattern_index, since)");
   }
 
   private async onDecision(tx: Tx, event: DomainEvent): Promise<void> {
     const d = event.payload as DecisionMadePayload;
     if (d.verdict !== "approve") return;
-    const state = STATE_FOR_OPTION[d.optionKind];
-    if (!state) throw new Error(`no service state for option kind ${d.optionKind}`);
-    const record: ServiceState = {
-      id: newId("svc"),
-      disruptionId: d.disruptionId,
-      decisionId: d.decisionId,
-      state,
-      since: this.clock.now(),
-    };
-    tx.run("insert into ss_state (id, disruption_id, decision_id, state, since) values (?, ?, ?, ?, ?)", [
-      record.id,
-      record.disruptionId,
-      record.decisionId,
-      record.state,
-      record.since,
-    ]);
-    await this.ledger.append(tx, {
-      type: "service_state.changed",
-      component: this.id,
-      subject: d.disruptionId,
-      actor: { kind: "system", id: this.id },
-      payload: { stateId: record.id, decisionId: d.decisionId, state },
-    });
-    const payload: ServiceStateChangedPayload = {
-      stateId: record.id,
-      disruptionId: d.disruptionId,
-      decisionId: d.decisionId,
-      state,
-    };
-    this.bus.publish(tx, { type: SERVICE_STATE_CHANGED, source: this.id, subject: d.disruptionId, payload });
+    for (const item of d.items) {
+      const state = STATE_FOR_OPTION[item.optionKind];
+      if (!state) throw new Error(`no service state for option kind ${item.optionKind}`);
+      const record: ServiceState = {
+        id: newId("svc"),
+        disruptionId: d.disruptionId,
+        decisionId: d.decisionId,
+        patternIndex: item.patternIndex,
+        optionId: item.optionId,
+        state,
+        since: this.clock.now(),
+      };
+      tx.run(
+        `insert into ss_state (id, disruption_id, decision_id, pattern_index, option_id, state, since)
+         values (?, ?, ?, ?, ?, ?, ?)`,
+        [record.id, record.disruptionId, record.decisionId, record.patternIndex, record.optionId, record.state, record.since],
+      );
+      await this.ledger.append(tx, {
+        type: "service_state.changed",
+        component: this.id,
+        subject: d.disruptionId,
+        actor: { kind: "system", id: this.id },
+        payload: { stateId: record.id, decisionId: d.decisionId, pattern: item.patternIndex, state },
+      });
+      const payload: ServiceStateChangedPayload = {
+        stateId: record.id,
+        disruptionId: d.disruptionId,
+        decisionId: d.decisionId,
+        patternIndex: item.patternIndex,
+        state,
+      };
+      this.bus.publish(tx, { type: SERVICE_STATE_CHANGED, source: this.id, subject: d.disruptionId, payload });
+    }
   }
 
-  current(tx: Tx, disruptionId: string): ServiceState | undefined {
-    const r = tx.one<StateRow>("select * from ss_state where disruption_id = ? order by since desc, rowid desc limit 1", [
-      disruptionId,
-    ]);
-    return r && { id: r.id, disruptionId: r.disruption_id, decisionId: r.decision_id, state: r.state, since: r.since };
+  current(tx: Tx, disruptionId: string): ServiceState[] {
+    return tx
+      .all<StateRow>(
+        `select s.* from ss_state s
+         where s.disruption_id = ? and s.rowid = (
+           select max(rowid) from ss_state where disruption_id = s.disruption_id and pattern_index = s.pattern_index)
+         order by s.pattern_index`,
+        [disruptionId],
+      )
+      .map((r) => ({
+        id: r.id,
+        disruptionId: r.disruption_id,
+        decisionId: r.decision_id,
+        patternIndex: Number(r.pattern_index),
+        optionId: r.option_id,
+        state: r.state,
+        since: r.since,
+      }));
   }
 }
