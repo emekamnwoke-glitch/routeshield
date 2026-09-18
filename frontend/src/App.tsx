@@ -1,0 +1,252 @@
+import { useEffect, useState } from "react";
+import type { Verdict } from "../../src/core/modules/ac-07-decision-manager/contract";
+import type { PersonaId } from "../../src/core/modules/ac-14-access-control/contract";
+import { PERSONAS } from "../../src/core/modules/ac-14-access-control/contract";
+import { NetworkMap } from "./map/NetworkMap";
+import type { SiteNetwork } from "./map/network";
+import { loadNetwork } from "./map/network";
+import { CoreClient } from "./worker/client";
+import type { Request, WorkspaceState } from "./workspace/service";
+
+const REPO = "https://github.com/emekamnwoke-glitch/routeshield";
+const DEFAULT_PICK = { lat: 53.3498, lon: -6.2603 }; // O'Connell Street
+const RADII = [100, 150, 300, 500];
+
+// One core worker per page: it is the only writer of the store (ADR-0010), and
+// a second one would contend for the same OPFS file.
+const client = new CoreClient();
+
+export function App() {
+  const [network, setNetwork] = useState<SiteNetwork | null>(null);
+  const [state, setState] = useState<WorkspaceState | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [persona, setPersona] = useState<PersonaId>("controller");
+  const [route, setRoute] = useState<number | null>(null);
+  const [pick, setPick] = useState(DEFAULT_PICK);
+  const [radiusM, setRadiusM] = useState(150);
+  const [description, setDescription] = useState("Road closed");
+
+  const send = async (req: Request) => {
+    setBusy(true);
+    const res = await client.request(req);
+    setBusy(false);
+    if (res.ok) {
+      setState(res.state);
+      setNotice(res.notice ?? null);
+      setError(null);
+    } else {
+      setError(res.error);
+    }
+  };
+
+  useEffect(() => {
+    loadNetwork()
+      .then((n) => {
+        setNetwork(n);
+        const e2 = n.routes.findIndex((r) => r.code === "E2");
+        setRoute(e2 >= 0 ? e2 : null);
+      })
+      .catch((err: unknown) => setError(String(err)));
+    void send({ kind: "state" });
+  }, []); // load once
+
+  const decide = (recommendationId: string, verdict: Verdict) =>
+    send({ kind: "decide", persona, recommendationId, verdict });
+
+  return (
+    <div className="app">
+      <header className="header">
+        <div>
+          <h1>RouteShield</h1>
+          <p className="subtitle">Emergency bus rerouting · reference implementation · v1.1.0 walking skeleton</p>
+        </div>
+        <label className="persona">
+          <span>Acting as</span>
+          <select value={persona} onChange={(e) => setPersona(e.target.value as PersonaId)}>
+            {PERSONAS.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+          <small>Persona switcher: nobody is signed in or authenticated (ADR-0012).</small>
+        </label>
+      </header>
+
+      <p className="fiction" role="note">
+        <strong>Fictional reference implementation.</strong> The bus network is real (NTA GTFS, OpenStreetMap).
+        Everything operational — incidents, decisions, notices — is invented, and no real operator's system is
+        connected. <a href={`${REPO}/blob/main/docs/02-stage-two-reference-implementation/fact-vs-assumption-model.md`}>Why this matters</a>
+      </p>
+
+      <main className="layout">
+        <section className="map-panel" aria-label="Network map">
+          <div className="map-toolbar">
+            <label>
+              Highlight route{" "}
+              <select
+                value={route ?? ""}
+                onChange={(e) => setRoute(e.target.value === "" ? null : Number(e.target.value))}
+                disabled={!network}
+              >
+                <option value="">None</option>
+                {network?.routes.map((r, i) => (
+                  <option key={r.code} value={i}>
+                    {r.code} · {r.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          {network ? (
+            <NetworkMap
+              network={network}
+              route={route}
+              footprints={state?.disruptions.map((d) => d.footprint) ?? []}
+              pick={pick}
+              onPick={(lat, lon) => setPick({ lat, lon })}
+            />
+          ) : (
+            <p className="loading">{error ? "The network could not be loaded." : "Loading the Dublin network…"}</p>
+          )}
+        </section>
+
+        <aside className="side">
+          <section className="card">
+            <h2>1. Report an incident</h2>
+            <p className="hint">Click the map to place it. It starts on O'Connell Street.</p>
+            <dl className="facts">
+              <dt>Location</dt>
+              <dd>
+                {pick.lat.toFixed(5)}, {pick.lon.toFixed(5)}
+              </dd>
+            </dl>
+            <div className="row">
+              <label>
+                Radius{" "}
+                <select value={radiusM} onChange={(e) => setRadiusM(Number(e.target.value))}>
+                  {RADII.map((r) => (
+                    <option key={r} value={r}>
+                      {r} m
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="grow">
+                Description{" "}
+                <input value={description} onChange={(e) => setDescription(e.target.value)} maxLength={120} />
+              </label>
+            </div>
+            <button
+              type="button"
+              className="primary"
+              disabled={busy || !state}
+              onClick={() => send({ kind: "report", incident: { ...pick, radiusM, description: description || "Incident" } })}
+            >
+              Report incident
+            </button>
+          </section>
+
+          <section className="card">
+            <h2>2. Disruptions</h2>
+            <p className="hint">
+              This release does not propose bypass routes yet: the only option is to hold. v1.2.0 adds the affected
+              routes and stops, and a suggested bypass here for you to approve or reject. v1.3.0 ranks several.
+            </p>
+            {state?.disruptions.length ? (
+              <ul className="disruptions">
+                {state.disruptions.map((d) => (
+                  <li key={d.id}>
+                    <p className="mono">{d.id.slice(0, 12)}…</p>
+                    <dl className="facts">
+                      <dt>Status</dt>
+                      <dd>{d.status}</dd>
+                      <dt>Footprint</dt>
+                      <dd>{d.footprint.radiusM} m radius</dd>
+                      {d.recommendation && (
+                        <>
+                          <dt>Recommendation</dt>
+                          <dd>
+                            {d.recommendation.optionKind}, band {d.recommendation.band}, {d.recommendation.confidence}{" "}
+                            confidence
+                          </dd>
+                        </>
+                      )}
+                      <dt>Decision</dt>
+                      <dd>{d.decision ? `${d.decision.verdict} by ${d.decision.decidedBy}` : "awaiting a person"}</dd>
+                      <dt>Service</dt>
+                      <dd>{d.serviceState ?? "as planned"}</dd>
+                      <dt>Notices</dt>
+                      <dd>{d.notices.length ? d.notices.map((n) => `${n.channel}: ${n.kind}`).join(", ") : "none"}</dd>
+                    </dl>
+                    {d.recommendation && !d.decision && (
+                      <div className="row">
+                        <button type="button" className="primary" disabled={busy} onClick={() => decide(d.recommendation?.id ?? "", "approve")}>
+                          Approve
+                        </button>
+                        <button type="button" disabled={busy} onClick={() => decide(d.recommendation?.id ?? "", "reject")}>
+                          Reject
+                        </button>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="hint">None yet. Report an incident to start one.</p>
+            )}
+          </section>
+
+          <section className="card">
+            <h2>3. Audit trail</h2>
+            {state && (
+              <p className={state.chain.ok ? "ok" : "bad"}>
+                {state.chain.ok
+                  ? `Hash chain verified: ${state.chain.events} events, ${state.chain.snapshots} snapshots.`
+                  : `Hash chain broken: ${state.chain.problems.join("; ")}`}
+              </p>
+            )}
+            {state && state.components.length > 0 && (
+              <p className="hint">Components that recorded events: {state.components.join(", ")}</p>
+            )}
+            <ol className="trail">
+              {state?.trail.map((t) => (
+                <li key={t.seq}>
+                  <span className="mono">#{t.seq}</span> <span className="tag">{t.component}</span> {t.type}
+                  {t.actor && <span className="actor"> · {t.actor}</span>}
+                </li>
+              ))}
+            </ol>
+          </section>
+
+          <section className="card">
+            <p className="hint">
+              {state?.storage === "opfs"
+                ? "Stored in this browser (OPFS). It survives a reload."
+                : "Stored in memory: this browser refused OPFS, so a reload starts again."}
+            </p>
+            <button type="button" disabled={busy} onClick={() => send({ kind: "reset" })}>
+              Start again
+            </button>
+          </section>
+
+          <p className="status" role="status" aria-live="polite">
+            {error ? `Error: ${error}` : notice}
+          </p>
+        </aside>
+      </main>
+
+      <footer className="footer">
+        {(network?.attribution ?? []).map((a) => (
+          <p key={a}>{a}</p>
+        ))}
+        <p>
+          <a href={REPO}>Architecture and source on GitHub</a> · Independent portfolio project, not affiliated with
+          Dublin Bus or the National Transport Authority.
+        </p>
+      </footer>
+    </div>
+  );
+}

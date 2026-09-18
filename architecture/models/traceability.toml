@@ -907,22 +907,22 @@ evidence = ""
 [tests."TC-101"]
 verifies = ["AR-001"]
 level = "integration"
-status = "planned"
-implementation = ""
+status = "implemented"
+implementation = "tests/core/walking-skeleton.test.ts"
 evidence = ""
 
 [tests."TC-102"]
 verifies = ["AR-002"]
 level = "integration"
-status = "planned"
-implementation = ""
+status = "implemented"
+implementation = "tests/core/audit-ledger.test.ts"
 evidence = ""
 
 [tests."TC-103"]
 verifies = ["AR-003"]
 level = "security"
-status = "planned"
-implementation = ""
+status = "implemented"
+implementation = "tests/core/audit-ledger.test.ts"
 evidence = ""
 
 [tests."TC-104"]
@@ -935,15 +935,15 @@ evidence = ""
 [tests."TC-105"]
 verifies = ["AR-005"]
 level = "inspection"
-status = "planned"
-implementation = ""
+status = "implemented"
+implementation = "tools/architecture/check_boundaries.py"
 evidence = ""
 
 [tests."TC-106"]
 verifies = ["AR-006"]
 level = "security"
-status = "planned"
-implementation = ""
+status = "implemented"
+implementation = "tests/core/walking-skeleton.test.ts"
 evidence = ""
 
 [tests."TC-107"]

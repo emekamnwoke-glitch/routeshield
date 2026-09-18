@@ -156,15 +156,40 @@ Unit, integration, system, acceptance, security, performance and resilience test
 
 ## 12. CI/CD
 
-Pull requests run lint → unit → integration → security → build. Merges to `main` additionally build and publish the demonstrator. Workflows in [`.github/workflows/`](.github/workflows/).
+Every pull request and every push to `main` runs the first two workflows in [`.github/workflows/`](.github/workflows/); the third runs on `main` only:
+
+| Workflow | Checks |
+|---|---|
+| `ci.yml` | **TypeScript:** type check, ESLint, and Vitest over SQLite WASM. **Python:** ruff format and lint, mypy (strict), and pytest. **Architecture:** the component boundary check. **Dependencies:** `npm audit` at high severity. |
+| `architecture.yml` | Traceability model against the architecture documents; Markdown links; secret scanning |
+| `pages.yml` | Builds the demonstrator, deploys it to GitHub Pages, and smoke-tests the live site: page, scripts, core worker, network data and SQLite WASM |
+
+`ci.yml` also builds the site on every pull request, so a change that breaks the build fails before it reaches `main`.
 
 ## 13. Running locally
 
-The demonstrator arrives with Stage Two — see the [roadmap](#15-roadmap).
-
-What runs today is the architecture's own governance check, which validates the traceability model against the architecture documents and regenerates the matrix. It needs only Python 3.11+:
+The demonstrator runs at **<https://emekamnwoke-glitch.github.io/routeshield/>**, published from `main`. To run it locally:
 
 ```bash
+npm ci
+npm run dev
+```
+
+Then open <http://localhost:5173/routeshield/>. Also in the repository:
+
+- **The core** (TypeScript, Node 24+): every component running over SQLite WASM, exercised end to end by the tests.
+- **The data pipeline** (Python 3.11+): the network fixtures under `data/fixtures/`.
+- **The governance checks:** traceability, component boundaries and links.
+
+```bash
+npm test
+npm run typecheck
+npm run lint
+```
+
+```bash
+python -m pytest tests
+python tools/architecture/check_boundaries.py
 python tools/traceability/check.py --render
 ```
 
@@ -180,11 +205,11 @@ routeshield/
 │   ├── 04-operations/                       Runbooks, observability, KPIs
 │   └── 05-architecture-decisions/           ADRs
 ├── architecture/                            Diagrams, models, views
-├── src/                                     Domain engine
+├── src/                                     Core components (TypeScript) and adapters
 ├── frontend/                                Control dashboard & simulation UI
 ├── pipeline/                                Build-time data & ML pipeline
 ├── tests/                                   Test suites
-├── tools/                                   Governance tooling (traceability checker)
+├── tools/                                   Governance tooling (traceability, boundaries, links)
 ├── data/                                    Synthetic datasets & fixtures
 ├── infrastructure/                          Local containerised environment
 └── .github/                                 Workflows, templates
@@ -204,7 +229,7 @@ Milestones are published as Git tags, so the repository history reads as the arc
 | `v0.6.0` | Solution Blueprint | 🟢 |
 | `v1.0.0` | **Stage One complete** | 🟢 Current |
 | `v1.1.0` | Stage Two foundation | ⬜ |
-| `v1.2.0` | Disruption engine | ⬜ |
+| `v1.2.0` | Disruption engine and first bypass | ⬜ |
 | `v1.3.0` | Routing engine | ⬜ |
 | `v1.4.0` | Notifications | ⬜ |
 | `v1.5.0` | Control dashboard | ⬜ |
@@ -236,6 +261,8 @@ Beyond `v2.0.0`: multimodal disruption response across rail and light rail, cont
 ## Licence
 
 [MIT](LICENSE) — Copyright © 2026 Chukwuemeka Nwoke
+
+The MIT licence covers code and documentation only. Network data in [`data/fixtures/gtfs-sample/`](data/fixtures/gtfs-sample/) contains National Transport Authority data, licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The road graph in [`data/fixtures/osm-graph/`](data/fixtures/osm-graph/) contains data © OpenStreetMap contributors and is available under the [Open Database Licence](https://opendatacommons.org/licenses/odbl/1-0/).
 
 ## Author
 

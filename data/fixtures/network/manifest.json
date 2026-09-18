@@ -1,0 +1,30 @@
+{
+  "generated_at": "2026-09-17T11:07:40Z",
+  "inputs": {
+    "data/fixtures/gtfs-sample/manifest.json": "d1752546b5c749494c47c5c49883624524b5847847ae9dfca160d3b25e80fd1e",
+    "data/fixtures/osm-graph/manifest.json": "3d248f6dd4912364d210ffc72b8a93249c75cb18da8f55686c7f6a49dc36475f"
+  },
+  "parameters": {
+    "step_m": 25.0,
+    "radius_m": 60.0,
+    "max_candidates": 12,
+    "sigma_m": 20.0,
+    "beta_m": 10.0,
+    "uturn_m": 50.0,
+    "index_cell_m": 250.0
+  },
+  "licence": [
+    "Contains National Transport Authority data, licensed under CC BY 4.0.",
+    "Contains data \u00a9 OpenStreetMap contributors, available under the Open Database Licence."
+  ],
+  "files": {
+    "network.json": {
+      "routes": 11,
+      "stops": 948,
+      "patterns": 33,
+      "trips": 1618,
+      "bytes": 835808,
+      "sha256": "c9d04cc9697f83ee3753c4ead1924101d02e727f2fdf055215c4cebca6c48132"
+    }
+  }
+}

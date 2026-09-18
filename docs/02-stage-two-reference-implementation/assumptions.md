@@ -165,6 +165,12 @@ Every entry records seven fields. Two of them do the real work:
 | **If wrong** | 🟡 The decision engine's hold/terminate branch becomes the primary path rather than the exception, shifting the system's value from rerouting to impact communication. |
 | **Validation** | Day one: obtain the operator's own network constraint data. Operators know which roads their buses can use; OpenStreetMap does not. |
 
+**Stage Two evidence (v1.1.0, 2026-09-17).** Building the road graph and matching the GTFS sample onto it showed three ways OpenStreetMap falls short of describing where buses run. The assumption stays open: these findings concern network data, not detour feasibility itself.
+
+- **A road-class filter misses real bus roads.** A drivable graph of motorway through residential roads left out 231 service roads that OSM's own bus route relations use, including hospital access roads. Without them, route N4 had to detour around Connolly Hospital grounds. See the [road graph](../../data/fixtures/osm-graph/README.md).
+- **OSM's bus route relations are incomplete.** Route 40D's published shape runs through Blanchardstown Corporate Park, but OSM's 40D relation does not include the park's roads. Four stops remain 84–145 m from the graph. See the [network fixture](../../data/fixtures/network/README.md#match-quality).
+- **Contraflow bus lanes are unevenly tagged.** On Custom House Quay and Eden Quay, only some one-way segments record a contraflow bus lane (`lanes:psv:backward`). The rest are plain `oneway=yes`.
+
 ---
 
 ## A-009

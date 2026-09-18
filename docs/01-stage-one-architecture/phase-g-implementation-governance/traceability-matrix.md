@@ -11,7 +11,7 @@
 | Business requirements | 47 |
 | Architecture requirements | 32 |
 | User stories | 0 |
-| Test cases | 79 — 79 planned |
+| Test cases | 79 — 5 implemented, 74 planned |
 
 ## Chain
 
@@ -53,9 +53,9 @@ flowchart LR
 | **BR-017** Retrieve a matching pre-approved contingency route | SHOULD | C3.5 | AR-019 | AC-10 | — | TC-017, TC-119 | planned |
 | **BR-018** Support hold, split and terminate as outcomes | MUST | C3.4, C4.1 | AR-016 | AC-05, AC-06 | — | TC-018, TC-116 | planned |
 | **BR-019** Present rationale, cost and unknowns with each recommendation | MUST | C4.1 | AR-008 | AC-06 | — | TC-019, TC-108 | planned |
-| **BR-020** Require identified approval before any novel change | MUST | C4.2 | AR-006 | AC-07, AC-14 | — | TC-020, TC-106 | planned |
+| **BR-020** Require identified approval before any novel change | MUST | C4.2 | AR-006 | AC-07, AC-14 | — | TC-020, TC-106 | implemented, planned |
 | **BR-021** Support and record approve, reject and modify | MUST | C4.2 | AR-031 | AC-07 | — | TC-021, TC-131 | planned |
-| **BR-022** Determine authority and escalate beyond it | SHOULD | C4.3 | AR-006, AR-010 | AC-06, AC-07, AC-14 | — | TC-022, TC-106, TC-110 | planned |
+| **BR-022** Determine authority and escalate beyond it | SHOULD | C4.3 | AR-006, AR-010 | AC-06, AC-07, AC-14 | — | TC-022, TC-106, TC-110 | implemented, planned |
 | **BR-023** Bound recommendations awaiting a decision | MUST | C4.4 | AR-010 | AC-06 | — | TC-023, TC-110 | planned |
 | **BR-024** Detect approvals that indicate decisions are not being evaluated | SHOULD | C4.4 | AR-011 | AC-06, AC-13 | — | TC-024, TC-111 | planned |
 | **BR-025** Permit unattended activation only for matching pre-approved routes | MUST | C3.5, C4.2 | AR-007, AR-019 | AC-07, AC-10, AC-14 | — | TC-025, TC-107, TC-119 | planned |
@@ -69,9 +69,9 @@ flowchart LR
 | **BR-033** Prompt a reversion decision on clearance | MUST | C6.2 | AR-025 | AC-02, AC-07 | — | TC-033, TC-125 | planned |
 | **BR-034** Restore services and inform drivers and passengers | MUST | C6.3 | AR-013, AR-020 | AC-02, AC-08, AC-09 | — | TC-034, TC-113, TC-120 | planned |
 | **BR-035** Prevent diversions persisting without an explicit decision | MUST | C6.2 | AR-013 | AC-02, AC-08 | — | TC-035, TC-113 | planned |
-| **BR-036** Record every recommendation, decision, activation, refusal and reversion immutably | MUST | C7.1 | AR-002, AR-003 | AC-02, AC-04, AC-05, AC-06, AC-07, AC-08, AC-09, AC-10, AC-11, AC-14 | — | TC-036, TC-102, TC-103 | planned |
-| **BR-037** Capture inputs as they stood, including stale or absent ones | MUST | C7.1 | AR-001 | AC-04, AC-11 | — | TC-037, TC-101 | planned |
-| **BR-038** Reconstruct any decision from the record alone | MUST | C7.2 | AR-001, AR-003, AR-018, AR-023, AR-026 | AC-02, AC-04, AC-07, AC-11, AC-12 | — | TC-038, TC-101, TC-103, TC-118, TC-123, TC-126 | planned |
+| **BR-036** Record every recommendation, decision, activation, refusal and reversion immutably | MUST | C7.1 | AR-002, AR-003 | AC-02, AC-04, AC-05, AC-06, AC-07, AC-08, AC-09, AC-10, AC-11, AC-14 | — | TC-036, TC-102, TC-103 | implemented, planned |
+| **BR-037** Capture inputs as they stood, including stale or absent ones | MUST | C7.1 | AR-001 | AC-04, AC-11 | — | TC-037, TC-101 | implemented, planned |
+| **BR-038** Reconstruct any decision from the record alone | MUST | C7.2 | AR-001, AR-003, AR-018, AR-023, AR-026 | AC-02, AC-04, AC-07, AC-11, AC-12 | — | TC-038, TC-101, TC-103, TC-118, TC-123, TC-126 | implemented, planned |
 | **BR-039** Make the record interpretable outside the operator | SHOULD | C7.2 | AR-026 | AC-11 | — | TC-039, TC-126 | planned |
 | **BR-040** Determine what resulted from a decision | COULD | C7.3 | AR-030 | AC-12 | — | TC-040, TC-130 | planned |
 | **BR-041** Propose contingency candidates from recurring patterns | COULD | C7.4 | AR-019, AR-030 | AC-10, AC-12 | — | TC-041, TC-119, TC-130 | planned |
@@ -207,12 +207,12 @@ flowchart LR
 | TC-045 | BR-045 | resilience | planned | — | — |
 | TC-046 | BR-046 | security | planned | — | — |
 | TC-047 | BR-047 | inspection | planned | — | — |
-| TC-101 | AR-001 | integration | planned | — | — |
-| TC-102 | AR-002 | integration | planned | — | — |
-| TC-103 | AR-003 | security | planned | — | — |
+| TC-101 | AR-001 | integration | implemented | tests/core/walking-skeleton.test.ts | — |
+| TC-102 | AR-002 | integration | implemented | tests/core/audit-ledger.test.ts | — |
+| TC-103 | AR-003 | security | implemented | tests/core/audit-ledger.test.ts | — |
 | TC-104 | AR-004 | resilience | planned | — | — |
-| TC-105 | AR-005 | inspection | planned | — | — |
-| TC-106 | AR-006 | security | planned | — | — |
+| TC-105 | AR-005 | inspection | implemented | tools/architecture/check_boundaries.py | — |
+| TC-106 | AR-006 | security | implemented | tests/core/walking-skeleton.test.ts | — |
 | TC-107 | AR-007 | security | planned | — | — |
 | TC-108 | AR-008 | unit | planned | — | — |
 | TC-109 | AR-009 | unit | planned | — | — |

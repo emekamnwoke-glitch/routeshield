@@ -1,0 +1,80 @@
+{
+  "source": {
+    "publisher": "National Transport Authority",
+    "url": "https://www.transportforireland.ie/transitData/Data/GTFS_Dublin_Bus.zip",
+    "file": "GTFS_Dublin_Bus.zip",
+    "sha256": "066756a52961f9a3776966c511dbbef70f1b0cc81d4bf5571011793348851aa3",
+    "feed_version": "F2C81B2E-E569-42B0-9AA7-47DE9BD14E77",
+    "feed_start_date": "20260913",
+    "feed_end_date": "20270913"
+  },
+  "licence": {
+    "name": "CC BY 4.0",
+    "url": "https://creativecommons.org/licenses/by/4.0/",
+    "attribution": "Contains National Transport Authority data (NTA GTFS), licensed under CC BY 4.0."
+  },
+  "generated_at": "2026-09-16T14:55:10Z",
+  "filter": {
+    "routes": [
+      "142",
+      "23",
+      "24",
+      "39A",
+      "40D",
+      "41X",
+      "E1",
+      "E2",
+      "F1",
+      "F2",
+      "N4"
+    ],
+    "service_id": "284"
+  },
+  "files": {
+    "agency.txt": {
+      "rows": 1,
+      "bytes": 123,
+      "sha256": "caa62d56e120c482f8e4fd2427291d27baa9e7414e2184da0cff90f55413027c"
+    },
+    "calendar.txt": {
+      "rows": 1,
+      "bytes": 124,
+      "sha256": "8c57cfb9337420dae49546f620fe2d39d7f857f9679af85414e3104c91854fa4"
+    },
+    "calendar_dates.txt": {
+      "rows": 1,
+      "bytes": 46,
+      "sha256": "e32c95346c2b8d82acbf48efc7200d53a9ebc2636885b62fb36542b6e28fd575"
+    },
+    "feed_info.txt": {
+      "rows": 1,
+      "bytes": 264,
+      "sha256": "bdb90c57af4624a9604e4fbd9ebbf39a64fffc8665a12f63721c4337231be7dd"
+    },
+    "routes.txt": {
+      "rows": 11,
+      "bytes": 626,
+      "sha256": "d7903bcc16145e4d586034e1976216952b99ed95a32443106d98a1bd54f85b6e"
+    },
+    "shapes.txt": {
+      "rows": 67981,
+      "bytes": 3101441,
+      "sha256": "5cb60aeafde674a43484a0fe3b95571fcc37c98caa902f4d1362b2f74c203615"
+    },
+    "stop_times.txt": {
+      "rows": 108659,
+      "bytes": 5643156,
+      "sha256": "84741decffdd91582128e07b0d38ce5935a3436751561b83e91db733d98aef31"
+    },
+    "stops.txt": {
+      "rows": 948,
+      "bytes": 57203,
+      "sha256": "8f6429575a725f9bd1a5aefaf7e5ffd84591320771a8736779a31bbc57abdc76"
+    },
+    "trips.txt": {
+      "rows": 1618,
+      "bytes": 116744,
+      "sha256": "be4b92fd459227751ec217c42a82dce8419e15914355d9dc572b284dba8236da"
+    }
+  }
+}
