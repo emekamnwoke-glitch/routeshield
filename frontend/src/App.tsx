@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import type { Verdict } from "../../src/core/modules/ac-07-decision-manager/contract";
 import type { PersonaId } from "../../src/core/modules/ac-14-access-control/contract";
 import { PERSONAS } from "../../src/core/modules/ac-14-access-control/contract";
-import { DisruptionCard } from "./DisruptionCard";
 import { NetworkMap } from "./map/NetworkMap";
 import { RouteStatusCard } from "./RouteStatusCard";
 import { routeStatuses } from "./routeStatus";
@@ -11,250 +10,27 @@ import { loadNetwork } from "./map/network";
 import { CoreClient } from "./worker/client";
 import type { Request, WorkspaceState } from "./workspace/service";
 
+const client = new CoreClient();
 const REPO = "https://github.com/emekamnwoke-glitch/routeshield";
-const DEFAULT_PICK = { lat: 53.3498, lon: -6.2603 }; // O'Connell Street
 const RADII = [100, 150, 300, 500];
 
-// One core worker per page: it is the only writer of the store (ADR-0010), and
-// a second one would contend for the same OPFS file.
-const client = new CoreClient();
-
 export function App() {
-  const [network, setNetwork] = useState<SiteNetwork | null>(null);
-  const [state, setState] = useState<WorkspaceState | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [persona, setPersona] = useState<PersonaId>("controller");
-  const [route, setRoute] = useState<number | null>(null);
-  const [pick, setPick] = useState(DEFAULT_PICK);
-  const [radiusM, setRadiusM] = useState(150);
-  const [description, setDescription] = useState("Road closed");
-
-  const send = async (req: Request) => {
-    setBusy(true);
-    const res = await client.request(req);
-    setBusy(false);
-    if (res.ok) {
-      setState(res.state);
-      setNotice(res.notice ?? null);
-      setError(null);
-    } else {
-      setError(res.error);
-    }
-  };
-
-  useEffect(() => {
-    loadNetwork()
-      .then((n) => {
-        setNetwork(n);
-        const e2 = n.routes.findIndex((r) => r.code === "E2");
-        setRoute(e2 >= 0 ? e2 : null);
-      })
-      .catch((err: unknown) => setError(String(err)));
-    void send({ kind: "state" });
-  }, []); // load once
-
-  const decide = (recommendationId: string, verdict: Verdict) =>
-    send({ kind: "decide", persona, recommendationId, verdict });
-
-  return (
-    <div className="app">
-      <header className="header">
-        <div>
-          <h1>RouteShield</h1>
-          <p className="subtitle">Emergency bus rerouting · reference implementation · v1.2.0</p>
-        </div>
-        <label className="persona">
-          <span>Acting as</span>
-          <select value={persona} onChange={(e) => setPersona(e.target.value as PersonaId)}>
-            {PERSONAS.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-          <small>Persona switcher: nobody is signed in or authenticated (ADR-0012).</small>
-        </label>
-      </header>
-
-      <p className="fiction" role="note">
-        <strong>Fictional reference implementation.</strong> The bus network is real (NTA GTFS, OpenStreetMap).
-        Everything operational — incidents, decisions, notices — is invented, and no real operator's system is
-        connected. <a href={`${REPO}/blob/main/docs/02-stage-two-reference-implementation/fact-vs-assumption-model.md`}>Why this matters</a>
-      </p>
-
-      <main className="layout">
-        <section className="map-panel" aria-label="Network map">
-          <div className="map-toolbar">
-            <label>
-              Highlight route{" "}
-              <select
-                value={route ?? ""}
-                onChange={(e) => setRoute(e.target.value === "" ? null : Number(e.target.value))}
-                disabled={!network}
-              >
-                <option value="">None</option>
-                {network?.routes.map((r, i) => (
-                  <option key={r.code} value={i}>
-                    {r.code} · {r.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          {network ? (
-            <NetworkMap
-              network={network}
-              route={route}
-              footprints={state?.disruptions.map((d) => d.footprint) ?? []}
-              blocked={state?.disruptions.flatMap((d) => d.impact?.blockedLines ?? []) ?? []}
-              detours={
-                state?.disruptions.flatMap((d) =>
-                  d.recommendation?.items.flatMap((i) => (i.detour.length ? [i.detour] : [])) ?? [],
-                ) ?? []
-              }
-              vehicles={state?.vehicles ?? []}
-              pick={pick}
-              onPick={(lat, lon) => setPick({ lat, lon })}
-            />
-          ) : (
-            <p className="loading">{error ? "The network could not be loaded." : "Loading the Dublin network…"}</p>
-          )}
-          <div className="legend" aria-label="Map legend">
-            <span>
-              <span className="swatch" style={{ background: "var(--map-route)" }} />
-              Highlighted route
-            </span>
-            <span>
-              <span className="swatch" style={{ background: "var(--map-footprint)" }} />
-              Closed road
-            </span>
-            <span>
-              <span className="swatch" style={{ background: "repeating-linear-gradient(90deg, var(--map-detour) 0 5px, transparent 5px 8px)" }} />
-              Suggested bypass
-            </span>
-            <span>
-              <span className="swatch dot" style={{ background: "var(--map-approaching)" }} />
-              Vehicle approaching
-            </span>
-            <span>
-              <span className="swatch dot" style={{ background: "var(--map-footprint)" }} />
-              Vehicle inside
-            </span>
-            <span>
-              <span className="swatch dot" style={{ background: "var(--map-vehicle)" }} />
-              Other vehicle (synthetic)
-            </span>
-          </div>
-        </section>
-
-        <aside className="side">
-          <RouteStatusCard routes={routeStatuses(state)} />
-
-          <section className="card">
-            <h2>1. Report an incident</h2>
-            <p className="hint">
-              Click the map to place it. It starts on O'Connell Street. Vehicles are a synthetic fleet placed from the
-              timetable for Monday 08:00.
-            </p>
-            <dl className="facts">
-              <dt>Location</dt>
-              <dd>
-                {pick.lat.toFixed(5)}, {pick.lon.toFixed(5)}
-              </dd>
-            </dl>
-            <div className="row">
-              <label>
-                Radius{" "}
-                <select value={radiusM} onChange={(e) => setRadiusM(Number(e.target.value))}>
-                  {RADII.map((r) => (
-                    <option key={r} value={r}>
-                      {r} m
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="grow">
-                Description{" "}
-                <input value={description} onChange={(e) => setDescription(e.target.value)} maxLength={120} />
-              </label>
-            </div>
-            <button
-              type="button"
-              className="primary"
-              disabled={busy || !state?.network.loaded}
-              onClick={() => send({ kind: "report", incident: { ...pick, radiusM, description: description || "Incident" } })}
-            >
-              Report incident
-            </button>
-          </section>
-
-          <section className="card">
-            <h2>2. Disruptions</h2>
-            <p className="hint">
-              Each affected route pattern gets one suggested bypass, dashed on the map, for a person to approve or
-              reject. v1.3.0 ranks several options with their costs.
-            </p>
-            {state?.disruptions.length ? (
-              <ul className="disruptions">
-                {state.disruptions.map((d) => (
-                  <DisruptionCard key={d.id} d={d} busy={busy} onDecide={decide} />
-                ))}
-              </ul>
-            ) : (
-              <p className="hint">None yet. Report an incident to start one.</p>
-            )}
-          </section>
-
-          <section className="card">
-            <h2>3. Audit trail</h2>
-            {state && (
-              <p className={state.chain.ok ? "ok" : "bad"}>
-                {state.chain.ok
-                  ? `Hash chain verified: ${state.chain.events} events, ${state.chain.snapshots} snapshots.`
-                  : `Hash chain broken: ${state.chain.problems.join("; ")}`}
-              </p>
-            )}
-            {state && state.components.length > 0 && (
-              <p className="hint">Components that recorded events: {state.components.join(", ")}</p>
-            )}
-            <ol className="trail">
-              {state?.trail.map((t) => (
-                <li key={t.seq}>
-                  <span className="mono">#{t.seq}</span> <span className="tag">{t.component}</span> {t.type}
-                  {t.actor && <span className="actor"> · {t.actor}</span>}
-                </li>
-              ))}
-            </ol>
-          </section>
-
-          <section className="card">
-            <p className="hint">
-              {state?.storage === "opfs"
-                ? "Stored in this browser (OPFS). It survives a reload."
-                : "Stored in memory: this browser refused OPFS, so a reload starts again."}
-            </p>
-            <button type="button" disabled={busy} onClick={() => send({ kind: "reset" })}>
-              Start again
-            </button>
-          </section>
-
-          <p className="status" role="status" aria-live="polite">
-            {error ? `Error: ${error}` : !state ? "Loading the road network and fleet…" : notice}
-          </p>
-        </aside>
-      </main>
-
-      <footer className="footer">
-        {(network?.attribution ?? []).map((a) => (
-          <p key={a}>{a}</p>
-        ))}
-        <p>
-          <a href={REPO}>Architecture and source on GitHub</a> · Independent portfolio project, not affiliated with
-          Dublin Bus or the National Transport Authority.
-        </p>
-      </footer>
-    </div>
-  );
+  const [network, setNetwork] = useState<SiteNetwork | null>(null); const [state, setState] = useState<WorkspaceState | null>(null);
+  const [persona, setPersona] = useState<PersonaId>("controller"); const [route, setRoute] = useState<number | null>(null);
+  const [pick, setPick] = useState({ lat: 53.3498, lon: -6.2603 }); const [radiusM, setRadiusM] = useState(150);
+  const [description, setDescription] = useState("Road closed"); const [busy, setBusy] = useState(false); const [notice, setNotice] = useState<string | null>(null); const [error, setError] = useState<string | null>(null);
+  const send = async (req: Request) => { setBusy(true); const result = await client.request(req); setBusy(false); if (result.ok) { setState(result.state); setNotice(result.notice ?? null); setError(null); } else setError(result.error); };
+  useEffect(() => { loadNetwork().then((n) => { setNetwork(n); setRoute(n.routes.findIndex((r) => r.code === "E2")); }).catch((e: unknown) => setError(String(e))); void send({ kind: "state" }); }, []);
+  const disruption = state?.disruptions.at(0); const recommendation = disruption?.recommendation; const options = recommendation?.items ?? [];
+  const decide = (verdict: Verdict) => recommendation && void send({ kind: "decide", persona, recommendationId: recommendation.id, verdict });
+  const personaName = PERSONAS.find((p) => p.id === persona)?.name ?? persona;
+  return <div className="shell"><aside className="sidebar"><a className="brand" href={REPO}><span>▣</span><b>RouteShield<small>Monitor. Respond. Keep Dublin Moving.</small></b></a><nav>{["⌂ Overview","◉ Live Network","△ Disruptions","⌁ Routes","▣ Fleet","▤ Audit Trail","◇ Architecture"].map((x, i) => <a className={i === 0 ? "active" : ""} href="#workspace" key={x}>{x}{i === 2 && disruption && <i>1</i>}</a>)}</nav><p className="city">DUBLIN<small>synthetic demonstrator</small></p></aside><div className="workspace" id="workspace">
+    <header><div><p>ROUTESHIELD</p><h1>Control Workspace</h1><small>Observe → Assess → Recommend → Authorise → Execute → Audit</small></div><div className="health"><b>● {disruption ? "Network attention required" : "Network operational"}</b><small>{network?.routes.length ?? "—"} routes · {state?.vehicles.length ?? "—"} buses (synthetic)</small></div><div className="time"><small>Wed, 16 Sep 2026</small><b>08:00</b><em>● LIVE</em></div><label className="persona"><span>●</span><b>{personaName}<small>Decision authority: {persona === "controller" ? "yes" : "no"}</small></b><select value={persona} onChange={(e) => setPersona(e.target.value as PersonaId)} aria-label="Current persona">{PERSONAS.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label></header>
+    <div className="banner"><b>Synthetic Demonstrator</b><span>Fictional incidents, decisions and fleet positions. No operator system is connected.</span><a href={`${REPO}/blob/main/docs/02-stage-two-reference-implementation/fact-vs-assumption-model.md`}>About this data ↗</a></div>
+    <main><section className="network"><div className="title"><div><p>LIVE NETWORK</p><h2>Dublin service network</h2></div><label>Focus route <select value={route ?? ""} onChange={(e) => setRoute(e.target.value === "" ? null : Number(e.target.value))}><option value="">All routes</option>{network?.routes.map((r, i) => <option key={r.code} value={i}>{r.code} · {r.name}</option>)}</select></label></div>{network ? <NetworkMap network={network} route={route} footprints={state?.disruptions.map((d) => d.footprint) ?? []} blocked={state?.disruptions.flatMap((d) => d.impact?.blockedLines ?? []) ?? []} detours={state?.disruptions.flatMap((d) => d.recommendation?.items.flatMap((i) => i.detour.length ? [i.detour] : []) ?? []) ?? []} vehicles={state?.vehicles ?? []} pick={pick} onPick={(lat, lon) => setPick({ lat, lon })} /> : <p className="loading">Loading the Dublin network…</p>}<small className="map-note">Click the map to place a synthetic road closure. Green: route · Red: closure · Purple: bypass</small></section>
+      <aside className="right"><section className="incident"><p>ACTIVE DISRUPTION {disruption && `· ${disruption.id.slice(0, 12)}`}</p><h2>{disruption ? "Road closure reported" : "Network clear"}</h2><span className="major">{disruption ? "Major" : "Operational"}</span><small>{disruption ? `${disruption.impact?.blockedRoads ?? "Assessing"} road segment(s) closed near the selected location.` : "Select a location to start a synthetic assessment."}</small><div>{[["Routes", disruption?.impact?.patterns.length ?? 0],["Approaching", disruption?.impact?.vehicles.approaching ?? 0],["Radius", `${disruption?.footprint.radiusM ?? radiusM}m`]].map(([k,v]) => <span key={String(k)}><b>{v}</b>{k}</span>)}</div></section>
+        <section className="card"><div className="title"><div><p>DECISION SUPPORT</p><h2>Bypass options {options.length ? `(${options.length})` : ""}</h2></div><small>v1.2.0 recommendation</small></div>{options.length ? options.map((item, i) => <article className={i === 0 ? "option chosen" : "option"} key={item.patternId}><b className="rank">{i+1}</b><div><strong>{item.routeCode} bypass</strong><small>{item.divertStop ?? "Origin"} → {item.rejoinStop ?? "Rejoin"}</small><span><b>+{item.extraM}m</b> extra distance · <b>{item.stopsLost.length}</b> skipped stops</span></div>{i === 0 && <em>Recommended</em>}</article>) : <p className="hint">Report an incident to assess available bypasses. ADR-0015 ranked options will appear here in v1.3.0.</p>}{recommendation && !disruption?.decision && <div className="actions"><button className="primary" disabled={busy} onClick={() => decide("approve")}>✓ Approve recommendation</button><button disabled={busy} onClick={() => decide("reject")}>Reject</button></div>}</section>
+        <section className="card report"><p>OBSERVE</p><h2>Report a disruption</h2><small>{pick.lat.toFixed(4)}, {pick.lon.toFixed(4)}</small><div><label>Radius<select value={radiusM} onChange={(e) => setRadiusM(Number(e.target.value))}>{RADII.map((r) => <option value={r} key={r}>{r} m</option>)}</select></label><label>Description<input value={description} onChange={(e) => setDescription(e.target.value)} /></label></div><button className="primary full" disabled={busy || !state?.network.loaded} onClick={() => void send({kind:"report", incident:{...pick, radiusM, description:description || "Incident"}})}>Assess selected location</button></section></aside>
+      <section className="lower"><RouteStatusCard routes={routeStatuses(state)} /><section className="card activity"><div className="title"><div><p>GOVERNANCE</p><h2>Recent activity</h2></div><b className={state?.chain.ok ? "ok" : "bad"}>● {state?.chain.ok ? "Audit verified" : "Audit issue"}</b></div>{state?.trail.slice(0,5).map((t) => <p key={t.seq}><b>#{t.seq}</b> {t.type.replaceAll(".", " ")}<small>{t.component}{t.actor && ` · ${t.actor}`}</small></p>)}</section></section>
+    </main><p className="status">{error ? `Error: ${error}` : notice}</p><footer><a href={REPO}>Architecture and source on GitHub</a><button disabled={busy} onClick={() => void send({kind:"reset"})}>Reset demonstrator</button></footer></div></div>;
 }
