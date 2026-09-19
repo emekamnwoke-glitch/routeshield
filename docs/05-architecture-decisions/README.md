@@ -27,6 +27,9 @@ Template: [`adr-template.md`](adr-template.md).
 | [ADR-0015](adr-0015-weighted-service-loss-objective.md) | Rank options by a weighted service-loss score with hard feasibility constraints | Accepted | E | 2026-09-16 |
 | [ADR-0016](adr-0016-tree-models-exported-as-json.md) | Train tree models in Python and evaluate them in TypeScript from JSON | Accepted | E | 2026-09-16 |
 | [ADR-0017](adr-0017-banded-autonomy-with-prior-human-approval.md) | Bound automation by bands, with prior human approval as the only basis for acting unattended | Accepted | E | 2026-09-16 |
+| [ADR-0018](adr-0018-network-as-shared-read-only-reference-model.md) | Hold the published network as a shared, read-only in-memory model | Accepted — retrospective | H | 2026-09-19 |
+| [ADR-0019](adr-0019-assess-and-respond-per-pattern-in-v1-2.md) | Assess and respond per route pattern in v1.2.0; decide per-trip in v1.3.0 | Accepted — interim, retrospective | H | 2026-09-19 |
+| [ADR-0020](adr-0020-demonstrator-store-is-disposable.md) | Treat the demonstrator's store as disposable | Accepted — retrospective | H | 2026-09-19 |
 
 ## Planned
 
