@@ -28,4 +28,9 @@ Diagrams are Mermaid, inline in the document whose decision they communicate ([A
 | 22 | Traceability chain | BR through to evidence | [Traceability matrix](../../docs/01-stage-one-architecture/phase-g-implementation-governance/traceability-matrix.md#chain) |
 | 23 | Change process | Architecture changes before implementation | [Change management §3](../../docs/01-stage-one-architecture/phase-h-change-management/architecture-change-management.md#3-process) |
 | 24 | Architecture ↔ implementation feedback loop | The direction of correction | [Method §6](../../docs/01-stage-one-architecture/methodology/architecture-method.md#6-the-architecture--implementation-feedback-loop) |
+| 25 | Context — reference implementation | No external system is called at run time | [Architecture v1.2.0 §3](../../docs/02-stage-two-reference-implementation/solution-design/architecture-v1.2.0.md#3-system-context) |
+| 26 | Containers — reference implementation | Python only at build time; the core worker is the only store opener | [Architecture v1.2.0 §4](../../docs/02-stage-two-reference-implementation/solution-design/architecture-v1.2.0.md#4-containers) |
+| 27 | Components and events — as built | Events flow one way; audit is written inside every change | [Architecture v1.2.0 §5](../../docs/02-stage-two-reference-implementation/solution-design/architecture-v1.2.0.md#5-components) |
+| 28 | One disruption, end to end | Snapshot before assessment; refusal audited before it is raised | [Architecture v1.2.0 §6](../../docs/02-stage-two-reference-implementation/solution-design/architecture-v1.2.0.md#6-runtime-one-disruption) |
+| 29 | Physical data model — decision chain | Recommendation items choose one option per pattern | [Architecture v1.2.0 §8.2](../../docs/02-stage-two-reference-implementation/solution-design/architecture-v1.2.0.md#82-physical-data-model) |
 | — | CI/CD pipeline | — | Stage Two, [`docs/03-sdlc/`](../../docs/03-sdlc/) |
