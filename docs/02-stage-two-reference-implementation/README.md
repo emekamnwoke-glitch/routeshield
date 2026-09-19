@@ -23,17 +23,18 @@ So the environment is invented, labelled, and every supposition it rests on is r
 | [The Fact / Assumption Model](fact-vs-assumption-model.md) | How every claim is classified, and the five ways this discipline quietly degrades |
 | [Assumptions Register](assumptions.md) | What is being supposed, what it costs if wrong, and how a real implementation would check it |
 | [Fictional Operating Model](fictional-operating-model.md) | The seven invented systems and what they stand in for |
+| [Architecture at v1.2.0](solution-design/architecture-v1.2.0.md) | The reference implementation as built: containers, components, data, interfaces, deployment, and every departure from the Stage One target |
 
 ## Design artefacts
 
 | Area | Status |
 |---|---|
-| [Requirements](requirements/) | ⬜ Phase 4 |
-| [Solution Design](solution-design/) | ⬜ Phase 4 |
-| [API Design](api/) | ⬜ Phase 4 |
-| [Data Model](data-model/) | ⬜ Phase 4 |
-| [Security](security/) | ⬜ Phase 4 |
-| [Deployment](deployment/) | ⬜ Phase 6 |
+| [Requirements](requirements/) | ⬜ Not yet written |
+| [Solution Design](solution-design/) | 🟢 [Architecture at v1.2.0](solution-design/architecture-v1.2.0.md) |
+| [API Design](api/) | 🟡 Covered at v1.2.0 in [architecture §9](solution-design/architecture-v1.2.0.md#9-interfaces) |
+| [Data Model](data-model/) | 🟡 Covered at v1.2.0 in [architecture §8](solution-design/architecture-v1.2.0.md#8-data) |
+| [Security](security/) | 🟡 Outline in [architecture §11](solution-design/architecture-v1.2.0.md#11-security-as-far-as-a-browser-allows); full design not yet written |
+| [Deployment](deployment/) | 🟡 Covered at v1.2.0 in [architecture §10](solution-design/architecture-v1.2.0.md#10-deployment-and-quality) |
 
 ## The register is the interesting output
 

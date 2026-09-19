@@ -102,6 +102,8 @@ Because the real environment is not observable, Stage Two defines a **fictional 
 
 These are **fictional**. They are documented in [`fictional-operating-model.md`](docs/02-stage-two-reference-implementation/fictional-operating-model.md) with the interface each one is assumed to expose and the reason that assumption is necessary.
 
+The implementation as built is described in the **[reference implementation architecture at v1.2.0](docs/02-stage-two-reference-implementation/solution-design/architecture-v1.2.0.md)**, the second architecture beside Stage One's target. It lists every place the build departs from the target, with its class and record.
+
 ## 7. The fact / assumption boundary
 
 Every load-bearing statement in Stage Two carries one of four classifications:
