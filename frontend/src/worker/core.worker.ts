@@ -80,7 +80,11 @@ async function respond(req: Request): Promise<Response> {
     await s.wipe();
     session = open();
     const fresh = await session;
-    return { ok: true, state: await readState(fresh.core, fresh.storage), notice: "Started again with an empty store." };
+    return {
+      ok: true,
+      state: await readState(fresh.core, fresh.storage, req.persona),
+      notice: "Started again with an empty store.",
+    };
   }
   const s = await session;
   const res = await handle(s.core, s.storage, req);

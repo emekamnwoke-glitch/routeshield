@@ -1,4 +1,5 @@
 import type { Verdict } from "../../src/core/modules/ac-07-decision-manager/contract";
+import type { PersonaId } from "../../src/core/modules/ac-14-access-control/contract";
 import type { DisruptionView, ItemView } from "./workspace/service";
 
 const metres = (m: number) => (m >= 0 ? `+${m.toLocaleString("en-IE")} m` : `${Math.abs(m).toLocaleString("en-IE")} m shorter`);
@@ -22,9 +23,14 @@ function Option({ item }: { item: ItemView | undefined }) {
   );
 }
 
-type Props = { d: DisruptionView; busy: boolean; onDecide: (recommendationId: string, verdict: Verdict) => void };
+type Props = {
+  d: DisruptionView;
+  persona: PersonaId;
+  busy: boolean;
+  onPropose: (recommendationId: string, verdict: Verdict) => void;
+};
 
-export function DisruptionCard({ d, busy, onDecide }: Props) {
+export function DisruptionCard({ d, persona, busy, onPropose }: Props) {
   const impact = d.impact;
   const rec = d.recommendation;
   const items = new Map(rec?.items.map((i) => [i.patternId, i]));
@@ -64,15 +70,25 @@ export function DisruptionCard({ d, busy, onDecide }: Props) {
               </li>
             ))}
           </ul>
-          {rec && rec.items.length > 0 && !d.decision && (
-            <div className="row">
-              <button type="button" className="primary" disabled={busy} onClick={() => onDecide(rec.id, "approve")}>
-                Approve all
-              </button>
-              <button type="button" disabled={busy} onClick={() => onDecide(rec.id, "reject")}>
-                Reject
-              </button>
-            </div>
+          {rec && rec.items.length > 0 && !d.decision && d.proposal?.status === "pending" && (
+            <p className="pending">Pending the Duty manager's approval.</p>
+          )}
+          {rec && rec.items.length > 0 && !d.decision && d.proposal?.status !== "pending" && (
+            <>
+              {d.proposal?.status === "denied" && (
+                <p className="hint">Denied by the Duty manager: {d.proposal.reason}. You may propose again.</p>
+              )}
+              {persona === "controller" && (
+                <div className="row">
+                  <button type="button" className="primary" disabled={busy} onClick={() => onPropose(rec.id, "approve")}>
+                    Propose: approve all
+                  </button>
+                  <button type="button" disabled={busy} onClick={() => onPropose(rec.id, "reject")}>
+                    Propose: reject
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </>
       )}

@@ -20,7 +20,7 @@ beforeEach(async () => {
 });
 
 async function reportedRecommendation(): Promise<string> {
-  const res = await handle(core, "memory", { kind: "report", incident });
+  const res = await handle(core, "memory", { persona: "controller", kind: "report", incident });
   if (!res.ok) throw new Error(res.error);
   const rec = res.state.disruptions[0]?.recommendation;
   if (!rec) throw new Error("no recommendation");
@@ -28,18 +28,24 @@ async function reportedRecommendation(): Promise<string> {
 }
 
 describe("workspace service", () => {
-  it("starts with the access grants, the fleet and a verified chain", async () => {
-    const state = await readState(core, "memory");
+  it("starts with the access grants, the fleet and a verified chain, shown to the administrator only", async () => {
+    const state = await readState(core, "memory", "administrator");
     expect(state.disruptions).toEqual([]);
     expect(state.network).toEqual({ loaded: true, version: dublin().network.version });
     expect(state.vehicles.length).toBe(dublin().fleet.vehicles.length);
     expect(state.vehicles.every((v) => v.relation === null)).toBe(true);
-    expect(state.chain).toMatchObject({ ok: true, events: 4 });
-    expect(state.components).toEqual(["AC-14"]);
+    expect(state.audit).toMatchObject({ chain: { ok: true, events: 5 }, components: ["AC-14"] });
+  });
+
+  it("gives the audit trail to the administrator only", async () => {
+    expect((await readState(core, "memory", "administrator")).audit).not.toBeNull();
+    expect((await readState(core, "memory", "controller")).audit).toBeNull();
+    expect((await readState(core, "memory", "duty-manager")).audit).toBeNull();
+    expect((await readState(core, "memory", "contingency-approver")).audit).toBeNull();
   });
 
   it("shows the impact and a bypass awaiting a person", async () => {
-    const res = await handle(core, "memory", { kind: "report", incident });
+    const res = await handle(core, "memory", { persona: "controller", kind: "report", incident });
     if (!res.ok) throw new Error(res.error);
     expect(res.notice).toBe("Incident assessed: 1 route pattern affected.");
     const [d] = res.state.disruptions;
@@ -52,40 +58,113 @@ describe("workspace service", () => {
     expect(item?.divertStop).toEqual(expect.any(String));
     expect(item?.detour.length).toBeGreaterThan(2);
     expect(d?.decision).toBeNull();
+    expect(d?.proposal).toBeNull();
     // Vehicles on the affected pattern are marked on the map.
     expect(res.state.vehicles.some((v) => v.relation === "approaching" || v.relation === "inside")).toBe(true);
   });
 
-  it("records a refusal, then an approval, and reaches every decision-path component", async () => {
+  it("proposes, then the duty manager approves: the decision follows and the noticeboard says so", async () => {
     const recommendationId = await reportedRecommendation();
-    const refused = await handle(core, "memory", { kind: "decide", persona: "administrator", recommendationId, verdict: "approve" });
-    expect(refused).toMatchObject({ ok: true, notice: expect.stringContaining("administrator does not hold decide") });
+    const proposed = await handle(core, "memory", { persona: "controller", kind: "propose", recommendationId, verdict: "approve" });
+    if (!proposed.ok) throw new Error(proposed.error);
+    expect(proposed.notice).toBe("Proposed. It is pending the Duty manager's approval.");
+    const proposal = proposed.state.disruptions[0]?.proposal;
+    expect(proposal).toMatchObject({ status: "pending", verdict: "approve", proposedBy: "controller" });
+    expect(proposed.state.disruptions[0]?.decision).toBeNull();
+    expect(proposed.state.noticeboard[0]).toMatchObject({ tone: "pending" });
 
-    const approved = await handle(core, "memory", { kind: "decide", persona: "controller", recommendationId, verdict: "approve" });
+    const approved = await handle(core, "memory", {
+      persona: "duty-manager",
+      kind: "review",
+      proposalId: proposal?.id ?? "",
+      outcome: "approve",
+      reason: "",
+    });
     if (!approved.ok) throw new Error(approved.error);
+    expect(approved.notice).toContain("Approved.");
     expect(approved.state.disruptions[0]).toMatchObject({
-      decision: { verdict: "approve", decidedBy: "controller" },
+      proposal: { status: "approved", reviewedBy: "duty-manager" },
+      decision: { verdict: "approve", decidedBy: "duty-manager" },
       serviceStates: [{ routeCode: "E2", state: "diverted" }],
       notices: [{ routeCode: "E2", channel: "passenger", kind: "diverted" }],
     });
-    expect(approved.state.components).toEqual(["AC-02", "AC-04", "AC-05", "AC-06", "AC-07", "AC-08", "AC-09", "AC-14"]);
-    expect(approved.state.chain.ok).toBe(true);
+    expect(approved.state.noticeboard[0]).toMatchObject({ tone: "approved" });
+    expect(approved.state.noticeboard[0]?.text).toContain("Recommendation approved");
+    const audit = (await readState(core, "memory", "administrator")).audit;
+    expect(audit?.components).toEqual(expect.arrayContaining(["AC-07", "AC-08", "AC-09", "AC-14"]));
+    expect(audit?.chain.ok).toBe(true);
+  });
+
+  it("denies with a reason, which goes to the controller's noticeboard, and lets the controller propose again", async () => {
+    const recommendationId = await reportedRecommendation();
+    const proposed = await handle(core, "memory", { persona: "controller", kind: "propose", recommendationId, verdict: "approve" });
+    if (!proposed.ok) throw new Error(proposed.error);
+    const proposalId = proposed.state.disruptions[0]?.proposal?.id ?? "";
+
+    const denied = await handle(core, "memory", {
+      persona: "duty-manager",
+      kind: "review",
+      proposalId,
+      outcome: "deny",
+      reason: "Bypass cuts the hospital stop",
+    });
+    if (!denied.ok) throw new Error(denied.error);
+    expect(denied.state.disruptions[0]).toMatchObject({
+      proposal: { status: "denied", reason: "Bypass cuts the hospital stop" },
+      decision: null,
+      serviceStates: [],
+    });
+    expect(denied.state.noticeboard[0]).toMatchObject({ tone: "denied" });
+    expect(denied.state.noticeboard[0]?.text).toContain("Reason: Bypass cuts the hospital stop.");
+
+    const again = await handle(core, "memory", { persona: "controller", kind: "propose", recommendationId, verdict: "reject" });
+    expect(again).toMatchObject({ ok: true, notice: "Proposed. It is pending the Duty manager's approval." });
+  });
+
+  it("refuses a denial without a reason, and a controller trying to approve its own proposal", async () => {
+    const recommendationId = await reportedRecommendation();
+    const proposed = await handle(core, "memory", { persona: "controller", kind: "propose", recommendationId, verdict: "approve" });
+    if (!proposed.ok) throw new Error(proposed.error);
+    const proposalId = proposed.state.disruptions[0]?.proposal?.id ?? "";
+
+    const noReason = await handle(core, "memory", {
+      persona: "duty-manager",
+      kind: "review",
+      proposalId,
+      outcome: "deny",
+      reason: "  ",
+    });
+    expect(noReason).toMatchObject({ ok: true, notice: expect.stringContaining("a denial needs a reason") });
+
+    const selfReview = await handle(core, "memory", {
+      persona: "controller",
+      kind: "review",
+      proposalId,
+      outcome: "approve",
+      reason: "",
+    });
+    // A controller holds no decide authority, so it cannot approve even its own proposal.
+    expect(selfReview).toMatchObject({ ok: true, notice: expect.stringContaining("controller does not hold decide") });
   });
 
   it("says so when no route is affected", async () => {
-    const res = await handle(core, "memory", { kind: "report", incident: { lat: 53.3559, lon: -6.3298, radiusM: 50, description: "Phoenix Park" } });
+    const res = await handle(core, "memory", {
+      persona: "controller",
+      kind: "report",
+      incident: { lat: 53.3559, lon: -6.3298, radiusM: 50, description: "Phoenix Park" },
+    });
     expect(res).toMatchObject({ ok: true, notice: "Incident assessed: no bus route in the sample runs through it." });
     if (res.ok) expect(res.state.disruptions[0]?.recommendation).toMatchObject({ band: "A0", items: [] });
   });
 
   it("returns errors as responses rather than throwing", async () => {
     const res = await handle(core, "memory", {
-      kind: "decide",
       persona: "controller",
+      kind: "propose",
       recommendationId: "rec_missing",
       verdict: "approve",
     });
     expect(res).toMatchObject({ ok: true, notice: expect.stringContaining("not found") });
-    expect(await handle(core, "memory", { kind: "reset" })).toMatchObject({ ok: false });
+    expect(await handle(core, "memory", { persona: "controller", kind: "reset" })).toMatchObject({ ok: false });
   });
 });

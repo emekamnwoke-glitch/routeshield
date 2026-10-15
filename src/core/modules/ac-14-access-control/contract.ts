@@ -13,7 +13,11 @@ export const PERSONAS = [
 ] as const;
 
 export type PersonaId = (typeof PERSONAS)[number]["id"];
-export type Action = "decide" | "approve_contingency" | "grant_authority";
+/**
+ * propose: the maker's right to put a recommendation forward. decide: the checker's right to approve or deny it.
+ * read_audit: the right to see the audit trail, held by the auditor-facing administrator persona only.
+ */
+export type Action = "propose" | "decide" | "read_audit" | "approve_contingency" | "grant_authority";
 
 export type AuthorityDecision = { allowed: boolean; reason: string };
 

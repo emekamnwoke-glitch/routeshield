@@ -413,8 +413,13 @@ header > div:first-child > small {
   box-shadow: var(--shadow);
 }
 
+/* The map stays fixed in view while the menus on the right scroll. */
 .network {
   padding: 12px;
+  position: sticky;
+  top: 14px;
+  max-height: calc(100vh - 28px);
+  overflow: auto;
 }
 
 .card {
@@ -707,18 +712,63 @@ header > div:first-child > small {
   width: 100%;
 }
 
-/* Lower row: route status and audit */
+/* Maker-checker panels: the duty manager's queue and the controller's noticeboard */
 
-.lower {
-  grid-column: 1;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-  align-items: start;
+.queue,
+.noticeboard {
+  margin: 0 0 12px;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--accent-soft);
 }
 
-.lower .card h2 {
-  margin-bottom: 6px;
+.queue h3,
+.noticeboard h3 {
+  margin: 0 0 6px;
+  font-size: 15px;
+}
+
+.queue ul,
+.noticeboard ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+.queue li,
+.noticeboard li {
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.queue .deny {
+  display: grid;
+  gap: 6px;
+}
+
+.queue .deny label {
+  font-size: 12px;
+}
+
+.noticeboard li.tone-denied {
+  color: var(--danger-text, inherit);
+}
+
+.noticeboard li.tone-approved b {
+  color: var(--ok);
+}
+
+.noticeboard li.tone-pending b {
+  color: var(--muted, inherit);
+}
+
+.pending {
+  margin: 6px 0;
+  font-weight: 600;
+  color: var(--ok);
 }
 
 .route-chips {
@@ -915,8 +965,10 @@ footer button {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .lower {
-    grid-template-columns: 1fr;
+  .network {
+    position: static;
+    max-height: none;
+    overflow: visible;
   }
 
   header {
