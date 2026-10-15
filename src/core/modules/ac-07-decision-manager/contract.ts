@@ -2,6 +2,10 @@ import type { Actor } from "../../kernel/primitives";
 import type { Tx } from "../../kernel/store";
 
 export const DECISION_MADE = "decision.made";
+/** Published when a duty manager denies a proposal. AC-02 declines the incident in response. */
+export const PROPOSAL_DENIED = "proposal.denied";
+
+export type ProposalDeniedPayload = { proposalId: string; disruptionId: string };
 
 export type Verdict = "approve" | "reject";
 

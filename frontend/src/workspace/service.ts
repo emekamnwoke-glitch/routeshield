@@ -126,7 +126,7 @@ function noticeFor(p: Proposal): NoticeItem {
       ? `Proposed to ${what}. Pending the Duty manager's approval.`
       : p.status === "approved"
         ? `Recommendation approved: ${what} (approved by ${reviewer}).`
-        : `Recommendation denied: ${what} (denied by ${reviewer}). Reason: ${p.reason ?? "none given"}.`;
+        : `Recommendation denied: ${what} (denied by ${reviewer}). Reason: ${p.reason ?? "none given"}. To resubmit, report the incident again.`;
   return { id: p.id, tone: p.status, text };
 }
 
@@ -155,7 +155,9 @@ export function readState(core: Core, storage: Storage, persona: PersonaId): Pro
   const network = core.sources.network();
   return core.store.read(async (tx) => {
     const relations = new Map<string, VehicleRelation>();
-    const disruptions = core.disruptions.list(tx).map((d): DisruptionView => {
+    // A declined incident is closed: it leaves the map and the menus, but its proposal stays on the noticeboard.
+    const open = core.disruptions.list(tx).filter((d) => d.status !== "declined");
+    const disruptions = open.map((d): DisruptionView => {
       const rec = core.support.forDisruption(tx, d.id);
       const assessment = rec && core.impact.assessment(tx, rec.assessmentId);
       const options = new Map(rec ? core.optimiser.options(tx, rec.assessmentId).map((o) => [o.id, o]) : []);
@@ -257,6 +259,8 @@ async function settle(core: Core): Promise<void> {
 }
 
 /** Handles every request except reset, which needs a fresh store and is the worker's job. */
+let reports = 0;
+
 export async function handle(core: Core, storage: Storage, req: Request): Promise<Response> {
   const actor = { kind: "persona" as const, id: req.persona };
   try {
@@ -267,7 +271,8 @@ export async function handle(core: Core, storage: Storage, req: Request): Promis
         const { lat, lon, radiusM, description } = req.incident;
         await core.sources.reportIncident({
           source: "fictional-incident-feed",
-          externalRef: `demo-${core.clock.now()}`,
+          // Unique per report, so a resubmitted incident at the same place is a new report.
+          externalRef: `demo-${core.clock.now()}-${++reports}`,
           area: { lat, lon, radiusM },
           description,
         });
@@ -301,7 +306,7 @@ export async function handle(core: Core, storage: Storage, req: Request): Promis
           notice =
             p.status === "approved"
               ? "Approved. Service states and passenger notices updated; the controller's noticeboard shows it."
-              : "Denied. The reason is on the controller's noticeboard.";
+              : "Denied. The incident is declined and closed; the reason is on the controller's noticeboard.";
         } catch (err) {
           if (!(err instanceof ProposalRefused)) throw err;
           notice = `Refused: ${err.message}.`;

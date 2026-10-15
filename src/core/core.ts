@@ -54,7 +54,7 @@ export async function createCore({
   const contingencies = new ContingencyLibraryModule(clock);
   const optimiser = new RouteOptimiserModule(bus, ledger, contingencies, impact, sources);
   const support = new DecisionSupportModule(bus, clock, ledger, impact, optimiser);
-  const decisions = new DecisionManagerModule(store, bus, clock, ledger, support, optimiser, access);
+  const decisions = new DecisionManagerModule(store, bus, clock, ledger, support, optimiser, access, disruptions);
   const serviceState = new ServiceStateModule(bus, clock, ledger);
   const communications = new CommunicationHubModule(bus, clock, ledger);
   const analytics = new ServiceAnalyticsModule(store, ledger);
