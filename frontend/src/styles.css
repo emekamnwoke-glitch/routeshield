@@ -754,7 +754,7 @@ header > div:first-child > small {
 }
 
 .noticeboard li.tone-denied {
-  color: var(--danger-text, inherit);
+  color: var(--bad);
 }
 
 .noticeboard li.tone-approved b {
