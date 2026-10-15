@@ -109,16 +109,17 @@ describe("workspace service", () => {
       reason: "Bypass cuts the hospital stop",
     });
     if (!denied.ok) throw new Error(denied.error);
-    expect(denied.state.disruptions[0]).toMatchObject({
-      proposal: { status: "denied", reason: "Bypass cuts the hospital stop" },
-      decision: null,
-      serviceStates: [],
-    });
+    // The incident is declined: it leaves the map and the menus, so the controller's card clears too.
+    expect(denied.state.disruptions).toEqual([]);
+    expect(denied.state.vehicles.every((v) => v.relation === null)).toBe(true);
     expect(denied.state.noticeboard[0]).toMatchObject({ tone: "denied" });
     expect(denied.state.noticeboard[0]?.text).toContain("Reason: Bypass cuts the hospital stop.");
 
+    // The closed incident cannot be proposed on again.
     const again = await handle(core, "memory", { persona: "controller", kind: "propose", recommendationId, verdict: "reject" });
-    expect(again).toMatchObject({ ok: true, notice: "Proposed. It is pending the Duty manager's approval." });
+    expect(again).toMatchObject({ ok: true, notice: expect.stringContaining("was declined and is closed") });
+    const audit = (await readState(core, "memory", "administrator")).audit;
+    expect(audit?.trail.map((t) => t.type)).toEqual(expect.arrayContaining(["proposal.denied", "disruption.declined"]));
   });
 
   it("refuses a denial without a reason, and a controller trying to approve its own proposal", async () => {

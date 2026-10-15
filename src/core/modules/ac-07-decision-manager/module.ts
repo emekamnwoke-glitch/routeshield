@@ -3,6 +3,7 @@ import type { CoreModule } from "../../kernel/module";
 import type { Actor, Clock } from "../../kernel/primitives";
 import { newId } from "../../kernel/primitives";
 import type { Store, Tx } from "../../kernel/store";
+import type { DisruptionManager } from "../ac-02-disruption-manager/contract";
 import type { RouteOptimiser } from "../ac-05-route-optimiser/contract";
 import type { DecisionSupport } from "../ac-06-decision-support/contract";
 import type { AuditLedger } from "../ac-11-audit-ledger/contract";
@@ -16,7 +17,8 @@ import type {
   ReviewOutcome,
   Verdict,
 } from "./contract";
-import { DECISION_MADE, DecisionRefused, ProposalRefused } from "./contract";
+import type { ProposalDeniedPayload } from "./contract";
+import { DECISION_MADE, DecisionRefused, PROPOSAL_DENIED, ProposalRefused } from "./contract";
 
 type DecisionRow = {
   id: string;
@@ -55,6 +57,7 @@ export class DecisionManagerModule implements CoreModule, DecisionManager {
     private readonly support: DecisionSupport,
     private readonly optimiser: RouteOptimiser,
     private readonly access: AccessControl,
+    private readonly disruptions: DisruptionManager,
   ) {}
 
   migrate(tx: Tx): void {
@@ -102,6 +105,9 @@ export class DecisionManagerModule implements CoreModule, DecisionManager {
         return { refused: `recommendation ${recommendationId} is already pending a duty manager's approval` };
       }
       if (rec.band === "A0") return { refused: "nothing to decide: no route is affected" };
+      if (this.disruptions.status(tx, rec.disruptionId) === "declined") {
+        return { refused: `disruption ${rec.disruptionId} was declined and is closed` };
+      }
       const authority = this.access.authorise(tx, actor, "propose");
       if (!authority.allowed) {
         await this.ledger.append(tx, {
@@ -187,6 +193,10 @@ export class DecisionManagerModule implements CoreModule, DecisionManager {
         actor,
         payload: { proposalId, recommendationId: p.recommendationId, proposedBy: p.proposedBy.id, reason },
       });
+      if (outcome === "deny") {
+        const payload: ProposalDeniedPayload = { proposalId, disruptionId: p.disruptionId };
+        this.bus.publish(tx, { type: PROPOSAL_DENIED, source: this.id, subject: p.disruptionId, payload });
+      }
       return { ...p, status, reviewedBy: actor, reviewedAt, reason: reason || null };
     });
     if ("refused" in result) throw new ProposalRefused(result.refused);
