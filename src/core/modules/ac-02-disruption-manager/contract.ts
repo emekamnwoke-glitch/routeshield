@@ -14,9 +14,12 @@ export type DisruptionVersion = {
   createdAt: string;
 };
 
+/** declined: a duty manager denied the proposal on it, so the incident is closed without a decision. */
+export type DisruptionStatus = "reported" | "confirmed" | "cleared" | "declined";
+
 export type DisruptionSummary = {
   id: string;
-  status: "reported" | "confirmed" | "cleared";
+  status: DisruptionStatus;
   createdAt: string;
   latest: DisruptionVersion;
 };
@@ -28,4 +31,5 @@ export interface DisruptionManager {
   version(tx: Tx, versionId: string): DisruptionVersion | undefined;
   /** Every disruption with its latest version, newest first. */
   list(tx: Tx): DisruptionSummary[];
+  status(tx: Tx, disruptionId: string): DisruptionStatus | undefined;
 }

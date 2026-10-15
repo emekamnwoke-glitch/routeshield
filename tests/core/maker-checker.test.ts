@@ -81,23 +81,26 @@ describe("maker-checker", () => {
     expect(await auditTypes(disruptionId)).toEqual(expect.arrayContaining(["proposal.submitted", "decision.made", "proposal.approved"]));
   });
 
-  it("requires a reason to deny, then records the denial and lets the controller propose again", async () => {
+  it("requires a reason to deny, then records the denial and declines the incident", async () => {
     const { recommendationId, disruptionId } = await reportAndRecommend();
     const proposal = await core.decisions.propose(controller, recommendationId, "approve", "");
     await expect(core.decisions.review(dutyManager, proposal.id, "deny", " ")).rejects.toThrow(ProposalRefused);
 
     const denied = await core.decisions.review(dutyManager, proposal.id, "deny", "Hospital stop would be missed");
     expect(denied).toMatchObject({ status: "denied", reason: "Hospital stop would be missed", reviewedBy: dutyManager });
-    expect(await auditTypes(disruptionId)).toContain("proposal.denied");
+    await core.bus.dispatch();
+    expect(await auditTypes(disruptionId)).toEqual(
+      expect.arrayContaining(["proposal.denied", "disruption.declined"]),
+    );
+    expect(await core.store.read((tx) => core.disruptions.status(tx, disruptionId))).toBe("declined");
     const decision = await core.store.read((tx) => core.decisions.forRecommendation(tx, recommendationId));
     expect(decision).toBeUndefined();
-
-    const again = await core.decisions.propose(controller, recommendationId, "reject", "");
-    expect(again.status).toBe("pending");
+    // The denial stays on record, and the closed incident cannot be proposed on again.
     expect(await core.store.read((tx) => core.decisions.latestProposal(tx, recommendationId))).toMatchObject({
-      id: again.id,
-      status: "pending",
+      id: proposal.id,
+      status: "denied",
     });
+    await expect(core.decisions.propose(controller, recommendationId, "reject", "")).rejects.toThrow(/was declined/);
   });
 
   it("refuses a review of a proposal that is no longer pending", async () => {

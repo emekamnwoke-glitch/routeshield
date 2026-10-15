@@ -6,8 +6,11 @@ import type { Tx } from "../../kernel/store";
 import type { IncidentReportedPayload, SourceGateway } from "../ac-01-source-gateway/contract";
 import { INCIDENT_REPORTED } from "../ac-01-source-gateway/contract";
 import type { AuditLedger } from "../ac-11-audit-ledger/contract";
+import type { ProposalDeniedPayload } from "../ac-07-decision-manager/contract";
+import { PROPOSAL_DENIED } from "../ac-07-decision-manager/contract";
 import type {
   DisruptionManager,
+  DisruptionStatus,
   DisruptionSummary,
   DisruptionVersion,
   DisruptionVersionedPayload,
@@ -38,13 +41,14 @@ export class DisruptionManagerModule implements CoreModule, DisruptionManager {
     private readonly sources: SourceGateway,
   ) {
     bus.subscribe(INCIDENT_REPORTED, this.id, (tx, e) => this.onIncident(tx, e));
+    bus.subscribe(PROPOSAL_DENIED, this.id, (tx, e) => this.onProposalDenied(tx, e));
   }
 
   migrate(tx: Tx): void {
     tx.run(`create table if not exists dm_disruption (
       id text primary key,
       incident_id text not null unique,
-      status text not null check (status in ('reported', 'confirmed', 'cleared')),
+      status text not null check (status in ('reported', 'confirmed', 'cleared', 'declined')),
       created_at text not null
     )`);
     tx.run(`create table if not exists dm_disruption_version (
@@ -90,12 +94,29 @@ export class DisruptionManagerModule implements CoreModule, DisruptionManager {
     this.bus.publish(tx, { type: DISRUPTION_VERSIONED, source: this.id, subject: disruptionId, payload });
   }
 
+  /** A denied proposal closes its incident: the disruption is declined, and no decision follows. */
+  private async onProposalDenied(tx: Tx, event: DomainEvent): Promise<void> {
+    const { disruptionId, proposalId } = event.payload as ProposalDeniedPayload;
+    tx.run("update dm_disruption set status = 'declined' where id = ?", [disruptionId]);
+    await this.ledger.append(tx, {
+      type: "disruption.declined",
+      component: this.id,
+      subject: disruptionId,
+      actor: { kind: "system", id: this.id },
+      payload: { proposalId },
+    });
+  }
+
   version(tx: Tx, versionId: string): DisruptionVersion | undefined {
     return this.toVersion(tx.one<VersionRow>("select * from dm_disruption_version where id = ?", [versionId]));
   }
 
+  status(tx: Tx, disruptionId: string): DisruptionStatus | undefined {
+    return tx.one<{ status: DisruptionStatus }>("select status from dm_disruption where id = ?", [disruptionId])?.status;
+  }
+
   list(tx: Tx): DisruptionSummary[] {
-    const rows = tx.all<VersionRow & { status: DisruptionSummary["status"]; disruption_created_at: string }>(
+    const rows = tx.all<VersionRow & { status: DisruptionStatus; disruption_created_at: string }>(
       `select v.*, d.status, d.created_at as disruption_created_at
        from dm_disruption d
        join dm_disruption_version v on v.disruption_id = d.id

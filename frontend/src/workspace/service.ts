@@ -155,7 +155,9 @@ export function readState(core: Core, storage: Storage, persona: PersonaId): Pro
   const network = core.sources.network();
   return core.store.read(async (tx) => {
     const relations = new Map<string, VehicleRelation>();
-    const disruptions = core.disruptions.list(tx).map((d): DisruptionView => {
+    // A declined incident is closed: it leaves the map and the menus, but its proposal stays on the noticeboard.
+    const open = core.disruptions.list(tx).filter((d) => d.status !== "declined");
+    const disruptions = open.map((d): DisruptionView => {
       const rec = core.support.forDisruption(tx, d.id);
       const assessment = rec && core.impact.assessment(tx, rec.assessmentId);
       const options = new Map(rec ? core.optimiser.options(tx, rec.assessmentId).map((o) => [o.id, o]) : []);
@@ -301,7 +303,7 @@ export async function handle(core: Core, storage: Storage, req: Request): Promis
           notice =
             p.status === "approved"
               ? "Approved. Service states and passenger notices updated; the controller's noticeboard shows it."
-              : "Denied. The reason is on the controller's noticeboard.";
+              : "Denied. The incident is declined and closed; the reason is on the controller's noticeboard.";
         } catch (err) {
           if (!(err instanceof ProposalRefused)) throw err;
           notice = `Refused: ${err.message}.`;
