@@ -122,6 +122,26 @@ describe("workspace service", () => {
     expect(audit?.trail.map((t) => t.type)).toEqual(expect.arrayContaining(["proposal.denied", "disruption.declined"]));
   });
 
+  it("resubmits a denied incident through a fresh report, which the controller can propose on again", async () => {
+    const firstRecommendation = await reportedRecommendation();
+    const proposed = await handle(core, "memory", { persona: "controller", kind: "propose", recommendationId: firstRecommendation, verdict: "approve" });
+    if (!proposed.ok) throw new Error(proposed.error);
+    const proposalId = proposed.state.disruptions[0]?.proposal?.id ?? "";
+    await handle(core, "memory", { persona: "duty-manager", kind: "review", proposalId, outcome: "deny", reason: "Missed the school run" });
+
+    // The same place, reported again: a new incident, so a new recommendation to propose on.
+    const resubmitted = await handle(core, "memory", { persona: "controller", kind: "report", incident });
+    if (!resubmitted.ok) throw new Error(resubmitted.error);
+    expect(resubmitted.state.disruptions).toHaveLength(1);
+    const secondRecommendation = resubmitted.state.disruptions[0]?.recommendation?.id ?? "";
+    expect(secondRecommendation).not.toBe(firstRecommendation);
+
+    const again = await handle(core, "memory", { persona: "controller", kind: "propose", recommendationId: secondRecommendation, verdict: "approve" });
+    expect(again).toMatchObject({ ok: true, notice: "Proposed. It is pending the Duty manager's approval." });
+    if (again.ok) expect(again.state.disruptions[0]?.proposal).toMatchObject({ status: "pending" });
+    expect(again.ok && again.state.noticeboard.map((n) => n.tone)).toEqual(["pending", "denied"]);
+  });
+
   it("refuses a denial without a reason, and a controller trying to approve its own proposal", async () => {
     const recommendationId = await reportedRecommendation();
     const proposed = await handle(core, "memory", { persona: "controller", kind: "propose", recommendationId, verdict: "approve" });

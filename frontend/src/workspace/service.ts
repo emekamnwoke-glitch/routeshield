@@ -126,7 +126,7 @@ function noticeFor(p: Proposal): NoticeItem {
       ? `Proposed to ${what}. Pending the Duty manager's approval.`
       : p.status === "approved"
         ? `Recommendation approved: ${what} (approved by ${reviewer}).`
-        : `Recommendation denied: ${what} (denied by ${reviewer}). Reason: ${p.reason ?? "none given"}.`;
+        : `Recommendation denied: ${what} (denied by ${reviewer}). Reason: ${p.reason ?? "none given"}. To resubmit, report the incident again.`;
   return { id: p.id, tone: p.status, text };
 }
 
@@ -259,6 +259,8 @@ async function settle(core: Core): Promise<void> {
 }
 
 /** Handles every request except reset, which needs a fresh store and is the worker's job. */
+let reports = 0;
+
 export async function handle(core: Core, storage: Storage, req: Request): Promise<Response> {
   const actor = { kind: "persona" as const, id: req.persona };
   try {
@@ -269,7 +271,8 @@ export async function handle(core: Core, storage: Storage, req: Request): Promis
         const { lat, lon, radiusM, description } = req.incident;
         await core.sources.reportIncident({
           source: "fictional-incident-feed",
-          externalRef: `demo-${core.clock.now()}`,
+          // Unique per report, so a resubmitted incident at the same place is a new report.
+          externalRef: `demo-${core.clock.now()}-${++reports}`,
           area: { lat, lon, radiusM },
           description,
         });
