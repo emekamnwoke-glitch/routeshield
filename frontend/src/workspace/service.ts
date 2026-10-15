@@ -7,9 +7,10 @@ import type { Core } from "../../../src/core/core";
 import type { Network } from "../../../src/core/kernel/network";
 import type { Circle } from "../../../src/core/kernel/primitives";
 import type { VehicleRelation } from "../../../src/core/modules/ac-04-impact-assessor/contract";
-import type { Verdict } from "../../../src/core/modules/ac-07-decision-manager/contract";
-import { DecisionRefused } from "../../../src/core/modules/ac-07-decision-manager/contract";
+import type { Proposal, ProposalStatus, ReviewOutcome, Verdict } from "../../../src/core/modules/ac-07-decision-manager/contract";
+import { ProposalRefused } from "../../../src/core/modules/ac-07-decision-manager/contract";
 import type { PersonaId } from "../../../src/core/modules/ac-14-access-control/contract";
+import { PERSONAS } from "../../../src/core/modules/ac-14-access-control/contract";
 
 export type Storage = "opfs" | "memory";
 
@@ -38,6 +39,19 @@ export type ItemView = PatternView & {
   detour: LatLon[];
 };
 
+/** A controller's proposal on a recommendation, as the dashboards show it. */
+export type ProposalView = {
+  id: string;
+  verdict: Verdict;
+  status: ProposalStatus;
+  proposedBy: string;
+  reviewedBy: string | null;
+  reason: string | null;
+};
+
+/** One line on the controller's noticeboard. */
+export type NoticeItem = { id: string; tone: ProposalStatus; text: string };
+
 export type DisruptionView = {
   id: string;
   status: string;
@@ -45,6 +59,7 @@ export type DisruptionView = {
   createdAt: string;
   impact: ImpactView | null;
   recommendation: { id: string; band: string; confidence: string; items: ItemView[] } | null;
+  proposal: ProposalView | null;
   decision: { verdict: Verdict; decidedBy: string; decidedAt: string } | null;
   serviceStates: { routeCode: string; towards: string; state: string }[];
   notices: { routeCode: string; towards: string; channel: string; kind: string }[];
@@ -54,25 +69,66 @@ export type VehicleView = { vehicle: string; routeCode: string; lat: number; lon
 
 export type TrailEntry = { seq: number; at: string; component: string; type: string; actor: string | null };
 
-export type WorkspaceState = {
-  storage: Storage;
-  network: { loaded: boolean; version: string };
-  disruptions: DisruptionView[];
-  vehicles: VehicleView[];
+/** The audit trail. Only built for a persona that holds read_audit (AC-14), so other personas never receive it. */
+export type AuditView = {
   trail: TrailEntry[];
   chain: { ok: boolean; events: number; snapshots: number; problems: string[] };
   components: string[];
 };
 
-export type Request =
+export type WorkspaceState = {
+  storage: Storage;
+  /** The persona the state was read for. */
+  persona: PersonaId;
+  network: { loaded: boolean; version: string };
+  disruptions: DisruptionView[];
+  vehicles: VehicleView[];
+  noticeboard: NoticeItem[];
+  audit: AuditView | null;
+};
+
+/**
+ * Every request names the persona acting. Decisions only come from a proposal: a controller proposes and a duty
+ * manager approves or denies. There is no direct decide request, so the site cannot skip the checker.
+ */
+export type Request = { persona: PersonaId } & (
   | { kind: "state" }
   | { kind: "report"; incident: IncidentInput }
-  | { kind: "decide"; persona: PersonaId; recommendationId: string; verdict: Verdict }
-  | { kind: "reset" };
+  | { kind: "propose"; recommendationId: string; verdict: Verdict }
+  | { kind: "review"; proposalId: string; outcome: ReviewOutcome; reason: string }
+  | { kind: "reset" }
+);
 
 export type Response = { ok: true; state: WorkspaceState; notice?: string } | { ok: false; error: string };
 
 const TRAIL_LENGTH = 40;
+const NOTICEBOARD_LENGTH = 8;
+
+const personaName = (id: string) => PERSONAS.find((p) => p.id === id)?.name ?? id;
+
+function proposalView(p: Proposal): ProposalView {
+  return {
+    id: p.id,
+    verdict: p.verdict,
+    status: p.status,
+    proposedBy: p.proposedBy.id,
+    reviewedBy: p.reviewedBy?.id ?? null,
+    reason: p.reason,
+  };
+}
+
+/** The controller's feedback line for a proposal: pending, approved, or denied with its reason. */
+function noticeFor(p: Proposal): NoticeItem {
+  const what = `${p.verdict === "approve" ? "approve all" : "reject"} for disruption ${p.disruptionId.slice(0, 12)}…`;
+  const reviewer = personaName(p.reviewedBy?.id ?? "");
+  const text =
+    p.status === "pending"
+      ? `Proposed to ${what}. Pending the Duty manager's approval.`
+      : p.status === "approved"
+        ? `Recommendation approved: ${what} (approved by ${reviewer}).`
+        : `Recommendation denied: ${what} (denied by ${reviewer}). Reason: ${p.reason ?? "none given"}.`;
+  return { id: p.id, tone: p.status, text };
+}
 
 function patternView(network: Network | undefined, patternIndex: number): PatternView {
   const p = network?.patterns[patternIndex];
@@ -95,7 +151,7 @@ function detourLine(network: Network, edges: number[]): LatLon[] {
   return out;
 }
 
-export function readState(core: Core, storage: Storage): Promise<WorkspaceState> {
+export function readState(core: Core, storage: Storage, persona: PersonaId): Promise<WorkspaceState> {
   const network = core.sources.network();
   return core.store.read(async (tx) => {
     const relations = new Map<string, VehicleRelation>();
@@ -104,6 +160,7 @@ export function readState(core: Core, storage: Storage): Promise<WorkspaceState>
       const assessment = rec && core.impact.assessment(tx, rec.assessmentId);
       const options = new Map(rec ? core.optimiser.options(tx, rec.assessmentId).map((o) => [o.id, o]) : []);
       const decision = rec ? core.decisions.forRecommendation(tx, rec.id) : undefined;
+      const proposal = rec ? core.decisions.latestProposal(tx, rec.id) : undefined;
       for (const v of assessment?.vehicles ?? []) if (!relations.has(v.vehicle)) relations.set(v.vehicle, v.relation);
 
       const count = (r: VehicleRelation, pattern?: number) =>
@@ -152,6 +209,7 @@ export function readState(core: Core, storage: Storage): Promise<WorkspaceState>
               }),
             }
           : null,
+        proposal: proposal ? proposalView(proposal) : null,
         decision: decision
           ? { verdict: decision.verdict, decidedBy: decision.decidedBy.id, decidedAt: decision.decidedAt }
           : null,
@@ -161,9 +219,23 @@ export function readState(core: Core, storage: Storage): Promise<WorkspaceState>
           .map((n) => ({ ...patternView(network, n.patternIndex), channel: n.channel, kind: n.kind })),
       };
     });
-    const events = core.ledger.events(tx);
+    // The audit trail is read only by a persona that holds read_audit. The core decides, not the screen.
+    const canAudit = core.access.authorise(tx, { kind: "persona", id: persona }, "read_audit").allowed;
+    let audit: AuditView | null = null;
+    if (canAudit) {
+      const events = core.ledger.events(tx);
+      audit = {
+        trail: events
+          .slice(-TRAIL_LENGTH)
+          .reverse()
+          .map((e) => ({ seq: e.seq, at: e.at, component: e.component, type: e.type, actor: e.actor?.id ?? null })),
+        chain: await core.ledger.verify(tx),
+        components: [...new Set(events.map((e) => e.component))].sort(),
+      };
+    }
     return {
       storage,
+      persona,
       network: { loaded: network !== undefined, version: network?.version ?? "none" },
       disruptions,
       vehicles: core.sources.positions(tx).map((v) => ({
@@ -173,12 +245,8 @@ export function readState(core: Core, storage: Storage): Promise<WorkspaceState>
         lon: v.lon,
         relation: relations.get(v.vehicle) ?? null,
       })),
-      trail: events
-        .slice(-TRAIL_LENGTH)
-        .reverse()
-        .map((e) => ({ seq: e.seq, at: e.at, component: e.component, type: e.type, actor: e.actor?.id ?? null })),
-      chain: await core.ledger.verify(tx),
-      components: [...new Set(events.map((e) => e.component))].sort(),
+      noticeboard: core.decisions.proposals(tx).reverse().slice(0, NOTICEBOARD_LENGTH).map(noticeFor),
+      audit,
     };
   });
 }
@@ -190,10 +258,11 @@ async function settle(core: Core): Promise<void> {
 
 /** Handles every request except reset, which needs a fresh store and is the worker's job. */
 export async function handle(core: Core, storage: Storage, req: Request): Promise<Response> {
+  const actor = { kind: "persona" as const, id: req.persona };
   try {
     switch (req.kind) {
       case "state":
-        return { ok: true, state: await readState(core, storage) };
+        return { ok: true, state: await readState(core, storage, req.persona) };
       case "report": {
         const { lat, lon, radiusM, description } = req.incident;
         await core.sources.reportIncident({
@@ -203,7 +272,7 @@ export async function handle(core: Core, storage: Storage, req: Request): Promis
           description,
         });
         await settle(core);
-        const state = await readState(core, storage);
+        const state = await readState(core, storage, req.persona);
         const affected = state.disruptions[0]?.impact?.patterns.length ?? 0;
         return {
           ok: true,
@@ -213,22 +282,32 @@ export async function handle(core: Core, storage: Storage, req: Request): Promis
             : "Incident assessed: no bus route in the sample runs through it.",
         };
       }
-      case "decide": {
+      case "propose": {
         let notice: string;
         try {
-          const d = await core.decisions.decide(
-            { kind: "persona", id: req.persona },
-            req.recommendationId,
-            req.verdict,
-            "decided in the demonstrator",
-          );
-          notice = d.verdict === "approve" ? "Approved. Service states and passenger notices updated." : "Rejected.";
+          await core.decisions.propose(actor, req.recommendationId, req.verdict, "proposed in the demonstrator");
+          notice = "Proposed. It is pending the Duty manager's approval.";
         } catch (err) {
-          if (!(err instanceof DecisionRefused)) throw err;
-          notice = `Refused, and the refusal is in the audit trail: ${err.message}.`;
+          if (!(err instanceof ProposalRefused)) throw err;
+          notice = `Refused: ${err.message}.`;
         }
         await settle(core);
-        return { ok: true, state: await readState(core, storage), notice };
+        return { ok: true, state: await readState(core, storage, req.persona), notice };
+      }
+      case "review": {
+        let notice: string;
+        try {
+          const p = await core.decisions.review(actor, req.proposalId, req.outcome, req.reason);
+          notice =
+            p.status === "approved"
+              ? "Approved. Service states and passenger notices updated; the controller's noticeboard shows it."
+              : "Denied. The reason is on the controller's noticeboard.";
+        } catch (err) {
+          if (!(err instanceof ProposalRefused)) throw err;
+          notice = `Refused: ${err.message}.`;
+        }
+        await settle(core);
+        return { ok: true, state: await readState(core, storage, req.persona), notice };
       }
       case "reset":
         return { ok: false, error: "reset is handled by the core worker" };

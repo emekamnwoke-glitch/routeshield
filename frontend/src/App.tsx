@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import type { Verdict } from "../../src/core/modules/ac-07-decision-manager/contract";
 import type { PersonaId } from "../../src/core/modules/ac-14-access-control/contract";
 import { PERSONAS } from "../../src/core/modules/ac-14-access-control/contract";
 import { DisruptionCard } from "./DisruptionCard";
 import { NetworkMap } from "./map/NetworkMap";
+import { Noticeboard } from "./Noticeboard";
+import { ReviewQueue } from "./ReviewQueue";
 import { RouteStatusCard } from "./RouteStatusCard";
 import { routeStatuses } from "./routeStatus";
 import type { SiteNetwork } from "./map/network";
@@ -16,15 +17,28 @@ const DOCS = `${REPO}/blob/main/docs`;
 const DEFAULT_PICK = { lat: 53.3498, lon: -6.2603 }; // O'Connell Street
 const RADII = [100, 150, 300, 500];
 
-// Sidebar entries jump to sections of this one page; the last two leave the site.
+/** A command is a request without the persona, which the page adds from the Acting as selector. */
+type Command = Request extends infer R ? (R extends unknown ? Omit<R, "persona"> : never) : never;
+
+// Sidebar entries jump to sections of this one page; the audit entry appears only for the auditor persona.
 const NAV = [
-  { href: "#network", icon: "◉", label: "Network" },
-  { href: "#disruptions", icon: "△", label: "Disruptions" },
-  { href: "#routes", icon: "⌁", label: "Routes affected" },
-  { href: "#audit", icon: "▤", label: "Audit trail" },
-  { href: `${DOCS}/02-stage-two-reference-implementation/solution-design/architecture-v1.2.0.md`, icon: "◇", label: "Architecture" },
-  { href: REPO, icon: "⌂", label: "Source" },
+  { href: "#network", icon: "◉", label: "Network", audit: false },
+  { href: "#observe", icon: "＋", label: "Observe", audit: false },
+  { href: "#disruption", icon: "△", label: "Disruption", audit: false },
+  { href: "#routes", icon: "⌁", label: "Routes affected", audit: false },
+  { href: "#decision-support", icon: "◎", label: "Decision support", audit: false },
+  { href: "#audit", icon: "▤", label: "Audit trail", audit: true },
+  { href: `${DOCS}/02-stage-two-reference-implementation/solution-design/architecture-v1.2.0.md`, icon: "◇", label: "Architecture", audit: false },
+  { href: REPO, icon: "⌂", label: "Source", audit: false },
 ];
+
+/** What each persona can do on this site. The core checks every action; this text only explains it. */
+const AUTHORITY: Record<PersonaId, string> = {
+  controller: "Can propose a decision. Cannot decide.",
+  "duty-manager": "Can approve or deny a controller's proposal.",
+  "contingency-approver": "No decision authority here.",
+  administrator: "Can read the audit trail. Cannot decide.",
+};
 
 // One core worker per page: it is the only writer of the store (ADR-0010), and
 // a second one would contend for the same OPFS file.
@@ -42,9 +56,9 @@ export function App() {
   const [radiusM, setRadiusM] = useState(150);
   const [description, setDescription] = useState("Road closed");
 
-  const send = async (req: Request) => {
+  const send = async (cmd: Command, as: PersonaId = persona) => {
     setBusy(true);
-    const res = await client.request(req);
+    const res = await client.request({ ...cmd, persona: as } as Request);
     setBusy(false);
     if (res.ok) {
       setState(res.state);
@@ -63,20 +77,22 @@ export function App() {
         setRoute(e2 >= 0 ? e2 : null);
       })
       .catch((err: unknown) => setError(String(err)));
-    void send({ kind: "state" });
   }, []); // load once
 
-  const decide = (recommendationId: string, verdict: Verdict) =>
-    send({ kind: "decide", persona, recommendationId, verdict });
+  // Each persona sees its own view: the core returns the audit trail only to a persona that may read it.
+  useEffect(() => {
+    void send({ kind: "state" }, persona);
+  }, [persona]);
 
   const disruptions = state?.disruptions ?? [];
+  const audit = state?.audit ?? null;
   const awaiting = disruptions.filter((d) => d.recommendation && d.recommendation.items.length > 0 && !d.decision).length;
+  const pending = disruptions.filter((d) => d.proposal?.status === "pending");
   const patterns = disruptions.reduce((n, d) => n + (d.impact?.patterns.length ?? 0), 0);
   const approaching = disruptions.reduce((n, d) => n + (d.impact?.vehicles.approaching ?? 0), 0);
   const inside = disruptions.reduce((n, d) => n + (d.impact?.vehicles.inside ?? 0), 0);
   const personaName = PERSONAS.find((p) => p.id === persona)?.name ?? persona;
-  // Display only: the core checks authority itself when a decision is made (AC-14).
-  const hasAuthority = persona === "controller";
+  const nav = NAV.filter((n) => !n.audit || audit !== null);
 
   return (
     <div className="shell">
@@ -89,16 +105,18 @@ export function App() {
           </b>
         </a>
         <nav aria-label="Sections">
-          {NAV.map((n) => (
+          {nav.map((n) => (
             <a key={n.label} href={n.href} title={n.label}>
               <span className="icon" aria-hidden="true">
                 {n.icon}
               </span>
               <span className="label">{n.label}</span>
-              {n.href === "#disruptions" && awaiting > 0 && (
+              {n.href === "#decision-support" && (awaiting > 0 || pending.length > 0) && (
                 <i>
-                  {awaiting}
-                  <span className="visually-hidden"> awaiting a decision</span>
+                  {pending.length || awaiting}
+                  <span className="visually-hidden">
+                    {pending.length ? " awaiting review" : " awaiting a decision"}
+                  </span>
                 </i>
               )}
             </a>
@@ -141,7 +159,7 @@ export function App() {
                 ))}
               </select>
               <small title="Persona switcher: nobody is signed in or authenticated (ADR-0012)">
-                Decision authority: {hasAuthority ? "yes" : "no"} · not signed in
+                {AUTHORITY[persona]} · not signed in
               </small>
             </span>
           </label>
@@ -157,6 +175,7 @@ export function App() {
         </p>
 
         <main>
+          {/* The map stays in view while the menus on the right scroll. */}
           <section className="network" id="network" aria-label="Network map">
             <div className="title">
               <div>
@@ -228,54 +247,8 @@ export function App() {
           </section>
 
           <aside className="right">
-            <section className="incident" aria-label="Disruption summary">
-              <p>DISRUPTIONS</p>
-              <h2>{disruptions.length ? `${disruptions.length} reported` : "Network clear"}</h2>
-              <span className={awaiting ? "pill major" : "pill"}>{awaiting ? "Decision needed" : "No decision pending"}</span>
-              <small>
-                {disruptions.length
-                  ? "Totals across every reported disruption. Each is listed below with its own decision."
-                  : "Report a closure to see what it cuts and a suggested bypass for each affected route."}
-              </small>
-              <div>
-                <span>
-                  <b>{patterns}</b>Patterns cut
-                </span>
-                <span>
-                  <b>{approaching}</b>Approaching
-                </span>
-                <span>
-                  <b>{inside}</b>Inside
-                </span>
-              </div>
-            </section>
-
-            <section className="card" id="disruptions">
-              <div className="title">
-                <div>
-                  <p>DECISION SUPPORT</p>
-                  <h2>Suggested bypasses</h2>
-                </div>
-              </div>
-              <p className="hint">
-                One suggested bypass per affected route pattern, dashed on the map, for a person to approve or reject.
-                They are not alternatives to each other: v1.3.0 ranks several options with their costs.
-              </p>
-              {disruptions.length ? (
-                <ul className="disruptions">
-                  {disruptions.map((d) => (
-                    <DisruptionCard key={d.id} d={d} busy={busy} onDecide={decide} />
-                  ))}
-                </ul>
-              ) : (
-                <p className="hint">None yet. Report an incident to start one.</p>
-              )}
-              {!hasAuthority && awaiting > 0 && (
-                <p className="hint">{personaName} holds no decision authority, so an approval will be refused.</p>
-              )}
-            </section>
-
-            <section className="card report">
+            {/* Observe: report what is happening. */}
+            <section className="card report" id="observe" aria-label="Observe">
               <p>OBSERVE</p>
               <h2>Report an incident</h2>
               <small className="coords">
@@ -306,43 +279,99 @@ export function App() {
                 Report incident
               </button>
             </section>
-          </aside>
 
-          <section className="lower">
+            {/* Disruption: what the reported closures cut. */}
+            <section className="incident" id="disruption" aria-label="Disruption summary">
+              <p>DISRUPTION</p>
+              <h2>{disruptions.length ? `${disruptions.length} reported` : "Network clear"}</h2>
+              <span className={awaiting ? "pill major" : "pill"}>{awaiting ? "Decision needed" : "No decision pending"}</span>
+              <small>
+                {disruptions.length
+                  ? "Totals across every reported disruption. Each is listed under Decision support with its own decision."
+                  : "Report a closure to see what it cuts and a suggested bypass for each affected route."}
+              </small>
+              <div>
+                <span>
+                  <b>{patterns}</b>Patterns cut
+                </span>
+                <span>
+                  <b>{approaching}</b>Approaching
+                </span>
+                <span>
+                  <b>{inside}</b>Inside
+                </span>
+              </div>
+            </section>
+
+            {/* Routes affected: the status of each route the closures touch. */}
             <div id="routes">
               <RouteStatusCard routes={routeStatuses(state)} />
             </div>
-            <section className="card activity" id="audit">
+
+            {/* Decision support: the bypasses, and the maker-checker step for the persona acting. */}
+            <section className="card" id="decision-support">
               <div className="title">
                 <div>
-                  <p>GOVERNANCE</p>
-                  <h2>Audit trail</h2>
+                  <p>DECISION SUPPORT</p>
+                  <h2>Suggested bypasses</h2>
                 </div>
-                {state && <b className={state.chain.ok ? "ok" : "bad"}>● {state.chain.ok ? "Chain verified" : "Chain broken"}</b>}
               </div>
-              {state && (
-                <p className="hint">
-                  {state.chain.ok
-                    ? `Hash chain verified: ${state.chain.events} events, ${state.chain.snapshots} snapshots.`
-                    : `Hash chain broken: ${state.chain.problems.join("; ")}`}
-                </p>
+              <p className="hint">
+                One suggested bypass per affected route pattern, dashed on the map. A controller proposes a verdict; a duty
+                manager approves or denies it. They are not alternatives to each other: v1.3.0 ranks several options with
+                their costs.
+              </p>
+              {persona === "duty-manager" && <ReviewQueue items={pending} busy={busy} onReview={(proposalId, outcome, reason) => send({ kind: "review", proposalId, outcome, reason })} />}
+              {persona === "controller" && <Noticeboard items={state?.noticeboard ?? []} />}
+              {disruptions.length ? (
+                <ul className="disruptions">
+                  {disruptions.map((d) => (
+                    <DisruptionCard
+                      key={d.id}
+                      d={d}
+                      persona={persona}
+                      busy={busy}
+                      onPropose={(recommendationId, verdict) => send({ kind: "propose", recommendationId, verdict })}
+                    />
+                  ))}
+                </ul>
+              ) : (
+                <p className="hint">None yet. Report an incident to start one.</p>
               )}
-              {state && state.components.length > 0 && (
-                <p className="hint">Components that recorded events: {state.components.join(", ")}</p>
-              )}
-              <ol className="trail">
-                {state?.trail.map((t) => (
-                  <li key={t.seq}>
-                    <b>#{t.seq}</b> {t.type}
-                    <small>
-                      {t.component}
-                      {t.actor && ` · ${t.actor}`}
-                    </small>
-                  </li>
-                ))}
-              </ol>
+              {persona === "administrator" && <p className="hint">The administrator reads the audit trail and does not decide.</p>}
+              {persona === "contingency-approver" && <p className="hint">{personaName} holds no decision authority here.</p>}
             </section>
-          </section>
+
+            {/* Audit trail: its own menu, shown only to the administrator (AC-14 read_audit). */}
+            {audit && (
+              <section className="card activity" id="audit" aria-label="Audit trail">
+                <div className="title">
+                  <div>
+                    <p>GOVERNANCE</p>
+                    <h2>Audit trail</h2>
+                  </div>
+                  <b className={audit.chain.ok ? "ok" : "bad"}>● {audit.chain.ok ? "Chain verified" : "Chain broken"}</b>
+                </div>
+                <p className="hint">
+                  {audit.chain.ok
+                    ? `Hash chain verified: ${audit.chain.events} events, ${audit.chain.snapshots} snapshots.`
+                    : `Hash chain broken: ${audit.chain.problems.join("; ")}`}
+                </p>
+                {audit.components.length > 0 && <p className="hint">Components that recorded events: {audit.components.join(", ")}</p>}
+                <ol className="trail">
+                  {audit.trail.map((t) => (
+                    <li key={t.seq}>
+                      <b>#{t.seq}</b> {t.type}
+                      <small>
+                        {t.component}
+                        {t.actor && ` · ${t.actor}`}
+                      </small>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            )}
+          </aside>
         </main>
 
         <p className="status" role="status" aria-live="polite">

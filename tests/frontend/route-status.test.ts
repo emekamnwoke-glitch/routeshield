@@ -21,6 +21,7 @@ function disruption(cut: string[], states: { routeCode: string; state: string }[
     createdAt: "",
     impact: { blockedRoads: 1, blockedLines: [], affectedTrips: 1, patterns: cut.map(pattern), vehicles: { approaching: 0, inside: 0, past: 0 } },
     recommendation: null,
+    proposal: null,
     decision: null,
     serviceStates: states.map((s) => ({ ...s, towards: "x" })),
     notices: [],

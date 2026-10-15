@@ -33,7 +33,8 @@ beforeEach(async () => {
   clock = new ManualClock();
   telemetry = new InMemoryTelemetry();
   core = await createCore({ store: await SqliteStore.inMemory(), clock, telemetry, ...dublin() });
-  identity.switchTo("controller");
+  // The duty manager holds decide: a controller proposes and cannot decide (maker-checker, see maker-checker.test.ts).
+  identity.switchTo("duty-manager");
 });
 
 /** Reports the incident and lets the core react; returns the recommendation it produced. */
@@ -62,7 +63,7 @@ describe("walking skeleton", () => {
       counts: core.analytics.eventCounts(tx),
     }));
 
-    expect(decision).toMatchObject({ verdict: "approve", decidedBy: { kind: "persona", id: "controller" } });
+    expect(decision).toMatchObject({ verdict: "approve", decidedBy: { kind: "persona", id: "duty-manager" } });
     expect(state.service).toMatchObject([{ state: "diverted", decisionId: decision.id }]);
     expect(state.notices).toMatchObject([{ channel: "passenger", kind: "diverted" }]);
     expect(state.trail).toEqual([
@@ -133,10 +134,10 @@ describe("authority at decision time (TC-106)", () => {
     expect(types).not.toContain("decision.made");
   });
 
-  it("refuses a controller whose authority was revoked after the recommendation was issued", async () => {
+  it("refuses a duty manager whose authority was revoked after the recommendation was issued", async () => {
     const { recommendationId } = await reportAndRecommend();
     await core.store.transaction((tx) =>
-      core.access.revoke(tx, { kind: "persona", id: "administrator" }, "controller", "decide"),
+      core.access.revoke(tx, { kind: "persona", id: "administrator" }, "duty-manager", "decide"),
     );
     await expect(core.decisions.decide(identity.current(), recommendationId, "approve", "")).rejects.toThrow(
       /does not hold decide/,
