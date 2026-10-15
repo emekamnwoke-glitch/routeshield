@@ -5,12 +5,16 @@ import type { AuditLedger } from "../ac-11-audit-ledger/contract";
 import type { AccessControl, Action, AuthorityDecision, PersonaId } from "./contract";
 import { AuthorityError, PERSONAS } from "./contract";
 
-/** Initial grants. The administrator can grant authority but not decide: separation of duties. */
+/**
+ * Initial grants. The controller proposes and the duty manager decides (maker-checker): a controller cannot
+ * decide. The administrator can grant authority and read the audit trail, but cannot decide: separation of duties.
+ */
 const INITIAL_GRANTS: [PersonaId, Action][] = [
-  ["controller", "decide"],
+  ["controller", "propose"],
   ["duty-manager", "decide"],
   ["contingency-approver", "approve_contingency"],
   ["administrator", "grant_authority"],
+  ["administrator", "read_audit"],
 ];
 
 export class AccessControlModule implements CoreModule, AccessControl {

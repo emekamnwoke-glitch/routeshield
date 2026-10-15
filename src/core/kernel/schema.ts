@@ -5,8 +5,8 @@
  */
 import type { Tx } from "./store";
 
-/** 1: v1.1.0 walking skeleton. 2: v1.2.0 impact, per-pattern options and states. */
-export const SCHEMA_VERSION = 2;
+/** 1: v1.1.0 walking skeleton. 2: v1.2.0 impact, per-pattern options and states. 3: maker-checker proposals and grants. */
+export const SCHEMA_VERSION = 3;
 
 export class SchemaMismatch extends Error {
   override readonly name = "SchemaMismatch";
