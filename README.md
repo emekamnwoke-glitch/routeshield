@@ -291,7 +291,7 @@ It moves into the repository in small steps, each with its own pull request:
 | 3 | App shell: role switcher, role menu and reset | 🟢 |
 | 4 | Review flow: queue, review drawer, approve and deny | 🟢 |
 | 5 | Map: click-to-report and the glass callout | 🟢 |
-| 6 | Narrow screens, and empty, loading and error states | ⬜ |
+| 6 | Narrow screens, and empty, loading and error states | 🟢 |
 
 The redesign is intended to feed the `v1.5.0` Control dashboard milestone. These questions are still open:
 

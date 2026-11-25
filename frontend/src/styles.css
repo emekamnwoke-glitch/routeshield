@@ -979,6 +979,13 @@ header > div:first-child > small {
 
 /* Report */
 
+.report > p.hint {
+  color: var(--muted);
+  font: var(--rs-type-body-small);
+  letter-spacing: var(--rs-tracking-body-small);
+  margin: var(--rs-space-1) 0 var(--rs-space-3);
+}
+
 .report {
   position: relative;
 }
@@ -1517,6 +1524,13 @@ button.tonal {
   color: var(--muted);
 }
 
+@keyframes rs-rise {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+}
+
 @keyframes rs-slide-in {
   from {
     transform: translateX(24px);
@@ -1527,6 +1541,87 @@ button.tonal {
 @media (prefers-reduced-motion: reduce) {
   .drawer {
     animation-name: rs-fade-in;
+  }
+}
+
+/* Modal drawer (1280 px and below): a scrim behind, focus kept inside. */
+.scrim {
+  position: fixed;
+  z-index: 29;
+  inset: 0;
+  background: rgb(0 0 0 / 32%);
+  animation: rs-fade-in var(--rs-motion-medium) var(--rs-easing-emphasized);
+}
+
+/* Failure alert: opaque, under the fiction notice; says what failed and that nothing changed. */
+.alert {
+  display: flex;
+  align-items: center;
+  gap: var(--rs-space-3);
+  margin: var(--rs-space-3) var(--rs-space-4) 0;
+  padding: var(--rs-space-2) var(--rs-space-2) var(--rs-space-2) var(--rs-space-4);
+  border-radius: var(--rs-radius-md);
+  background: var(--rs-status-danger-container);
+  color: var(--rs-status-danger-on-container);
+  font: var(--rs-type-body-medium);
+}
+
+.alert > span {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--rs-radius-full);
+  background: var(--bad);
+  color: var(--rs-color-on-error);
+  font-weight: 700;
+}
+
+.alert p {
+  flex: 1;
+  margin: 0;
+}
+
+.alert button.text {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.alert .icon-button {
+  color: inherit;
+}
+
+.loading p {
+  margin: 0 0 var(--rs-space-3);
+}
+
+/* Skeleton rows: the table keeps its header while the queue loads. */
+.queue-table tr.skeleton td {
+  padding: var(--rs-inset-cell-y) var(--rs-inset-cell-x);
+}
+
+.queue-table tr.skeleton span {
+  display: block;
+  height: 14px;
+  border-radius: var(--rs-radius-sm);
+  background: var(--rs-color-surface-container-highest);
+  animation: rs-pulse 1.2s ease-in-out infinite;
+}
+
+.queue-table tr.error td {
+  color: var(--bad);
+}
+
+@keyframes rs-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .queue-table tr.skeleton span {
+    animation: none;
   }
 }
 
@@ -1586,6 +1681,36 @@ button.tonal {
     grid-template-columns: minmax(0, 1fr);
   }
 
+  /* The report sheet becomes a bottom sheet, so the map above stays clickable to move the point. */
+  .sheet {
+    top: auto;
+    width: 100vw;
+    max-height: 62vh;
+    border-left: 0;
+    border-top: 1px solid var(--border);
+    border-radius: 28px 28px 0 0;
+    animation-name: rs-rise;
+  }
+
+  .sheet-body {
+    padding: var(--rs-space-4) var(--rs-space-4) 0;
+  }
+
+  .sheet-actions {
+    padding: var(--rs-space-3) var(--rs-space-4) var(--rs-space-4);
+  }
+
+  .drawer-head,
+  .drawer-body,
+  .drawer-actions {
+    padding-left: var(--rs-space-4);
+    padding-right: var(--rs-space-4);
+  }
+
+  .alert {
+    margin: var(--rs-space-2) var(--rs-space-2) 0;
+  }
+
   .network {
     position: static;
     max-height: none;
@@ -1626,12 +1751,31 @@ button.tonal {
 }
 
 @media (max-width: 520px) {
+  /* The routes column gives way; the drawer lists them. */
+  .queue-table th:nth-child(3),
+  .queue-table td:nth-child(3) {
+    display: none;
+  }
+
+  /* The top bar must fit a 360 px phone: the brand gives way (the footer links the source). */
+  .rail {
+    gap: var(--rs-space-1);
+  }
+
+  .brand {
+    display: none;
+  }
+
   nav a {
-    width: 52px;
+    width: 48px;
   }
 
   nav .label {
     display: none;
+  }
+
+  .role-trigger {
+    width: 68px;
   }
 
   .health {
@@ -1648,5 +1792,11 @@ button.tonal {
 
   .report > div {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 820px) and (prefers-reduced-motion: reduce) {
+  .sheet {
+    animation-name: rs-fade-in;
   }
 }

@@ -2,10 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import type { ReviewOutcome } from "../../../src/core/modules/ac-07-decision-manager/contract";
 import type { QueueRow } from "./queue";
 import { proposalText, routeCodes } from "./queue";
+import { trapIndex } from "../shell/failure";
 
 type Props = {
   row: Extract<QueueRow, { kind: "open" }>;
   busy: boolean;
+  /** At 1280 px and below the drawer covers the queue: a modal side sheet, with focus kept inside. */
+  modal: boolean;
   onClose: () => void;
   onReview: (proposalId: string, outcome: ReviewOutcome, reason: string) => void;
 };
@@ -17,7 +20,7 @@ const metres = (m: number) => (m >= 0 ? `+${m.toLocaleString("en-IE")}` : `−${
  * It is always opaque (ADR-0021): map colours must not bleed into the rationale and costs.
  * Esc closes it and returns focus to the queue row that opened it.
  */
-export function ReviewDrawer({ row, busy, onClose, onReview }: Props) {
+export function ReviewDrawer({ row, busy, modal, onClose, onReview }: Props) {
   const { d, status } = row;
   const proposal = d.proposal;
   const text = proposalText(d);
@@ -51,14 +54,28 @@ export function ReviewDrawer({ row, busy, onClose, onReview }: Props) {
 
   const eyebrow = denying ? "PROPOSAL · DENYING" : `PROPOSAL · ${status === "pending" ? "PENDING REVIEW" : status.toUpperCase()}`;
 
+  // Modal: Tab and Shift+Tab cycle inside the drawer.
+  const trap = (e: React.KeyboardEvent) => {
+    if (!modal || e.key !== "Tab" || confirm.current?.open) return;
+    const focusable = Array.from(
+      drawer.current?.querySelectorAll<HTMLElement>("button:not([disabled]), textarea, [tabindex='0']") ?? [],
+    );
+    const next = trapIndex(focusable.indexOf(document.activeElement as HTMLElement), focusable.length, e.shiftKey);
+    if (next >= 0) {
+      e.preventDefault();
+      focusable[next]?.focus();
+    }
+  };
+
   return (
     <aside
       ref={drawer}
-      className="drawer"
+      className={modal ? "drawer modal" : "drawer"}
       role="dialog"
-      aria-modal="false"
+      aria-modal={modal}
       aria-labelledby="drawer-title"
       tabIndex={-1}
+      onKeyDown={trap}
     >
       <header className="drawer-head">
         <div>
