@@ -49,6 +49,7 @@
   --map-detour: var(--rs-color-tertiary);
   --map-vehicle: var(--rs-color-outline);
   --map-approaching: var(--rs-color-on-surface);
+  --map-preview: var(--rs-color-tertiary);
   --chip-amber: var(--rs-color-tertiary-container);
   --chip-amber-text: var(--rs-color-on-tertiary-container);
   --chip-red: var(--rs-color-error);
@@ -630,6 +631,162 @@ header > div:first-child > small {
 .map-controls button {
   padding: 5px;
   width: 34px;
+}
+
+/*
+ * Glass (ADR-0021): only the map callout, the command palette and the selection bar.
+ * It selects, previews and navigates; it never decides. Without backdrop blur, or when the
+ * visitor asks for less transparency, it falls back to an opaque surface.
+ */
+.glass {
+  background: var(--rs-surface-glass-selection-fill);
+  -webkit-backdrop-filter: blur(var(--rs-effect-glass-blur));
+  backdrop-filter: blur(var(--rs-effect-glass-blur));
+  border: 1px solid rgb(255 255 255 / 20%);
+  box-shadow: var(--rs-effect-glass-shadow);
+  color: var(--text);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass {
+    background: var(--rs-surface-glass-fallback);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass {
+    background: var(--rs-surface-glass-fallback);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .glass {
+    background: Canvas;
+    border-color: CanvasText;
+  }
+}
+
+.callout {
+  position: absolute;
+  width: 240px;
+  display: grid;
+  gap: 1px;
+  padding: var(--rs-space-2) var(--rs-space-3);
+  border-radius: var(--rs-radius-md);
+  pointer-events: none;
+  animation: rs-fade-in var(--rs-motion-short) var(--rs-easing-emphasized);
+}
+
+.callout b {
+  font: var(--rs-type-label-large);
+}
+
+.callout span {
+  color: var(--text);
+  font: var(--rs-type-body-small);
+  font-variant-numeric: var(--rs-font-numeric);
+}
+
+.callout small {
+  color: var(--muted);
+  font: var(--rs-type-body-small);
+}
+
+/* Report sheet: opaque, beside the map. */
+.sheet {
+  position: fixed;
+  z-index: 30;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(var(--rs-size-drawer-detail), 100vw);
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  background: var(--rs-color-surface-container-low);
+  border-left: 1px solid var(--border);
+  color: var(--text);
+  animation: rs-slide-in var(--rs-motion-medium) var(--rs-easing-emphasized);
+}
+
+.sheet-body {
+  overflow: auto;
+  display: grid;
+  align-content: start;
+  gap: var(--rs-space-3);
+  padding: var(--rs-space-6);
+}
+
+.sheet-body h2 {
+  margin: 0;
+  font: var(--rs-type-headline-small);
+}
+
+.sheet-body .hint {
+  margin: 0 0 var(--rs-space-2);
+}
+
+.field {
+  display: grid;
+  gap: 2px;
+  padding: var(--rs-space-2) var(--rs-space-3);
+  border-bottom: 1px solid var(--rs-color-on-surface-variant);
+  border-radius: var(--rs-radius-sm) var(--rs-radius-sm) 0 0;
+  background: var(--rs-color-surface-container-highest);
+}
+
+.field > span {
+  color: var(--muted);
+  font: var(--rs-type-body-small);
+}
+
+.field select,
+.field input,
+.field output {
+  border: 0;
+  padding: 2px 0;
+  background: transparent;
+  color: var(--text);
+  font: var(--rs-type-body-large);
+  font-variant-numeric: var(--rs-font-numeric);
+}
+
+.field:focus-within {
+  border-bottom: 2px solid var(--accent);
+}
+
+.field:focus-within > span {
+  color: var(--accent);
+}
+
+.field select:focus-visible,
+.field input:focus-visible {
+  outline: none;
+}
+
+.readonly-field {
+  background: transparent;
+  border-bottom-style: dashed;
+}
+
+.sheet-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--rs-space-2);
+  padding: var(--rs-space-4) var(--rs-space-6) var(--rs-space-6);
+}
+
+.sheet-actions .primary {
+  border-radius: var(--rs-radius-full);
+  padding: 10px 20px;
+  font: var(--rs-type-label-large);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet {
+    animation-name: rs-fade-in;
+  }
 }
 
 .map-note {

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { PersonaId } from "../../src/core/modules/ac-14-access-control/contract";
 import { DisruptionCard } from "./DisruptionCard";
 import { NetworkMap } from "./map/NetworkMap";
+import { ReportSheet } from "./map/ReportSheet";
 import { Noticeboard } from "./Noticeboard";
 import { ReviewQueue } from "./ReviewQueue";
 import { queueRows } from "./review/queue";
@@ -17,7 +18,6 @@ import type { Request, WorkspaceState } from "./workspace/service";
 const REPO = "https://github.com/emekamnwoke-glitch/routeshield";
 const DOCS = `${REPO}/blob/main/docs`;
 const DEFAULT_PICK = { lat: 53.3498, lon: -6.2603 }; // O'Connell Street
-const RADII = [100, 150, 300, 500];
 
 /** A command is a request without the persona, which the page adds from the role switcher. */
 type Command = Request extends infer R ? (R extends unknown ? Omit<R, "persona"> : never) : never;
@@ -49,9 +49,10 @@ export function App() {
   const [pick, setPick] = useState(DEFAULT_PICK);
   const [radiusM, setRadiusM] = useState(150);
   const [description, setDescription] = useState("Road closed");
+  const [reporting, setReporting] = useState(false);
   const [section, setSection] = useState("#network");
 
-  const send = async (cmd: Command, as: PersonaId = persona) => {
+  const send = async (cmd: Command, as: PersonaId = persona): Promise<boolean> => {
     setBusy(true);
     const res = await client.request({ ...cmd, persona: as } as Request);
     setBusy(false);
@@ -62,6 +63,11 @@ export function App() {
     } else {
       setError(res.error);
     }
+    return res.ok;
+  };
+
+  const report = async () => {
+    if (await send({ kind: "report", incident: { ...pick, radiusM, description: description || "Incident" } })) setReporting(false);
   };
 
   useEffect(() => {
@@ -192,12 +198,16 @@ export function App() {
                 )}
                 vehicles={state?.vehicles ?? []}
                 pick={pick}
-                onPick={(lat, lon) => setPick({ lat, lon })}
+                picking={reporting ? { radiusM } : null}
+                onPick={(lat, lon) => {
+                  setPick({ lat, lon });
+                  setReporting(true);
+                }}
               />
             ) : (
               <p className="loading">{error ? "The network could not be loaded." : "Loading the Dublin network…"}</p>
             )}
-            <p className="map-note">Click the map to place a closure. It starts on O'Connell Street.</p>
+            <p className="map-note">Click the map, or focus it and press Enter, to place a closure. It starts on O'Connell Street.</p>
             <div className="legend" aria-label="Map legend">
               <span>
                 <span className="swatch" style={{ background: "var(--map-route)" }} />
@@ -237,29 +247,15 @@ export function App() {
               <small className="coords">
                 {pick.lat.toFixed(5)}, {pick.lon.toFixed(5)}
               </small>
-              <div>
-                <label>
-                  Radius
-                  <select value={radiusM} onChange={(e) => setRadiusM(Number(e.target.value))}>
-                    {RADII.map((r) => (
-                      <option key={r} value={r}>
-                        {r} m
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Description
-                  <input value={description} onChange={(e) => setDescription(e.target.value)} maxLength={120} />
-                </label>
-              </div>
+              <p className="hint">Click the map where the road is closed. The report form opens beside it.</p>
               <button
                 type="button"
                 className="primary full"
-                disabled={busy || !state?.network.loaded}
-                onClick={() => send({ kind: "report", incident: { ...pick, radiusM, description: description || "Incident" } })}
+                disabled={!state?.network.loaded}
+                aria-expanded={reporting}
+                onClick={() => setReporting(true)}
               >
-                Report incident
+                Report an incident…
               </button>
             </section>
 
@@ -356,6 +352,20 @@ export function App() {
             )}
           </aside>
         </main>
+
+        {reporting && (
+          <ReportSheet
+            pick={pick}
+            radiusM={radiusM}
+            description={description}
+            busy={busy}
+            disabled={!state?.network.loaded}
+            onRadius={setRadiusM}
+            onDescription={setDescription}
+            onCancel={() => setReporting(false)}
+            onReport={() => void report()}
+          />
+        )}
 
         <p className="status" role="status" aria-live="polite">
           {error ? `Error: ${error}` : !state ? "Loading the road network and fleet…" : notice}

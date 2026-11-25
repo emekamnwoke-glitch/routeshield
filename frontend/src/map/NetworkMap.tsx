@@ -3,6 +3,7 @@ import type { Circle } from "../../../src/core/kernel/primitives";
 import type { LatLon, VehicleView } from "../workspace/service";
 import type { SiteNetwork } from "./network";
 import type { View } from "./projection";
+import { placeCallout } from "./callout";
 import { fit, project, toScreen, toWorld, unproject, zoomAt } from "./projection";
 
 type Props = {
@@ -15,6 +16,8 @@ type Props = {
   detours: LatLon[][];
   vehicles: VehicleView[];
   pick: { lat: number; lon: number } | null;
+  /** While a report is being placed: the radius to preview around the pick, and the glass callout. */
+  picking?: { radiusM: number } | null;
   onPick: (lat: number, lon: number) => void;
 };
 
@@ -28,6 +31,7 @@ type Colours = {
   detour: string;
   vehicle: string;
   approaching: string;
+  preview: string;
 };
 
 function colours(el: HTMLElement): Colours {
@@ -43,13 +47,14 @@ function colours(el: HTMLElement): Colours {
     detour: v("--map-detour"),
     vehicle: v("--map-vehicle"),
     approaching: v("--map-approaching"),
+    preview: v("--map-preview"),
   };
 }
 
 /** Pixels the pointer may move and still count as a click, not a drag. */
 const CLICK_SLOP = 4;
 
-export function NetworkMap({ network, route, footprints, blocked, detours, vehicles, pick, onPick }: Props) {
+export function NetworkMap({ network, route, footprints, blocked, detours, vehicles, pick, picking = null, onPick }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [view, setView] = useState<View | null>(null);
@@ -185,6 +190,22 @@ export function NetworkMap({ network, route, footprints, blocked, detours, vehic
       }
     }
 
+    // The closure being placed: a dashed preview of its radius, in the bypass's attention tone.
+    if (pick && picking) {
+      const [sx, sy] = toScreen(view, width, height, ...project(pick.lat, pick.lon));
+      ctx.beginPath();
+      ctx.arc(sx, sy, Math.max(6, picking.radiusM * view.scale), 0, Math.PI * 2);
+      ctx.fillStyle = c.preview;
+      ctx.globalAlpha = 0.18;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.setLineDash([5, 4]);
+      ctx.strokeStyle = c.preview;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
     if (pick) {
       const [sx, sy] = toScreen(view, width, height, ...project(pick.lat, pick.lon));
       ctx.strokeStyle = c.pick;
@@ -196,7 +217,7 @@ export function NetworkMap({ network, route, footprints, blocked, detours, vehic
       ctx.lineTo(sx, sy + 8);
       ctx.stroke();
     }
-  }, [view, size, lines, routeEdges, routeStops, footprints, blocked, detours, vehicles, pick]);
+  }, [view, size, lines, routeEdges, routeStops, footprints, blocked, detours, vehicles, pick, picking]);
 
   // Wheel zoom needs a non-passive listener: React's is passive, so the page would scroll too.
   useEffect(() => {
@@ -211,6 +232,12 @@ export function NetworkMap({ network, route, footprints, blocked, detours, vehic
     canvas.addEventListener("wheel", onWheel, { passive: false });
     return () => canvas.removeEventListener("wheel", onWheel);
   }, []);
+
+  // The glass callout sits below the pin, kept inside the map.
+  const callout = useMemo((): [number, number] | null => {
+    if (!pick || !view || size.width === 0) return null;
+    return placeCallout(...toScreen(view, size.width, size.height, ...project(pick.lat, pick.lon)), size.width, size.height);
+  }, [pick, view, size]);
 
   const local = (e: React.PointerEvent): [number, number] => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -229,7 +256,7 @@ export function NetworkMap({ network, route, footprints, blocked, detours, vehic
         className="map-canvas"
         tabIndex={0}
         role="img"
-        aria-label="Map of the sample Dublin bus network. Arrow keys pan, plus and minus zoom; click to place an incident."
+        aria-label="Map of the sample Dublin bus network. Arrow keys pan, plus and minus zoom. Click, or press Enter for the centre, to place a closure."
         onPointerDown={(e) => {
           if (!view) return;
           e.currentTarget.setPointerCapture(e.pointerId);
@@ -261,6 +288,8 @@ export function NetworkMap({ network, route, footprints, blocked, detours, vehic
             "+": () => zoom(1.25),
             "=": () => zoom(1.25),
             "-": () => zoom(0.8),
+            // Keyboard placement: Enter puts the closure at the centre of the view.
+            Enter: () => view && onPick(...unproject(view.cx, view.cy)),
           };
           const act = actions[e.key];
           if (act) {
@@ -269,6 +298,15 @@ export function NetworkMap({ network, route, footprints, blocked, detours, vehic
           }
         }}
       />
+      {pick && picking && callout && (
+        <div className="glass callout" style={{ left: callout[0], top: callout[1] }}>
+          <b>Closure point</b>
+          <span>
+            {pick.lat.toFixed(5)}, {pick.lon.toFixed(5)} · {picking.radiusM} m radius
+          </span>
+          <small>Click again to move it</small>
+        </div>
+      )}
       <div className="map-controls">
         <button type="button" onClick={() => zoom(1.25)} aria-label="Zoom in">
           +
