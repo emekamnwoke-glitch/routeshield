@@ -855,7 +855,6 @@ header > div:first-child > small {
 
 /* Maker-checker panels: the duty manager's queue and the controller's noticeboard */
 
-.queue,
 .noticeboard {
   margin: 0 0 12px;
   padding: 11px 12px;
@@ -864,13 +863,11 @@ header > div:first-child > small {
   background: var(--accent-soft);
 }
 
-.queue h3,
 .noticeboard h3 {
   margin: 0 0 6px;
   font-size: 15px;
 }
 
-.queue ul,
 .noticeboard ol {
   margin: 0;
   padding: 0;
@@ -879,19 +876,9 @@ header > div:first-child > small {
   gap: 10px;
 }
 
-.queue li,
 .noticeboard li {
   font-size: 13px;
   line-height: 1.45;
-}
-
-.queue .deny {
-  display: grid;
-  gap: 6px;
-}
-
-.queue .deny label {
-  font-size: 12px;
 }
 
 .noticeboard li.tone-denied {
@@ -1015,6 +1002,375 @@ footer .store {
   gap: 6px;
   text-align: right;
   max-width: 280px;
+}
+
+/* Review queue (duty manager) */
+
+.queue {
+  margin: 0 0 12px;
+}
+
+.queue-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+}
+
+.queue-head p {
+  margin: 0;
+  color: var(--eyebrow);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  font-weight: 800;
+}
+
+.queue-head h3 {
+  margin: 0;
+  font: var(--rs-type-title-medium);
+}
+
+.queue .keys {
+  color: var(--muted);
+  font: var(--rs-type-label-medium);
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--rs-space-2);
+  margin: var(--rs-space-3) 0;
+}
+
+.filter-chip {
+  padding: 5px 12px;
+  border: 1px solid var(--rs-color-outline);
+  border-radius: var(--rs-radius-sm);
+  background: transparent;
+  font: var(--rs-type-label-large);
+}
+
+.filter-chip[aria-pressed="true"] {
+  border-color: transparent;
+  background: var(--chrome-active);
+  color: var(--chrome-active-text);
+}
+
+.queue-table,
+.bypass-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font: var(--rs-type-body-small);
+  letter-spacing: var(--rs-tracking-body-small);
+  font-variant-numeric: var(--rs-font-numeric);
+}
+
+.queue-table {
+  border: 1px solid var(--border);
+  border-radius: var(--rs-radius-md);
+  overflow: hidden;
+}
+
+.queue-table th,
+.bypass-table th[scope="col"] {
+  position: sticky;
+  top: 0;
+  background: var(--rs-color-surface-container-high);
+  color: var(--muted);
+  font: var(--rs-type-label-medium);
+  text-align: left;
+  padding: var(--rs-inset-cell-y) var(--rs-inset-cell-x);
+}
+
+.queue-table td,
+.bypass-table td,
+.bypass-table th[scope="row"] {
+  padding: var(--rs-inset-cell-y) var(--rs-inset-cell-x);
+  border-top: 1px solid var(--border);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.queue-table .num,
+.bypass-table .num {
+  text-align: right;
+}
+
+.queue-table td b,
+.queue-table td small {
+  display: block;
+}
+
+.queue-table td small {
+  color: var(--muted);
+}
+
+.queue-table tbody tr.opens {
+  cursor: pointer;
+}
+
+.queue-table tbody tr:hover {
+  background: var(--subtle);
+}
+
+.queue-table tbody tr[aria-selected="true"] {
+  background: var(--chrome-active);
+  color: var(--chrome-active-text);
+}
+
+.queue-table tbody tr[aria-selected="true"] small {
+  color: var(--chrome-active-text);
+}
+
+.queue-table tbody tr:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+.queue-table tr.empty td {
+  color: var(--muted);
+  padding: var(--rs-space-4) var(--rs-inset-cell-x);
+}
+
+/* Status chip: tone plus icon plus label; colour is never the only signal. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  padding: var(--rs-inset-chip-y) var(--rs-inset-chip-x);
+  border-radius: var(--rs-radius-sm);
+  font: var(--rs-type-label-medium);
+}
+
+.chip.tone-attention {
+  background: var(--rs-status-attention-container);
+  color: var(--rs-status-attention-on-container);
+}
+
+.chip.tone-in-effect {
+  background: var(--rs-status-in-effect-container);
+  color: var(--rs-status-in-effect-on-container);
+}
+
+.chip.tone-closed {
+  background: var(--rs-status-closed-container);
+  color: var(--rs-status-closed-on-container);
+}
+
+/* Review drawer: an opaque side sheet (ADR-0021), never glass. */
+.drawer {
+  position: fixed;
+  z-index: 30;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(var(--rs-size-drawer-review), 100vw);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  background: var(--rs-color-surface-container-low);
+  border-left: 1px solid var(--border);
+  color: var(--text);
+  animation: rs-slide-in var(--rs-motion-medium) var(--rs-easing-emphasized);
+}
+
+.drawer:focus {
+  outline: none;
+}
+
+.drawer-head {
+  display: flex;
+  align-items: start;
+  gap: var(--rs-space-4);
+  padding: var(--rs-space-6) var(--rs-space-6) var(--rs-space-3);
+}
+
+.drawer-head > div {
+  flex: 1;
+}
+
+.drawer-head p {
+  margin: 0;
+  color: var(--muted);
+  font: var(--rs-type-label-medium);
+  letter-spacing: 0.06em;
+}
+
+.drawer-head h2 {
+  margin: 2px 0;
+  font: var(--rs-type-title-large);
+}
+
+.drawer-head small {
+  color: var(--muted);
+}
+
+.icon-button {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--rs-radius-full);
+  background: transparent;
+  font-size: 18px;
+}
+
+.icon-button:hover {
+  background: var(--subtle);
+}
+
+.drawer-body {
+  overflow: auto;
+  padding: 0 var(--rs-space-6) var(--rs-space-4);
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: var(--rs-space-2);
+  margin: 0 0 var(--rs-space-4);
+}
+
+.stats div {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: start;
+  padding: var(--rs-space-3);
+  border-radius: var(--rs-radius-md);
+  background: var(--surface);
+}
+
+.stats dt {
+  color: var(--muted);
+  font: var(--rs-type-body-small);
+}
+
+.stats dd {
+  margin: 0;
+  font: var(--rs-type-title-large);
+  font-variant-numeric: var(--rs-font-numeric);
+}
+
+.stats .lead dd {
+  font: var(--rs-type-display-expressive);
+}
+
+.ask {
+  margin: 0 0 4px;
+  font: var(--rs-type-body-medium-emphasized);
+}
+
+.table-wrap {
+  margin-top: var(--rs-space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--rs-radius-md);
+  background: var(--surface);
+  overflow: auto;
+}
+
+.bypass-table th[scope="row"] {
+  font: var(--rs-type-body-small-emphasized);
+}
+
+.bypass-table th,
+.bypass-table td {
+  white-space: nowrap;
+}
+
+.bypass-table tbody tr:hover {
+  background: var(--subtle);
+}
+
+.drawer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--rs-space-2);
+  padding: var(--rs-space-4) var(--rs-space-6) var(--rs-space-6);
+  border-top: 1px solid var(--border);
+}
+
+.drawer-actions > p {
+  flex: 1 1 240px;
+  margin: 0;
+  color: var(--muted);
+  font: var(--rs-type-body-small);
+}
+
+.drawer-actions button.primary,
+.drawer-actions button.tonal {
+  border-radius: var(--rs-radius-full);
+  padding: 10px 20px;
+  font: var(--rs-type-label-large);
+}
+
+button.tonal {
+  border: 1px solid var(--rs-color-outline);
+  background: transparent;
+}
+
+.deny-form {
+  display: grid;
+  gap: var(--rs-space-1);
+  width: 100%;
+}
+
+.deny-form label {
+  display: grid;
+  gap: 2px;
+  padding: var(--rs-space-2) var(--rs-space-3) 0;
+  border-bottom: 2px solid var(--accent);
+  border-radius: var(--rs-radius-sm) var(--rs-radius-sm) 0 0;
+  background: var(--rs-color-surface-container-highest);
+  color: var(--accent);
+  font: var(--rs-type-body-small);
+}
+
+.deny-form textarea {
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: var(--rs-type-body-large);
+  resize: vertical;
+}
+
+.deny-form textarea:focus {
+  outline: none;
+}
+
+.deny-form label:focus-within {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.deny-form small {
+  color: var(--muted);
+  padding: 0 var(--rs-space-3);
+}
+
+.deny-form .row {
+  justify-content: flex-end;
+}
+
+.deny-form .row .primary {
+  flex: 0 0 auto;
+}
+
+.readonly {
+  color: var(--muted);
+}
+
+@keyframes rs-slide-in {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer {
+    animation-name: rs-fade-in;
+  }
 }
 
 /* Narrower screens */
