@@ -1,85 +1,58 @@
+/*
+ * Theme: every colour below points at a design token in tokens.css, exported
+ * from the Figma redesign. tokens.css handles light, dark and data-theme, so
+ * this block no longer needs its own dark copy. Surfaces are opaque and tonal:
+ * no gradients, no drop shadows.
+ */
 :root {
-  --bg: #eff4f8;
-  --surface: #ffffff;
-  --text: #14233b;
-  --muted: #5d6b7e;
-  --border: #dce5ef;
-  --subtle: #eef2f6;
-  --eyebrow: #1475d1;
-  --link: #0d64af;
-  --accent: #07855e;
-  --accent-2: #059669;
-  --accent-text: #ffffff;
-  --accent-soft: #f1fcf7;
-  --ok: #07855e;
-  --bad: #c62834;
-  --danger-soft: #fff7f8;
-  --danger-pill: #ffe1e4;
-  --banner-bg: #e9f5ff;
-  --banner-border: #c7e4fc;
-  --banner-text: #335677;
-  --shadow: 0 3px 12px #17345a0c;
-  /* Chrome (sidebar and header) is dark in both themes. */
-  --chrome-1: #071a33;
-  --chrome-2: #0c2749;
-  --chrome-3: #142c4c;
-  --chrome-text: #d7e8fb;
-  --chrome-muted: #a7c3e3;
-  --chrome-hi: #69b4ff;
-  --chrome-ok: #55e7b1;
-  --chrome-warn: #fbbf24;
-  --map-bg: #e7edf0;
-  --map-road: #aab7c1;
-  --map-route: #087f5b;
-  --map-stop: #064e3b;
-  --map-footprint: #e23d4c;
-  --map-pick: #1976d2;
-  --map-detour: #7057ce;
-  --map-vehicle: #64748b;
-  --map-approaching: #f59e0b;
-  --chip-amber: #facc15;
-  --chip-amber-text: #3b2f00;
-  --chip-red: #c62828;
-  --chip-red-text: #ffffff;
-  color-scheme: light;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0d1520;
-    --surface: #152131;
-    --text: #e3eaf3;
-    --muted: #9aabbf;
-    --border: #26364a;
-    --subtle: #1d2b3d;
-    --eyebrow: #6fb1f5;
-    --link: #7fbaf7;
-    --accent: #0e9f6e;
-    --accent-2: #10b981;
-    --accent-text: #ffffff;
-    --accent-soft: #10291f;
-    --ok: #3ccf95;
-    --bad: #ff8a80;
-    --danger-soft: #22171c;
-    --danger-pill: #4a1d25;
-    --banner-bg: #13253b;
-    --banner-border: #22405f;
-    --banner-text: #b6cde6;
-    --shadow: none;
-    --map-bg: #161b21;
-    --map-road: #3a4450;
-    --map-route: #3ccf95;
-    --map-stop: #c9f5e2;
-    --map-footprint: #ff6b6b;
-    --map-pick: #7aa2ff;
-    --map-detour: #c9a7ff;
-    --map-vehicle: #8a96a3;
-    --map-approaching: #fbbf24;
-    --chip-red: #ef4444;
-    --chip-red-text: #1a0000;
-    --chip-amber-text: #2a2100;
-    color-scheme: dark;
-  }
+  --bg: var(--rs-color-surface);
+  --surface: var(--rs-color-surface-container-lowest);
+  --text: var(--rs-color-on-surface);
+  --muted: var(--rs-color-on-surface-variant);
+  --border: var(--rs-border-hairline);
+  --subtle: var(--rs-color-surface-container);
+  --eyebrow: var(--rs-color-primary);
+  --link: var(--rs-color-primary);
+  --focus: var(--rs-color-primary);
+  --accent: var(--rs-color-primary);
+  --accent-text: var(--rs-color-on-primary);
+  --accent-soft: var(--rs-color-primary-container);
+  --ok: var(--rs-color-primary);
+  --bad: var(--rs-color-error);
+  --danger-soft: var(--rs-color-error-container);
+  --danger-pill: var(--rs-color-error-container);
+  --banner-bg: var(--rs-color-secondary-container);
+  --banner-border: var(--rs-border-hairline);
+  --banner-text: var(--rs-color-on-secondary-container);
+  --shadow: none;
+  /* Navigation and header: tonal containers, not a separate dark chrome. */
+  --chrome-1: var(--rs-color-surface-container-low);
+  --chrome-3: var(--rs-color-surface-container);
+  --chrome-text: var(--rs-color-on-surface);
+  --chrome-muted: var(--rs-color-on-surface-variant);
+  --chrome-hi: var(--rs-color-primary);
+  --chrome-ok: var(--rs-color-primary);
+  --chrome-warn: var(--rs-color-tertiary);
+  --chrome-line: var(--rs-border-hairline);
+  --chrome-active: var(--rs-color-secondary-container);
+  --chrome-active-text: var(--rs-color-on-secondary-container);
+  --chrome-chip: var(--rs-color-surface-container-highest);
+  --badge: var(--rs-color-error);
+  --badge-text: var(--rs-color-on-error);
+  /* Map: lines checked for 3:1 against the map surface in tokens.test.ts. */
+  --map-bg: var(--rs-color-surface-container-high);
+  --map-road: var(--rs-color-outline-variant);
+  --map-route: var(--rs-color-primary);
+  --map-stop: var(--rs-color-on-primary-container);
+  --map-footprint: var(--rs-color-error);
+  --map-pick: var(--rs-color-on-surface);
+  --map-detour: var(--rs-color-tertiary);
+  --map-vehicle: var(--rs-color-outline);
+  --map-approaching: var(--rs-color-on-surface);
+  --chip-amber: var(--rs-color-tertiary-container);
+  --chip-amber-text: var(--rs-color-on-tertiary-container);
+  --chip-red: var(--rs-color-error);
+  --chip-red-text: var(--rs-color-on-error);
 }
 
 * {
@@ -90,7 +63,8 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font: 14px/1.4 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font: var(--rs-type-body-medium);
+  letter-spacing: var(--rs-tracking-body-medium);
 }
 
 a {
@@ -106,7 +80,7 @@ select {
 
 button {
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--rs-radius-sm);
   padding: 8px 12px;
   background: var(--surface);
   font-weight: 700;
@@ -121,11 +95,11 @@ button:disabled {
 button.primary {
   border: 0;
   color: var(--accent-text);
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  background: var(--accent);
 }
 
 :focus-visible {
-  outline: 3px solid var(--map-pick);
+  outline: 3px solid var(--focus);
   outline-offset: 2px;
 }
 
@@ -165,7 +139,8 @@ h2 {
   top: 0;
   height: 100vh;
   padding: 15px;
-  background: linear-gradient(155deg, var(--chrome-1), var(--chrome-2));
+  background: var(--chrome-1);
+  border-right: 1px solid var(--chrome-line);
   color: var(--chrome-text);
   display: flex;
   flex-direction: column;
@@ -175,7 +150,7 @@ h2 {
   display: flex;
   gap: 10px;
   align-items: center;
-  color: #ffffff;
+  color: var(--chrome-text);
   text-decoration: none;
   padding: 2px 8px 24px;
 }
@@ -210,14 +185,14 @@ nav a {
   gap: 10px;
   color: var(--chrome-text);
   padding: 10px 13px;
-  border-radius: 7px;
+  border-radius: var(--rs-radius-md);
   text-decoration: none;
   font-weight: 650;
 }
 
 nav a:hover {
-  background: linear-gradient(90deg, #195aa7, #14467f);
-  color: #ffffff;
+  background: var(--chrome-active);
+  color: var(--chrome-active-text);
 }
 
 nav .icon {
@@ -227,17 +202,17 @@ nav .icon {
 
 nav i {
   margin-left: auto;
-  background: #e83e53;
-  color: #ffffff;
-  border-radius: 99px;
-  font: 700 11px system-ui;
+  background: var(--badge);
+  color: var(--badge-text);
+  border-radius: var(--rs-radius-full);
+  font: var(--rs-type-label-medium);
   font-style: normal;
   padding: 2px 7px;
 }
 
 .city {
   margin: auto 0 0;
-  color: #6f96c2;
+  color: var(--chrome-muted);
   letter-spacing: 5px;
   font-weight: bold;
 }
@@ -250,8 +225,9 @@ nav i {
 
 header {
   min-height: 82px;
-  background: linear-gradient(100deg, var(--chrome-3), #0a1d36);
-  color: #ffffff;
+  background: var(--chrome-3);
+  border-bottom: 1px solid var(--chrome-line);
+  color: var(--chrome-text);
   padding: 11px 25px;
   display: flex;
   align-items: center;
@@ -270,11 +246,11 @@ header p,
 }
 
 header p {
-  color: #91b9e8;
+  color: var(--eyebrow);
 }
 
 header > div:first-child > small {
-  color: #b4c9e3;
+  color: var(--chrome-muted);
 }
 
 .health {
@@ -301,7 +277,7 @@ header > div:first-child > small {
 }
 
 .time {
-  border-left: 1px solid #ffffff22;
+  border-left: 1px solid var(--chrome-line);
   padding-left: 20px;
   display: grid;
   grid-template-columns: auto auto;
@@ -320,13 +296,13 @@ header > div:first-child > small {
 }
 
 .time em {
-  background: #2c4a70;
+  background: var(--chrome-chip);
   color: var(--chrome-text);
   padding: 3px 6px;
   font-style: normal;
   font-size: 10px;
   font-weight: bold;
-  border-radius: 5px;
+  border-radius: var(--rs-radius-sm);
 }
 
 .persona {
@@ -334,16 +310,16 @@ header > div:first-child > small {
   align-items: center;
   gap: 9px;
   padding: 7px 10px;
-  border: 1px solid #ffffff20;
-  background: #17365a;
-  border-radius: 8px;
+  border: 1px solid var(--chrome-line);
+  background: var(--surface);
+  border-radius: var(--rs-radius-md);
 }
 
 .persona > span:first-child {
-  background: #6d9bd1;
+  background: var(--chrome-active);
   border-radius: 50%;
   padding: 4px 7px;
-  color: #eaf4ff;
+  color: var(--chrome-active-text);
 }
 
 .persona .who {
@@ -359,14 +335,14 @@ header > div:first-child > small {
 .persona select {
   background: transparent;
   border: 0;
-  border-bottom: 1px dashed #ffffff55;
-  color: #ffffff;
+  border-bottom: 1px dashed var(--rs-color-outline);
+  color: var(--chrome-text);
   font-weight: 700;
   padding: 0 2px;
 }
 
 .persona select option {
-  color: #14233b;
+  color: var(--text);
 }
 
 .banner {
@@ -409,7 +385,7 @@ header > div:first-child > small {
 .incident {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 9px;
+  border-radius: var(--rs-radius-md);
   box-shadow: var(--shadow);
 }
 
@@ -445,7 +421,7 @@ header > div:first-child > small {
 .report input {
   padding: 6px;
   border: 1px solid var(--border);
-  border-radius: 5px;
+  border-radius: var(--rs-radius-sm);
   background: var(--surface);
   max-width: 100%;
 }
@@ -467,7 +443,7 @@ header > div:first-child > small {
 .map {
   position: relative;
   overflow: hidden;
-  border-radius: 7px;
+  border-radius: var(--rs-radius-md);
 }
 
 .map-canvas {
@@ -533,7 +509,8 @@ header > div:first-child > small {
 .incident {
   position: relative;
   padding: 14px;
-  background: linear-gradient(140deg, var(--danger-soft), var(--surface));
+  background: var(--surface);
+  border-color: var(--bad);
 }
 
 .incident > p {
@@ -554,7 +531,7 @@ header > div:first-child > small {
   background: var(--subtle);
   color: var(--muted);
   padding: 3px 8px;
-  border-radius: 99px;
+  border-radius: var(--rs-radius-full);
   font-size: 10px;
   font-weight: bold;
 }
@@ -604,7 +581,7 @@ header > div:first-child > small {
 
 .disruptions > li {
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: var(--rs-radius-md);
   padding: 10px;
   font-size: 13px;
 }
@@ -625,7 +602,7 @@ header > div:first-child > small {
   padding: 8px;
   border: 1px solid var(--border);
   border-left: 3px solid var(--map-detour);
-  border-radius: 6px;
+  border-radius: var(--rs-radius-sm);
   background: var(--accent-soft);
   font-size: 12px;
 }
@@ -662,7 +639,7 @@ header > div:first-child > small {
   font-size: 0.85em;
   font-weight: 700;
   padding: 0 6px;
-  border-radius: 4px;
+  border-radius: var(--rs-radius-sm);
   background: var(--bg);
   border: 1px solid var(--border);
 }
@@ -719,7 +696,7 @@ header > div:first-child > small {
   margin: 0 0 12px;
   padding: 11px 12px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--rs-radius-md);
   background: var(--accent-soft);
 }
 
@@ -783,7 +760,7 @@ header > div:first-child > small {
 .route-chip {
   min-width: 44px;
   padding: 5px 9px;
-  border-radius: 6px;
+  border-radius: var(--rs-radius-sm);
   font-weight: bold;
   text-align: center;
 }
