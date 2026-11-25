@@ -73,11 +73,32 @@ async function open(): Promise<Session> {
 
 let session = open();
 
+/**
+ * A failed open is not kept: the next request tries again. Without this, one failed
+ * open would fail every later request until the page is reloaded.
+ */
+function current(): Promise<Session> {
+  const attempt = session;
+  attempt.catch(() => {
+    if (session === attempt) session = open();
+  });
+  return attempt;
+}
+
+/** Requests run one at a time, so a reset cannot close the store under a request in flight. */
+let queue: Promise<unknown> = Promise.resolve();
+function serialise<T>(work: () => Promise<T>): Promise<T> {
+  const next = queue.then(work, work);
+  queue = next.catch(() => undefined);
+  return next;
+}
+
 async function respond(req: Request): Promise<Response> {
   if (req.kind === "reset") {
-    const s = await session;
-    s.store.close();
-    await s.wipe();
+    // If the store never opened there is nothing to close or wipe; the reset still starts it again.
+    const old = await current().catch(() => null);
+    old?.store.close();
+    await old?.wipe();
     session = open();
     const fresh = await session;
     return {
@@ -86,7 +107,7 @@ async function respond(req: Request): Promise<Response> {
       notice: "Started again with an empty store.",
     };
   }
-  const s = await session;
+  const s = await current();
   const res = await handle(s.core, s.storage, req);
   if (s.notice && res.ok) {
     const notice = s.notice;
@@ -98,7 +119,7 @@ async function respond(req: Request): Promise<Response> {
 
 scope.onmessage = (event) => {
   const { id, req } = event.data;
-  respond(req)
+  serialise(() => respond(req))
     .catch((err: unknown): Response => ({ ok: false, error: err instanceof Error ? err.message : String(err) }))
     .then((res) => scope.postMessage({ id, res }));
 };
