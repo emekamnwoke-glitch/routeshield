@@ -238,6 +238,13 @@ Milestones are published as Git tags, so the repository history reads as the arc
 | `v1.6.0` | ML prototype | ⬜ |
 | `v2.0.0` | **Reference implementation complete** | ⬜ |
 
+**On `main` since `v1.2.0`, not yet tagged:**
+
+- The Control Workspace is laid out as a dashboard ([CH-010](docs/01-stage-one-architecture/phase-h-change-management/change-log.md)).
+- Maker-checker on decisions: a controller proposes, a duty manager approves or denies with a reason, and only the administrator can read the audit trail ([CH-011](docs/01-stage-one-architecture/phase-h-change-management/change-log.md), under [ADR-0017](docs/05-architecture-decisions/adr-0017-banded-autonomy-with-prior-human-approval.md)).
+- A denied proposal declines its incident, and a fresh report can resubmit it ([CH-012](docs/01-stage-one-architecture/phase-h-change-management/change-log.md)).
+- The core worker handles one request at a time and retries a failed store open. The dev server can load SQLite WASM. Dependencies are kept clear of high-severity advisories.
+
 ## 16. Architecture decisions
 
 Significant decisions are recorded as ADRs in [`docs/05-architecture-decisions/`](docs/05-architecture-decisions/), each stating the problem, the options considered, the decision, the rationale, the consequences and the alternatives rejected.
@@ -256,7 +263,64 @@ Stated plainly, because a portfolio project that hides its limitations is not de
 
 ## 18. Future development
 
-Beyond `v2.0.0`: multimodal disruption response across rail and light rail, controller-in-the-loop learning from accept/reject decisions, formal accessibility weighting in the optimisation objective, and a hosted multi-user variant that exercises the concurrency the browser-only build cannot.
+Everything in this section is a **FUTURE CONSIDERATION** in the sense of [section 7](#7-the-fact--assumption-boundary). It is a plan, not a description of what the demonstrator does today.
+
+### 18.1 In progress: interface redesign
+
+The control workspace is being redesigned in Figma before it is built. The redesign follows Material Design 3 and adds a dedicated design language:
+
+- **Surfaces are opaque and tonal.** The review drawer, where a decision is made, always stays opaque.
+- **Translucent "glass" is used in three places only:** the map callout, the command palette and the selection bar.
+- **Motion has two speeds, 150 ms and 240 ms.** With reduced motion turned on, every transition becomes a cross-fade.
+- **Light and dark themes, and comfortable and compact density.**
+
+The design is reviewed against the same roles the demonstrator enforces: Controller, Duty manager and Administrator. The redesign covers:
+
+- **Role switcher.** Lets you change the simulated persona.
+- **Review flow.** Covers the proposal and the approve or deny decision with a reason.
+- **Report from the map.** Click a location to report an incident there.
+- **Reset in the role menu.** Restores the demonstrator, which is disposable under [ADR-0020](docs/05-architecture-decisions/adr-0020-demonstrator-store-is-disposable.md).
+- **Empty, loading and error states, and narrow screens.**
+
+It moves into the repository in small steps, each with its own pull request:
+
+| Step | Change | Status |
+|---|---|---|
+| 1 | Design tokens as CSS custom properties, exported from the Figma variables, with a contrast test | 🟡 [In review](https://github.com/emekamnwoke-glitch/routeshield/pull/11) |
+| 2 | ADR for the design language (opaque surfaces, where glass is allowed, motion) | ⬜ |
+| 3 | App shell: role switcher, role menu and reset | ⬜ |
+| 4 | Review flow: queue, review drawer, approve and deny | ⬜ |
+| 5 | Map: click-to-report and the glass callout | ⬜ |
+| 6 | Narrow screens, and empty, loading and error states | ⬜ |
+
+The redesign is intended to feed the `v1.5.0` Control dashboard milestone. These questions are still open:
+
+- the default theme
+- whether the map is the home screen
+- who approves when the duty manager is unavailable
+- which clock the audit trail displays
+- which roles may report an incident
+
+Live GPS and fleet telemetry are **deliberately out of scope** for the redesign. They would bring in real-time position data that the demonstrator's fictional environment does not model.
+
+### 18.2 Beyond `v2.0.0`
+
+The candidates after `v2.0.0` are:
+
+- multimodal disruption response across rail and light rail
+- controller-in-the-loop learning from accept and reject decisions
+- formal accessibility weighting in the optimisation objective
+- a hosted multi-user variant that exercises the concurrency the browser-only build cannot
+
+### 18.3 Possible version 3 (parked)
+
+One idea is recorded and not started: RouteShield as a side-by-side extension on SAP Business Technology Platform for freight and last-mile rerouting.
+
+- **What would carry over:** the same core, meaning the divert/rejoin routing and the Pareto ranking. The ranking would be re-weighted to freight concerns: delivery-window penalties, driver time and fuel.
+- **Where it would connect:** transport and last-mile planning systems.
+- **The interface:** a control-tower screen in the design language above.
+
+Picking it up would supersede [ADR-0008](docs/05-architecture-decisions/adr-0008-browser-hosted-static-demonstrator.md) (browser-only static site) and [ADR-0010](docs/05-architecture-decisions/adr-0010-sqlite-wasm-as-embedded-store.md) (SQLite in the browser). Every statement about an SAP interface would enter the [assumptions register](docs/02-stage-two-reference-implementation/assumptions.md) as an ASSUMPTION. The project has no affiliation with SAP.
 
 ---
 
