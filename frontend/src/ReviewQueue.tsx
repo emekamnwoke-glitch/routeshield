@@ -2,11 +2,16 @@ import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import type { ProposalStatus, ReviewOutcome } from "../../src/core/modules/ac-07-decision-manager/contract";
 import { ReviewDrawer } from "./review/ReviewDrawer";
+import { useMedia } from "./shell/useMedia";
 import type { QueueRow } from "./review/queue";
 import { FILTERS, FILTER_LABEL, STATUS_CHIP, countByStatus, moveSelection, routeCodes } from "./review/queue";
 
 type Props = {
-  rows: QueueRow[];
+  /** null while the workspace is still loading. */
+  rows: QueueRow[] | null;
+  /** The workspace could not be read: the table says so and offers Try again. */
+  failed: boolean;
+  onRetry: () => void;
   busy: boolean;
   onReview: (proposalId: string, outcome: ReviewOutcome, reason: string) => void;
 };
@@ -25,10 +30,13 @@ export function StatusChip({ status }: { status: ProposalStatus }) {
  * The duty manager's review queue: controllers' proposals, filtered by status. J and K (or the arrow keys) move
  * the selection; Enter or a click opens the review drawer, where the duty manager approves or denies.
  */
-export function ReviewQueue({ rows, busy, onReview }: Props) {
+export function ReviewQueue({ rows: loaded, failed, onRetry, busy, onReview }: Props) {
+  const rows = loaded ?? [];
+  const loading = loaded === null && !failed;
   const [filter, setFilter] = useState<ProposalStatus>("pending");
   const [selected, setSelected] = useState(0);
   const [openId, setOpenId] = useState<string | null>(null);
+  const modal = useMedia("(max-width: 1280px)");
   const rowRefs = useRef<(HTMLTableRowElement | null)[]>([]);
   const section = useRef<HTMLElement>(null);
 
@@ -103,7 +111,7 @@ export function ReviewQueue({ rows, busy, onReview }: Props) {
         ))}
       </div>
 
-      <table className="queue-table">
+      <table className="queue-table" aria-busy={loading}>
         <thead>
           <tr>
             <th scope="col">Status</th>
@@ -115,7 +123,26 @@ export function ReviewQueue({ rows, busy, onReview }: Props) {
           </tr>
         </thead>
         <tbody onKeyDown={onKey}>
-          {shown.length === 0 && (
+          {/* Table states: loading keeps the header with skeleton rows; error says nothing changed and offers Try again. */}
+          {loading &&
+            [0, 1, 2].map((i) => (
+              <tr key={i} className="skeleton" aria-hidden="true">
+                <td colSpan={4}>
+                  <span />
+                </td>
+              </tr>
+            ))}
+          {failed && loaded === null && (
+            <tr className="empty error">
+              <td colSpan={4}>
+                The queue could not be loaded. Nothing was changed.{" "}
+                <button type="button" className="text" onClick={onRetry} disabled={busy}>
+                  Try again
+                </button>
+              </td>
+            </tr>
+          )}
+          {loaded !== null && shown.length === 0 && (
             <tr className="empty">
               <td colSpan={4}>
                 {filter === "pending"
@@ -164,7 +191,10 @@ export function ReviewQueue({ rows, busy, onReview }: Props) {
       </table>
 
       {openRow?.kind === "open" && (
-        <ReviewDrawer row={openRow} busy={busy} onClose={closeDrawer} onReview={onReview} />
+        <>
+          {modal && <div className="scrim" aria-hidden="true" onClick={closeDrawer} />}
+          <ReviewDrawer row={openRow} busy={busy} modal={modal} onClose={closeDrawer} onReview={onReview} />
+        </>
       )}
     </section>
   );

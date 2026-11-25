@@ -9,6 +9,8 @@ import { queueRows } from "./review/queue";
 import { RouteStatusCard } from "./RouteStatusCard";
 import { RoleSwitcher } from "./shell/RoleSwitcher";
 import { roleName } from "./shell/roles";
+import type { Failure } from "./shell/failure";
+import { failureText } from "./shell/failure";
 import { routeStatuses } from "./routeStatus";
 import type { SiteNetwork } from "./map/network";
 import { loadNetwork } from "./map/network";
@@ -41,7 +43,7 @@ const client = new CoreClient();
 export function App() {
   const [network, setNetwork] = useState<SiteNetwork | null>(null);
   const [state, setState] = useState<WorkspaceState | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [failure, setFailure] = useState<Failure | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [persona, setPersona] = useState<PersonaId>("controller");
@@ -59,9 +61,10 @@ export function App() {
     if (res.ok) {
       setState(res.state);
       setNotice(res.notice ?? null);
-      setError(null);
+      // A network failure stands until the network loads; anything else is cleared by a request that works.
+      setFailure((f) => (f?.kind === "network" ? f : null));
     } else {
-      setError(res.error);
+      setFailure({ kind: cmd.kind === "state" ? "state" : "command", detail: res.error });
     }
     return res.ok;
   };
@@ -70,15 +73,20 @@ export function App() {
     if (await send({ kind: "report", incident: { ...pick, radiusM, description: description || "Incident" } })) setReporting(false);
   };
 
-  useEffect(() => {
+  const loadMap = () => {
+    setFailure((f) => (f?.kind === "network" ? null : f));
     loadNetwork()
       .then((n) => {
         setNetwork(n);
         const e2 = n.routes.findIndex((r) => r.code === "E2");
         setRoute(e2 >= 0 ? e2 : null);
       })
-      .catch((err: unknown) => setError(String(err)));
-  }, []); // load once
+      .catch((err: unknown) => setFailure({ kind: "network", detail: String(err) }));
+  };
+
+  const retry = () => (failure?.kind === "network" ? loadMap() : void send({ kind: "state" }));
+
+  useEffect(loadMap, []); // load once
 
   // Each persona sees its own view: the core returns the audit trail only to a persona that may read it.
   useEffect(() => {
@@ -163,6 +171,23 @@ export function App() {
           <a href={`${DOCS}/02-stage-two-reference-implementation/fact-vs-assumption-model.md`}>Why this matters ↗</a>
         </p>
 
+        {failure && (
+          <div className="alert" role="alert">
+            <span aria-hidden="true">!</span>
+            <p>
+              <b>{failureText(failure).title}</b> {failureText(failure).body}
+            </p>
+            {failureText(failure).retry && (
+              <button type="button" className="text" onClick={retry} disabled={busy}>
+                {failureText(failure).retry}
+              </button>
+            )}
+            <button type="button" className="icon-button" aria-label="Dismiss" onClick={() => setFailure(null)}>
+              ✕
+            </button>
+          </div>
+        )}
+
         <main>
           {/* The map stays in view while the menus on the right scroll. */}
           <section className="network" id="network" aria-label="Network map">
@@ -205,7 +230,18 @@ export function App() {
                 }}
               />
             ) : (
-              <p className="loading">{error ? "The network could not be loaded." : "Loading the Dublin network…"}</p>
+              <div className="loading" aria-busy={failure?.kind !== "network"}>
+                {failure?.kind === "network" ? (
+                  <>
+                    <p>{failureText(failure).title}</p>
+                    <button type="button" onClick={loadMap}>
+                      Try again
+                    </button>
+                  </>
+                ) : (
+                  <p>Loading the Dublin network…</p>
+                )}
+              </div>
             )}
             <p className="map-note">Click the map, or focus it and press Enter, to place a closure. It starts on O'Connell Street.</p>
             <div className="legend" aria-label="Map legend">
@@ -300,7 +336,7 @@ export function App() {
                 manager approves or denies it. They are not alternatives to each other: v1.3.0 ranks several options with
                 their costs.
               </p>
-              {persona === "duty-manager" && <ReviewQueue rows={queueRows(disruptions, state?.noticeboard ?? [])} busy={busy} onReview={(proposalId, outcome, reason) => send({ kind: "review", proposalId, outcome, reason })} />}
+              {persona === "duty-manager" && <ReviewQueue rows={state ? queueRows(disruptions, state.noticeboard) : null} failed={failure?.kind === "state"} onRetry={retry} busy={busy} onReview={(proposalId, outcome, reason) => send({ kind: "review", proposalId, outcome, reason })} />}
               {persona === "controller" && <Noticeboard items={state?.noticeboard ?? []} />}
               {disruptions.length ? (
                 <ul className="disruptions">
@@ -368,7 +404,7 @@ export function App() {
         )}
 
         <p className="status" role="status" aria-live="polite">
-          {error ? `Error: ${error}` : !state ? "Loading the road network and fleet…" : notice}
+          {!state && !failure ? "Loading the road network and fleet…" : notice}
         </p>
 
         <footer>
