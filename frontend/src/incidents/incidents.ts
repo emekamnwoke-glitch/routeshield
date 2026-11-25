@@ -39,5 +39,13 @@ export function countByStage(rows: DisruptionView[]): Record<IncidentStage, numb
   return out;
 }
 
+/** A row's name: the place the reporter gave, or the closure's coordinates when they gave none. */
+export const placeName = (d: DisruptionView): string =>
+  d.place ?? `${d.footprint.lat.toFixed(4)}, ${d.footprint.lon.toFixed(4)}`;
+
+/** A panel's title, as Figma frame D: "O'Connell St Upper, 150 m closure". */
+export const incidentTitle = (d: DisruptionView): string =>
+  d.place ? `${d.place}, ${d.footprint.radiusM} m closure` : `${d.footprint.radiusM} m closure`;
+
 /** "08:00" from an ISO time, in the scenario's own clock (UTC, as the core records it). */
 export const clock = (iso: string, seconds = false): string => iso.slice(11, seconds ? 19 : 16);

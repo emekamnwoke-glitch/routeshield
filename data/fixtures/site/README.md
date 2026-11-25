@@ -4,13 +4,13 @@ What the demonstrator site draws, cut down by `pipeline/site_bundle.py` from the
 
 | | |
 |---|---|
-| Contents | 11 routes, 948 stops, 33 patterns, and the 3,649 road edges those patterns run along |
-| Size | about 300 KB, 75 KB compressed |
+| Contents | 11 routes, 948 stops, 33 patterns, the 3,649 road edges those patterns run along, and the OSM names of those roads |
+| Size | about 320 KB, 80 KB compressed |
 | Format | `routeshield-site-network/1`; the checksums of its two sources are in `sources` |
 
 This is what the page draws. The full road graph (5.9 MB, 1.6 MB compressed) is loaded separately by the core worker, for impact assessment and detour search.
 
-Each edge is a flat `[lat, lon, lat, lon, …]` line at five decimal places, about 1 m. A pattern's `path` lists directed edges: `2 × i` runs edge `i` forwards, `2 × i + 1` backwards.
+Each edge is a flat `[lat, lon, lat, lon, …]` line at five decimal places, about 1 m. A pattern's `path` lists directed edges: `2 × i` runs edge `i` forwards, `2 × i + 1` backwards. `roads` lists the road names and `edge_roads[i]` is the index of edge `i`'s name, or −1 for an unnamed road; the site uses them to suggest where a reported closure is.
 
 ```bash
 python pipeline/site_bundle.py

@@ -17,6 +17,7 @@ import { SCREENS, SCREEN_META, homeScreen } from "./shell/screens";
 import { SiteNote } from "./shell/SiteNote";
 import type { SiteNetwork } from "./map/network";
 import { loadNetwork } from "./map/network";
+import { nearestRoad } from "./map/roads";
 import { CoreClient } from "./worker/client";
 import type { Request, WorkspaceState } from "./workspace/service";
 
@@ -44,8 +45,13 @@ export function App() {
   const [route, setRoute] = useState<number | null>(null);
   const [pick, setPick] = useState(DEFAULT_PICK);
   const [radiusM, setRadiusM] = useState(150);
-  const [description, setDescription] = useState("Road closed");
+  const [description, setDescription] = useState("");
   const [reporting, setReporting] = useState(false);
+
+  // Moving the closure suggests the place again, from the nearest named bus road.
+  useEffect(() => {
+    if (network) setDescription(nearestRoad(network, pick.lat, pick.lon) ?? "");
+  }, [network, pick]);
 
   const send = async (cmd: Command, as: PersonaId = persona): Promise<boolean> => {
     setBusy(true);
@@ -53,7 +59,8 @@ export function App() {
     setBusy(false);
     if (res.ok) {
       setState(res.state);
-      setNotice(res.notice ?? null);
+      // A plain refresh (a role switch) keeps the last command's message.
+      if (cmd.kind !== "state" || res.notice) setNotice(res.notice ?? null);
       // A network failure stands until the network loads; anything else is cleared by a request that works.
       setFailure((f) => (f?.kind === "network" ? f : null));
     } else {
@@ -70,7 +77,7 @@ export function App() {
   };
 
   const report = async () => {
-    if (await send({ kind: "report", incident: { ...pick, radiusM, description: description || "Incident" } })) {
+    if (await send({ kind: "report", incident: { ...pick, radiusM, description: description.trim() } })) {
       setReporting(false);
       setScreen("incidents"); // every role has the incident list: the new incident is there
     }
@@ -147,7 +154,19 @@ export function App() {
             );
           })}
         </nav>
-        <RoleSwitcher persona={persona} busy={busy} onSwitch={switchRole} onReset={() => void send({ kind: "reset" })} />
+        <RoleSwitcher
+          persona={persona}
+          busy={busy}
+          onSwitch={switchRole}
+          onReset={() => void send({ kind: "reset" })}
+          onScenario={() => {
+            // The scenario starts where frame D does: the controller's incident list.
+            setPersona("controller");
+            setScreen("incidents");
+            setReporting(false);
+            void send({ kind: "scenario" }, "controller");
+          }}
+        />
       </aside>
 
       <div className="workspace">

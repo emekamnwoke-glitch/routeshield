@@ -54,6 +54,8 @@ export type NoticeItem = { id: string; tone: ProposalStatus; text: string };
 
 export type DisruptionView = {
   id: string;
+  /** Where, in the reporter's words (the incident report's description); null when they gave none. */
+  place: string | null;
   status: string;
   footprint: Circle;
   createdAt: string;
@@ -97,7 +99,15 @@ export type Request = { persona: PersonaId } & (
   | { kind: "propose"; recommendationId: string; verdict: Verdict }
   | { kind: "review"; proposalId: string; outcome: ReviewOutcome; reason: string }
   | { kind: "reset" }
+  /** Start again with the incident the Figma frames show. The worker wipes the store, then reports it. */
+  | { kind: "scenario" }
 );
+
+/**
+ * The incident in Figma frames A, D and E: a 150 m closure on O'Connell Street. At this point the core finds what
+ * the frames show: 13 route patterns on E1, E2, F1 and F2, 848 trips a day, 59 vehicles approaching and 3 inside.
+ */
+export const FIGMA_INCIDENT: IncidentInput = { lat: 53.3498, lon: -6.26, radiusM: 150, description: "O'Connell St Upper" };
 
 export type Response = { ok: true; state: WorkspaceState; notice?: string } | { ok: false; error: string };
 
@@ -118,8 +128,8 @@ function proposalView(p: Proposal): ProposalView {
 }
 
 /** The controller's feedback line for a proposal: pending, approved, or denied with its reason. */
-function noticeFor(p: Proposal): NoticeItem {
-  const what = `${p.verdict === "approve" ? "approve all" : "reject"} for disruption ${p.disruptionId.slice(0, 12)}…`;
+function noticeFor(p: Proposal, place: string | null): NoticeItem {
+  const what = `${p.verdict === "approve" ? "approve all" : "reject"} for ${place ?? `disruption ${p.disruptionId.slice(0, 12)}…`}`;
   const reviewer = personaName(p.reviewedBy?.id ?? "");
   const text =
     p.status === "pending"
@@ -156,7 +166,11 @@ export function readState(core: Core, storage: Storage, persona: PersonaId): Pro
   return core.store.read(async (tx) => {
     const relations = new Map<string, VehicleRelation>();
     // A declined incident is closed: it leaves the map and the menus, but its proposal stays on the noticeboard.
-    const open = core.disruptions.list(tx).filter((d) => d.status !== "declined");
+    const all = core.disruptions.list(tx);
+    const placeOf = (incidentId: string) => core.sources.incident(tx, incidentId)?.description.trim() || null;
+    // Every disruption's place, declined ones included, for the noticeboard.
+    const places = new Map(all.map((d) => [d.id, placeOf(d.incidentId)]));
+    const open = all.filter((d) => d.status !== "declined");
     const disruptions = open.map((d): DisruptionView => {
       const rec = core.support.forDisruption(tx, d.id);
       const assessment = rec && core.impact.assessment(tx, rec.assessmentId);
@@ -171,6 +185,7 @@ export function readState(core: Core, storage: Storage, persona: PersonaId): Pro
 
       return {
         id: d.id,
+        place: places.get(d.id) ?? null,
         status: d.status,
         footprint: d.latest.footprint,
         createdAt: d.createdAt,
@@ -247,7 +262,7 @@ export function readState(core: Core, storage: Storage, persona: PersonaId): Pro
         lon: v.lon,
         relation: relations.get(v.vehicle) ?? null,
       })),
-      noticeboard: core.decisions.proposals(tx).reverse().slice(0, NOTICEBOARD_LENGTH).map(noticeFor),
+      noticeboard: core.decisions.proposals(tx).reverse().slice(0, NOTICEBOARD_LENGTH).map((p) => noticeFor(p, places.get(p.disruptionId) ?? null)),
       audit,
     };
   });
@@ -315,7 +330,8 @@ export async function handle(core: Core, storage: Storage, req: Request): Promis
         return { ok: true, state: await readState(core, storage, req.persona), notice };
       }
       case "reset":
-        return { ok: false, error: "reset is handled by the core worker" };
+      case "scenario":
+        return { ok: false, error: `${req.kind} is handled by the core worker` };
     }
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };

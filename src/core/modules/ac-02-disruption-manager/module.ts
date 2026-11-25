@@ -116,8 +116,8 @@ export class DisruptionManagerModule implements CoreModule, DisruptionManager {
   }
 
   list(tx: Tx): DisruptionSummary[] {
-    const rows = tx.all<VersionRow & { status: DisruptionStatus; disruption_created_at: string }>(
-      `select v.*, d.status, d.created_at as disruption_created_at
+    const rows = tx.all<VersionRow & { status: DisruptionStatus; disruption_created_at: string; incident_id: string }>(
+      `select v.*, d.status, d.created_at as disruption_created_at, d.incident_id
        from dm_disruption d
        join dm_disruption_version v on v.disruption_id = d.id
          and v.version = (select max(version) from dm_disruption_version where disruption_id = d.id)
@@ -125,7 +125,9 @@ export class DisruptionManagerModule implements CoreModule, DisruptionManager {
     );
     return rows.flatMap((r) => {
       const latest = this.toVersion(r);
-      return latest ? [{ id: r.disruption_id, status: r.status, createdAt: r.disruption_created_at, latest }] : [];
+      return latest
+        ? [{ id: r.disruption_id, incidentId: r.incident_id, status: r.status, createdAt: r.disruption_created_at, latest }]
+        : [];
     });
   }
 

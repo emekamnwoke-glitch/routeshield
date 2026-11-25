@@ -19,6 +19,8 @@ export type DisruptionStatus = "reported" | "confirmed" | "cleared" | "declined"
 
 export type DisruptionSummary = {
   id: string;
+  /** The AC-01 incident report the disruption came from: it says where, in the reporter's words. */
+  incidentId: string;
   status: DisruptionStatus;
   createdAt: string;
   latest: DisruptionVersion;

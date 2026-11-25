@@ -12,7 +12,7 @@ import { useListPanel } from "../shell/useListPanel";
 import type { DisruptionView, NoticeItem, VehicleView } from "../workspace/service";
 import { IncidentPanel } from "./IncidentPanel";
 import type { IncidentStage } from "./incidents";
-import { STAGES, STAGE_CHIP, STAGE_LABEL, clock, countByStage, incidentRows, stageOf } from "./incidents";
+import { STAGES, STAGE_CHIP, STAGE_LABEL, clock, countByStage, incidentRows, placeName, stageOf } from "./incidents";
 
 type Props = {
   persona: PersonaId;
@@ -184,9 +184,9 @@ export function IncidentsScreen(props: Props) {
                   <StageChip d={r} />
                 </td>
                 <td>
-                  <b>{r.footprint.radiusM} m closure</b>
+                  <b>{placeName(r)}</b>
                   <small>
-                    {r.footprint.lat.toFixed(4)}, {r.footprint.lon.toFixed(4)} · {clock(r.createdAt)}
+                    {r.footprint.radiusM} m · {clock(r.createdAt)}
                   </small>
                 </td>
                 <td>{routeCodes(r).join(" ") || "—"}</td>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { actionName, actorName, categoryOf, componentName, countByCategory, rowLabel, trailRows } from "../../frontend/src/audit/trail";
-import { clock, countByStage, incidentRows, stageOf } from "../../frontend/src/incidents/incidents";
+import { clock, countByStage, incidentRows, incidentTitle, placeName, stageOf } from "../../frontend/src/incidents/incidents";
 import { focusView, project, toScreen } from "../../frontend/src/map/projection";
 import { SCREENS, homeScreen } from "../../frontend/src/shell/screens";
 import type { DisruptionView, TrailEntry } from "../../frontend/src/workspace/service";
@@ -23,6 +23,7 @@ describe("screens per role (Figma frames A, D and E)", () => {
 function incident(id: string, over: Partial<DisruptionView> = {}): DisruptionView {
   return {
     id,
+    place: null,
     status: "assessed",
     footprint: { lat: 53.35, lon: -6.26, radiusM: 150 },
     createdAt: "2026-11-25T08:00:00.000Z",
@@ -52,6 +53,14 @@ describe("incident stages", () => {
   it("has nothing to decide when no route runs through the closure", () => {
     const empty = incident("a", { recommendation: { id: "r", band: "A0", confidence: "high", items: [] } });
     expect(stageOf(empty)).toBe("decided");
+  });
+
+  it("names an incident by the place reported, or by where it is when none was given", () => {
+    const named = incident("a", { place: "O'Connell St Upper" });
+    expect(placeName(named)).toBe("O'Connell St Upper");
+    expect(incidentTitle(named)).toBe("O'Connell St Upper, 150 m closure");
+    expect(placeName(incident("b"))).toBe("53.3500, -6.2600");
+    expect(incidentTitle(incident("b"))).toBe("150 m closure");
   });
 
   it("lists newest first and counts each stage for the filter chips", () => {
