@@ -4,6 +4,7 @@ import { DisruptionCard } from "./DisruptionCard";
 import { NetworkMap } from "./map/NetworkMap";
 import { Noticeboard } from "./Noticeboard";
 import { ReviewQueue } from "./ReviewQueue";
+import { queueRows } from "./review/queue";
 import { RouteStatusCard } from "./RouteStatusCard";
 import { RoleSwitcher } from "./shell/RoleSwitcher";
 import { roleName } from "./shell/roles";
@@ -303,7 +304,7 @@ export function App() {
                 manager approves or denies it. They are not alternatives to each other: v1.3.0 ranks several options with
                 their costs.
               </p>
-              {persona === "duty-manager" && <ReviewQueue items={pending} busy={busy} onReview={(proposalId, outcome, reason) => send({ kind: "review", proposalId, outcome, reason })} />}
+              {persona === "duty-manager" && <ReviewQueue rows={queueRows(disruptions, state?.noticeboard ?? [])} busy={busy} onReview={(proposalId, outcome, reason) => send({ kind: "review", proposalId, outcome, reason })} />}
               {persona === "controller" && <Noticeboard items={state?.noticeboard ?? []} />}
               {disruptions.length ? (
                 <ul className="disruptions">
