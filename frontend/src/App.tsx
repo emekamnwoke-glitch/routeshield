@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import type { PersonaId } from "../../src/core/modules/ac-14-access-control/contract";
-import { PERSONAS } from "../../src/core/modules/ac-14-access-control/contract";
 import { DisruptionCard } from "./DisruptionCard";
 import { NetworkMap } from "./map/NetworkMap";
 import { Noticeboard } from "./Noticeboard";
 import { ReviewQueue } from "./ReviewQueue";
 import { RouteStatusCard } from "./RouteStatusCard";
+import { RoleSwitcher } from "./shell/RoleSwitcher";
+import { roleName } from "./shell/roles";
 import { routeStatuses } from "./routeStatus";
 import type { SiteNetwork } from "./map/network";
 import { loadNetwork } from "./map/network";
@@ -17,28 +18,20 @@ const DOCS = `${REPO}/blob/main/docs`;
 const DEFAULT_PICK = { lat: 53.3498, lon: -6.2603 }; // O'Connell Street
 const RADII = [100, 150, 300, 500];
 
-/** A command is a request without the persona, which the page adds from the Acting as selector. */
+/** A command is a request without the persona, which the page adds from the role switcher. */
 type Command = Request extends infer R ? (R extends unknown ? Omit<R, "persona"> : never) : never;
 
-// Sidebar entries jump to sections of this one page; the audit entry appears only for the auditor persona.
+// Navigation rail: each entry jumps to a section of this one page. The audit entry appears only
+// for a persona the core returns the audit trail to (AC-14 read_audit).
 const NAV = [
-  { href: "#network", icon: "◉", label: "Network", audit: false },
-  { href: "#observe", icon: "＋", label: "Observe", audit: false },
-  { href: "#disruption", icon: "△", label: "Disruption", audit: false },
-  { href: "#routes", icon: "⌁", label: "Routes affected", audit: false },
-  { href: "#decision-support", icon: "◎", label: "Decision support", audit: false },
-  { href: "#audit", icon: "▤", label: "Audit trail", audit: true },
-  { href: `${DOCS}/02-stage-two-reference-implementation/solution-design/architecture-v1.2.0.md`, icon: "◇", label: "Architecture", audit: false },
-  { href: REPO, icon: "⌂", label: "Source", audit: false },
+  { href: "#network", icon: "◉", label: "Network", title: "Network map", audit: false },
+  { href: "#observe", icon: "＋", label: "Observe", title: "Report an incident", audit: false },
+  { href: "#disruption", icon: "△", label: "Disruption", title: "Disruption summary", audit: false },
+  { href: "#routes", icon: "⌁", label: "Routes", title: "Routes affected", audit: false },
+  { href: "#decision-support", icon: "◎", label: "Decisions", title: "Decision support", audit: false },
+  { href: "#audit", icon: "▤", label: "Audit", title: "Audit trail", audit: true },
 ];
-
-/** What each persona can do on this site. The core checks every action; this text only explains it. */
-const AUTHORITY: Record<PersonaId, string> = {
-  controller: "Can propose a decision. Cannot decide.",
-  "duty-manager": "Can approve or deny a controller's proposal.",
-  "contingency-approver": "No decision authority here.",
-  administrator: "Can read the audit trail. Cannot decide.",
-};
+const ARCHITECTURE = `${DOCS}/02-stage-two-reference-implementation/solution-design/architecture-v1.2.0.md`;
 
 // One core worker per page: it is the only writer of the store (ADR-0010), and
 // a second one would contend for the same OPFS file.
@@ -55,6 +48,7 @@ export function App() {
   const [pick, setPick] = useState(DEFAULT_PICK);
   const [radiusM, setRadiusM] = useState(150);
   const [description, setDescription] = useState("Road closed");
+  const [section, setSection] = useState("#network");
 
   const send = async (cmd: Command, as: PersonaId = persona) => {
     setBusy(true);
@@ -91,46 +85,50 @@ export function App() {
   const patterns = disruptions.reduce((n, d) => n + (d.impact?.patterns.length ?? 0), 0);
   const approaching = disruptions.reduce((n, d) => n + (d.impact?.vehicles.approaching ?? 0), 0);
   const inside = disruptions.reduce((n, d) => n + (d.impact?.vehicles.inside ?? 0), 0);
-  const personaName = PERSONAS.find((p) => p.id === persona)?.name ?? persona;
+  const personaName = roleName(persona);
   const nav = NAV.filter((n) => !n.audit || audit !== null);
 
   return (
     <div className="shell">
-      <aside className="sidebar">
-        <a className="brand" href={REPO}>
+      <aside className="rail" aria-label="Navigation">
+        <a className="brand" href={REPO} title="RouteShield on GitHub: emergency bus rerouting, reference implementation">
           <span aria-hidden="true">▣</span>
-          <b>
-            RouteShield
-            <small>Emergency bus rerouting · reference implementation</small>
-          </b>
+          <span className="visually-hidden">RouteShield source on GitHub</span>
         </a>
         <nav aria-label="Sections">
           {nav.map((n) => (
-            <a key={n.label} href={n.href} title={n.label}>
-              <span className="icon" aria-hidden="true">
+            <a
+              key={n.label}
+              href={n.href}
+              title={n.title}
+              aria-current={section === n.href ? "location" : undefined}
+              onClick={() => setSection(n.href)}
+            >
+              <span className="indicator" aria-hidden="true">
                 {n.icon}
+                {n.href === "#decision-support" && (awaiting > 0 || pending.length > 0) && <i>{pending.length || awaiting}</i>}
               </span>
               <span className="label">{n.label}</span>
               {n.href === "#decision-support" && (awaiting > 0 || pending.length > 0) && (
-                <i>
-                  {pending.length || awaiting}
-                  <span className="visually-hidden">
-                    {pending.length ? " awaiting review" : " awaiting a decision"}
-                  </span>
-                </i>
+                <span className="visually-hidden">
+                  {pending.length ? ` awaiting review` : ` awaiting a decision`}
+                </span>
               )}
             </a>
           ))}
         </nav>
-        <p className="city">
-          DUBLIN<small>synthetic demonstrator</small>
-        </p>
+        <RoleSwitcher
+          persona={persona}
+          busy={busy}
+          onSwitch={setPersona}
+          onReset={() => void send({ kind: "reset" })}
+        />
       </aside>
 
       <div className="workspace">
         <header>
           <div>
-            <p>ROUTESHIELD · v1.2.0</p>
+            <p>ROUTESHIELD · v1.2.0 · DUBLIN, SYNTHETIC</p>
             <h1>Control Workspace</h1>
             <small>Observe → Assess → Recommend → Authorise → Execute → Audit</small>
           </div>
@@ -147,22 +145,6 @@ export function App() {
             <b>Mon 08:00</b>
             <em>TIMETABLE</em>
           </div>
-          <label className="persona">
-            <span aria-hidden="true">●</span>
-            <span className="who">
-              <small>Acting as</small>
-              <select value={persona} onChange={(e) => setPersona(e.target.value as PersonaId)}>
-                {PERSONAS.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-              <small title="Persona switcher: nobody is signed in or authenticated (ADR-0012)">
-                {AUTHORITY[persona]} · not signed in
-              </small>
-            </span>
-          </label>
         </header>
 
         <p className="banner" role="note">
@@ -384,7 +366,7 @@ export function App() {
               <p key={a}>{a}</p>
             ))}
             <p>
-              <a href={REPO}>Architecture and source on GitHub</a> · Independent portfolio project, not affiliated with
+              <a href={ARCHITECTURE}>Architecture</a> · <a href={REPO}>Source on GitHub</a> · Independent portfolio project, not affiliated with
               Dublin Bus or the National Transport Authority.
             </p>
           </div>
@@ -394,9 +376,6 @@ export function App() {
                 ? "Stored in this browser (OPFS). It survives a reload."
                 : "Stored in memory: this browser refused OPFS, so a reload starts again."}
             </small>
-            <button type="button" disabled={busy} onClick={() => send({ kind: "reset" })}>
-              Start again
-            </button>
           </div>
         </footer>
       </div>
