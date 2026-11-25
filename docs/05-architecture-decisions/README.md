@@ -30,6 +30,7 @@ Template: [`adr-template.md`](adr-template.md).
 | [ADR-0018](adr-0018-network-as-shared-read-only-reference-model.md) | Hold the published network as a shared, read-only in-memory model | Accepted — retrospective | H | 2026-09-19 |
 | [ADR-0019](adr-0019-assess-and-respond-per-pattern-in-v1-2.md) | Assess and respond per route pattern in v1.2.0; decide per-trip in v1.3.0 | Accepted — interim, retrospective | H | 2026-09-19 |
 | [ADR-0020](adr-0020-demonstrator-store-is-disposable.md) | Treat the demonstrator's store as disposable | Accepted — retrospective | H | 2026-09-19 |
+| [ADR-0021](adr-0021-design-language-opaque-decision-surfaces.md) | Adopt a token-based design language with opaque decision surfaces | Accepted — tokens retrospective | H | 2026-11-25 |
 
 ## Planned
 
