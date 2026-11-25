@@ -1,0 +1,240 @@
+/*
+ * RouteShield design tokens. Source of truth: the Figma design file
+ * (https://www.figma.com/design/Be8nKkNQ4YqCsWTklyCu3m), variable collections
+ * "RouteShield theme" (Light, Dark) and "RouteShield density" (Comfortable, Compact),
+ * exported on 2026-11-25. Names match the variables' web code syntax in Dev Mode.
+ *
+ * Do not edit values by hand: change the Figma variable, re-export, and keep
+ * tests/frontend/tokens.test.ts (contrast) passing.
+ *
+ * Theme: light by default; dark follows prefers-color-scheme unless the page sets
+ * data-theme="light" or data-theme="dark" on <html>. Density: comfortable by
+ * default; data-density="compact" on <html> switches.
+ */
+
+:root {
+  --rs-color-primary: #006c4c;
+  --rs-color-on-primary: #ffffff;
+  --rs-color-primary-container: #7ef9c7;
+  --rs-color-on-primary-container: #012115;
+  --rs-color-secondary: #456556;
+  --rs-color-on-secondary: #ffffff;
+  --rs-color-secondary-container: #c6ebd9;
+  --rs-color-on-secondary-container: #012115;
+  --rs-color-tertiary: #855301;
+  --rs-color-on-tertiary: #ffffff;
+  --rs-color-tertiary-container: #ffddb9;
+  --rs-color-on-tertiary-container: #281900;
+  --rs-color-error: #b6241d;
+  --rs-color-on-error: #ffffff;
+  --rs-color-error-container: #fedbd3;
+  --rs-color-on-error-container: #380c00;
+  --rs-color-surface: #f2fbf7;
+  --rs-color-surface-dim: #d3dcd8;
+  --rs-color-surface-bright: #f2fbf7;
+  --rs-color-surface-container-lowest: #ffffff;
+  --rs-color-surface-container-low: #edf6f1;
+  --rs-color-surface-container: #e7f0eb;
+  --rs-color-surface-container-high: #e1eae6;
+  --rs-color-surface-container-highest: #dbe5e0;
+  --rs-color-on-surface: #161d1a;
+  --rs-color-surface-variant: #d4e7de;
+  --rs-color-on-surface-variant: #3b4a43;
+  --rs-color-outline: #6a7b73;
+  --rs-color-outline-variant: #b9cbc2;
+  --rs-color-inverse-surface: #2b322f;
+  --rs-color-inverse-on-surface: #eaf3ee;
+  --rs-color-inverse-primary: #60dcac;
+  --rs-color-scrim: #000000;
+  --rs-color-shadow: #000000;
+  --rs-color-surface-tint: #006c4c;
+  --rs-surface-glass-selection-fill: #e1eae6c7;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --rs-color-primary: #60dcac;
+    --rs-color-on-primary: #003826;
+    --rs-color-primary-container: #005139;
+    --rs-color-on-primary-container: #7ef9c7;
+    --rs-color-secondary: #aacfbd;
+    --rs-color-on-secondary: #173629;
+    --rs-color-secondary-container: #2d4d3f;
+    --rs-color-on-secondary-container: #c6ebd9;
+    --rs-color-tertiary: #ffb961;
+    --rs-color-on-tertiary: #462b01;
+    --rs-color-tertiary-container: #653e00;
+    --rs-color-on-tertiary-container: #ffddb9;
+    --rs-color-error: #ffb4a5;
+    --rs-color-on-error: #690000;
+    --rs-color-error-container: #93010b;
+    --rs-color-on-error-container: #fedbd3;
+    --rs-color-surface: #0d1511;
+    --rs-color-surface-dim: #0d1511;
+    --rs-color-surface-bright: #343b37;
+    --rs-color-surface-container-lowest: #06100c;
+    --rs-color-surface-container-low: #161d1a;
+    --rs-color-surface-container: #1a211e;
+    --rs-color-surface-container-high: #252b28;
+    --rs-color-surface-container-highest: #2f3633;
+    --rs-color-on-surface: #dbe5e0;
+    --rs-color-surface-variant: #3b4a43;
+    --rs-color-on-surface-variant: #b9cbc2;
+    --rs-color-outline: #84958c;
+    --rs-color-outline-variant: #3b4a43;
+    --rs-color-inverse-surface: #dbe5e0;
+    --rs-color-inverse-on-surface: #2b322f;
+    --rs-color-inverse-primary: #006c4c;
+    --rs-color-scrim: #000000;
+    --rs-color-shadow: #000000;
+    --rs-color-surface-tint: #60dcac;
+    --rs-surface-glass-selection-fill: #1a211ec7;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --rs-color-primary: #60dcac;
+  --rs-color-on-primary: #003826;
+  --rs-color-primary-container: #005139;
+  --rs-color-on-primary-container: #7ef9c7;
+  --rs-color-secondary: #aacfbd;
+  --rs-color-on-secondary: #173629;
+  --rs-color-secondary-container: #2d4d3f;
+  --rs-color-on-secondary-container: #c6ebd9;
+  --rs-color-tertiary: #ffb961;
+  --rs-color-on-tertiary: #462b01;
+  --rs-color-tertiary-container: #653e00;
+  --rs-color-on-tertiary-container: #ffddb9;
+  --rs-color-error: #ffb4a5;
+  --rs-color-on-error: #690000;
+  --rs-color-error-container: #93010b;
+  --rs-color-on-error-container: #fedbd3;
+  --rs-color-surface: #0d1511;
+  --rs-color-surface-dim: #0d1511;
+  --rs-color-surface-bright: #343b37;
+  --rs-color-surface-container-lowest: #06100c;
+  --rs-color-surface-container-low: #161d1a;
+  --rs-color-surface-container: #1a211e;
+  --rs-color-surface-container-high: #252b28;
+  --rs-color-surface-container-highest: #2f3633;
+  --rs-color-on-surface: #dbe5e0;
+  --rs-color-surface-variant: #3b4a43;
+  --rs-color-on-surface-variant: #b9cbc2;
+  --rs-color-outline: #84958c;
+  --rs-color-outline-variant: #3b4a43;
+  --rs-color-inverse-surface: #dbe5e0;
+  --rs-color-inverse-on-surface: #2b322f;
+  --rs-color-inverse-primary: #006c4c;
+  --rs-color-scrim: #000000;
+  --rs-color-shadow: #000000;
+  --rs-color-surface-tint: #60dcac;
+  --rs-surface-glass-selection-fill: #1a211ec7;
+  color-scheme: dark;
+}
+
+/* Semantic aliases: use these in components, not the raw roles above. */
+:root {
+  --rs-surface-tonal-base: var(--rs-color-surface);
+  --rs-surface-tonal-container-lowest: var(--rs-color-surface-container-lowest);
+  --rs-surface-tonal-container-low: var(--rs-color-surface-container-low);
+  --rs-surface-tonal-container: var(--rs-color-surface-container);
+  --rs-surface-tonal-container-high: var(--rs-color-surface-container-high);
+  --rs-surface-tonal-container-highest: var(--rs-color-surface-container-highest);
+  --rs-border-hairline: var(--rs-color-outline-variant);
+  --rs-status-attention-container: var(--rs-color-tertiary-container);
+  --rs-status-attention-on-container: var(--rs-color-on-tertiary-container);
+  --rs-status-in-effect-container: var(--rs-color-primary-container);
+  --rs-status-in-effect-on-container: var(--rs-color-on-primary-container);
+  --rs-status-closed-container: var(--rs-color-surface-container-highest);
+  --rs-status-closed-on-container: var(--rs-color-on-surface-variant);
+  --rs-status-danger-container: var(--rs-color-error-container);
+  --rs-status-danger-on-container: var(--rs-color-on-error-container);
+  --rs-status-neutral-container: var(--rs-color-surface-container-lowest);
+  --rs-status-neutral-on-container: var(--rs-color-on-surface-variant);
+  --rs-surface-glass-fallback: var(--rs-color-surface-container-high);
+
+  /* Density (comfortable) */
+  --rs-space-0-5: 2px;
+  --rs-space-1: 4px;
+  --rs-space-2: 8px;
+  --rs-space-3: 12px;
+  --rs-space-4: 16px;
+  --rs-space-6: 24px;
+  --rs-inset-cell-x: 12px;
+  --rs-inset-cell-y: 10px;
+  --rs-inset-panel: 24px;
+  --rs-inset-chip-x: 8px;
+  --rs-inset-chip-y: 3px;
+  --rs-size-row: 32px;
+  --rs-size-row-2line: 44px;
+  --rs-size-table-header: 32px;
+  --rs-size-drawer-review: 820px;
+  --rs-size-drawer-detail: 480px;
+  --rs-radius-sm: 8px;
+  --rs-radius-md: 12px;
+  --rs-radius-lg: 16px;
+  --rs-radius-full: 999px;
+
+  /* Glass: only the map callout, the command palette and the selection bar. */
+  --rs-effect-glass-blur: 24px;
+  --rs-effect-glass-shadow: 0 8px 24px rgb(0 0 0 / 16%);
+  --rs-stroke-glass-specular-rim: linear-gradient(to bottom, rgb(255 255 255 / 20%), rgb(255 255 255 / 4%));
+
+  /* Motion */
+  --rs-motion-short: 150ms;
+  --rs-motion-medium: 240ms;
+  --rs-easing-emphasized: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Type scale (Inter). Use with font: var(--rs-type-x); letter-spacing: var(--rs-tracking-x); */
+  --rs-type-display-expressive: 500 36px/44px Inter, system-ui, sans-serif;
+  --rs-tracking-display-expressive: 0px;
+  --rs-type-headline-small: 400 24px/32px Inter, system-ui, sans-serif;
+  --rs-tracking-headline-small: 0px;
+  --rs-type-title-large: 400 22px/28px Inter, system-ui, sans-serif;
+  --rs-tracking-title-large: 0px;
+  --rs-type-title-medium: 500 16px/24px Inter, system-ui, sans-serif;
+  --rs-tracking-title-medium: 0.15px;
+  --rs-type-body-large: 400 16px/24px Inter, system-ui, sans-serif;
+  --rs-tracking-body-large: 0.5px;
+  --rs-type-body-medium: 400 14px/20px Inter, system-ui, sans-serif;
+  --rs-tracking-body-medium: 0.25px;
+  --rs-type-body-medium-emphasized: 500 14px/20px Inter, system-ui, sans-serif;
+  --rs-tracking-body-medium-emphasized: 0.25px;
+  --rs-type-body-small: 400 12px/16px Inter, system-ui, sans-serif;
+  --rs-tracking-body-small: 0.4px;
+  --rs-type-body-small-emphasized: 500 12px/16px Inter, system-ui, sans-serif;
+  --rs-tracking-body-small-emphasized: 0.4px;
+  --rs-type-label-large: 500 14px/20px Inter, system-ui, sans-serif;
+  --rs-tracking-label-large: 0.1px;
+  --rs-type-label-medium: 500 12px/16px Inter, system-ui, sans-serif;
+  --rs-tracking-label-medium: 0.5px;
+  --rs-font-numeric: tabular-nums;
+}
+
+:root[data-density="compact"] {
+  --rs-space-1: 2px;
+  --rs-space-2: 6px;
+  --rs-space-3: 8px;
+  --rs-space-4: 12px;
+  --rs-space-6: 16px;
+  --rs-inset-cell-x: 8px;
+  --rs-inset-cell-y: 6px;
+  --rs-inset-panel: 16px;
+  --rs-inset-chip-x: 6px;
+  --rs-inset-chip-y: 2px;
+  --rs-size-row: 28px;
+  --rs-size-row-2line: 36px;
+  --rs-size-table-header: 28px;
+  --rs-radius-sm: 6px;
+  --rs-radius-md: 8px;
+  --rs-radius-lg: 12px;
+}
+
+/* Reduced motion: every transition becomes a 150 ms cross-fade (components swap slides for fades). */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --rs-motion-medium: 150ms;
+  }
+}
