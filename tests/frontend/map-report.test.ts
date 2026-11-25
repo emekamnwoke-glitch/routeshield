@@ -44,8 +44,8 @@ describe("ADR-0021 glass rule", () => {
     expect(users.filter((u) => !ALLOWED.has(u))).toEqual([]);
   });
 
-  it("keeps the review drawer and the report sheet opaque", () => {
-    for (const f of ["review/ReviewDrawer.tsx", "map/ReportSheet.tsx"]) {
+  it("keeps the decision panels and the report sheet opaque", () => {
+    for (const f of ["review/ReviewDrawer.tsx", "incidents/IncidentPanel.tsx", "audit/AuditScreen.tsx", "map/ReportSheet.tsx"]) {
       expect(readFileSync(join(root, f), "utf8")).not.toMatch(/className=["{`][^"]*\bglass\b/);
     }
   });

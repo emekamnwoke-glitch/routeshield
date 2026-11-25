@@ -292,11 +292,11 @@ It moves into the repository in small steps, each with its own pull request:
 | 4 | Review flow: queue, review drawer, approve and deny | 🟢 |
 | 5 | Map: click-to-report and the glass callout | 🟢 |
 | 6 | Narrow screens, and empty, loading and error states | 🟢 |
+| 7 | Layout: one screen per role, as in Figma frames A, D and E (Incidents, Review queue, Audit trail), plus the shared map | 🟢 |
 
 The redesign is intended to feed the `v1.5.0` Control dashboard milestone. These questions are still open:
 
 - the default theme
-- whether the map is the home screen
 - who approves when the duty manager is unavailable
 - which clock the audit trail displays
 - which roles may report an incident

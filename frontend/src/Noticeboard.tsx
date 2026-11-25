@@ -6,14 +6,21 @@ const LABEL: Record<NoticeItem["tone"], string> = {
   denied: "Denied",
 };
 
-/** The controller's dashboard: the outcome of each proposal, including a denial and its reason. */
-export function Noticeboard({ items }: { items: NoticeItem[] }) {
+type Props = {
+  items: NoticeItem[];
+  /** When the list is cut short: opens the full list on the Proposals screen. */
+  more?: (() => void) | undefined;
+};
+
+/** The controller's noticeboard: the outcome of each proposal, including a denial and its reason. */
+export function Noticeboard({ items, more }: Props) {
   return (
-    <section className="noticeboard" aria-label="Noticeboard">
-      <p>NOTICEBOARD</p>
-      <h3>Your proposals</h3>
+    <section className="noticeboard" aria-labelledby="noticeboard-title">
+      <h2 id="noticeboard-title">My proposals</h2>
       {items.length === 0 ? (
-        <p className="hint">Nothing yet. Propose a decision on a suggested bypass to see its outcome here.</p>
+        <p className="hint">
+          Nothing yet. Each proposal you make appears here with the duty manager's decision and, for a denial, the reason.
+        </p>
       ) : (
         <ol>
           {items.map((n) => (
@@ -22,6 +29,11 @@ export function Noticeboard({ items }: { items: NoticeItem[] }) {
             </li>
           ))}
         </ol>
+      )}
+      {more && (
+        <button type="button" className="text" onClick={more}>
+          All proposals
+        </button>
       )}
     </section>
   );
