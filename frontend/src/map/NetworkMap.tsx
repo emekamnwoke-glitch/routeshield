@@ -5,6 +5,7 @@ import type { SiteNetwork } from "./network";
 import type { View } from "./projection";
 import { placeCallout } from "./callout";
 import { fit, focusView, project, toScreen, toWorld, unproject, zoomAt } from "./projection";
+import { useMedia } from "../shell/useMedia";
 
 type Props = {
   network: SiteNetwork;
@@ -20,6 +21,8 @@ type Props = {
   picking?: { radiusM: number } | null;
   /** Zoom to this closure, close enough to read the streets around it (the incident screens' map). */
   focus?: Circle | null;
+  /** Route patterns a closure cuts (indexes into network.patterns), drawn as routes (Figma frames A and D). */
+  cut?: number[];
   onPick: (lat: number, lon: number) => void;
 };
 
@@ -56,8 +59,11 @@ function colours(el: HTMLElement): Colours {
 /** Pixels the pointer may move and still count as a click, not a drag. */
 const CLICK_SLOP = 4;
 
-export function NetworkMap({ network, route, footprints, blocked, detours, vehicles, pick, picking = null, focus = null, onPick }: Props) {
+export function NetworkMap({ network, route, footprints, blocked, detours, vehicles, pick, picking = null, focus = null, cut = [], onPick }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  // The colours come from CSS: a change of light or dark theme redraws the map in the new ones.
+  const dark = useMedia("(prefers-color-scheme: dark)");
+  const cutKey = cut.join(",");
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [view, setView] = useState<View | null>(null);
   const drag = useRef<{ x: number; y: number; moved: boolean; view: View } | null>(null);
@@ -78,9 +84,11 @@ export function NetworkMap({ network, route, footprints, blocked, detours, vehic
   );
 
   const routeEdges = useMemo(() => {
-    if (route === null) return new Set<number>();
-    return new Set(network.patterns.filter((p) => p.route === route).flatMap((p) => p.path.map((de) => de >> 1)));
-  }, [network, route]);
+    const cutSet = new Set(cut);
+    return new Set(
+      network.patterns.filter((p, i) => p.route === route || cutSet.has(i)).flatMap((p) => p.path.map((de) => de >> 1)),
+    );
+  }, [network, route, cutKey]);
 
   const routeStops = useMemo(() => {
     if (route === null) return [];
@@ -146,7 +154,7 @@ export function NetworkMap({ network, route, footprints, blocked, detours, vehic
     };
 
     stroke(lines.keys(), c.road, 1);
-    stroke(routeEdges, c.route, 3);
+    stroke(routeEdges, c.route, focus ? 4 : 3);
 
     ctx.fillStyle = c.stop;
     for (const s of routeStops) {
@@ -160,13 +168,19 @@ export function NetworkMap({ network, route, footprints, blocked, detours, vehic
       const [sx, sy] = toScreen(view, width, height, ...project(f.lat, f.lon));
       ctx.beginPath();
       ctx.arc(sx, sy, Math.max(4, f.radiusM * view.scale), 0, Math.PI * 2);
-      ctx.fillStyle = c.footprint;
-      ctx.globalAlpha = 0.3;
-      ctx.fill();
-      ctx.globalAlpha = 1;
+      if (focus) {
+        // Zoomed to an incident (Figma frames A and D): the closure is a dashed ring, so the streets show through.
+        ctx.setLineDash([5, 4]);
+      } else {
+        ctx.fillStyle = c.footprint;
+        ctx.globalAlpha = 0.3;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
       ctx.strokeStyle = c.footprint;
       ctx.lineWidth = 2;
       ctx.stroke();
+      ctx.setLineDash([]);
     }
 
     const polyline = (lines: LatLon[][], colour: string, lineWidth: number, dash: number[] = []) => {
@@ -190,8 +204,18 @@ export function NetworkMap({ network, route, footprints, blocked, detours, vehic
     for (const v of vehicles) {
       const [sx, sy] = toScreen(view, width, height, ...project(v.lat, v.lon));
       const affected = v.relation === "approaching" || v.relation === "inside";
-      ctx.fillStyle = v.relation === "inside" ? c.footprint : v.relation === "approaching" ? c.approaching : c.vehicle;
       ctx.beginPath();
+      if (focus && affected) {
+        // Zoomed to an incident: a bus heading for the closure is a triangle in the bypass's tone (Figma frame D).
+        ctx.fillStyle = v.relation === "inside" ? c.footprint : c.detour;
+        ctx.moveTo(sx, sy - 5);
+        ctx.lineTo(sx + 5, sy + 4);
+        ctx.lineTo(sx - 5, sy + 4);
+        ctx.closePath();
+        ctx.fill();
+        continue;
+      }
+      ctx.fillStyle = v.relation === "inside" ? c.footprint : v.relation === "approaching" ? c.approaching : c.vehicle;
       ctx.arc(sx, sy, affected ? 4.5 : 3, 0, Math.PI * 2);
       ctx.fill();
       if (affected) {
@@ -228,7 +252,7 @@ export function NetworkMap({ network, route, footprints, blocked, detours, vehic
       ctx.lineTo(sx, sy + 8);
       ctx.stroke();
     }
-  }, [view, size, lines, routeEdges, routeStops, footprints, blocked, detours, vehicles, pick, picking]);
+  }, [view, size, lines, routeEdges, routeStops, footprints, blocked, detours, vehicles, pick, picking, focus, dark]);
 
   // Wheel zoom needs a non-passive listener: React's is passive, so the page would scroll too.
   useEffect(() => {

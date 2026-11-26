@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import type { PersonaId } from "../../../src/core/modules/ac-14-access-control/contract";
+import { Icon } from "./Icon";
 import { AUTHORITY, ROLE_ORDER, moveFocus, roleName } from "./roles";
 
 type Props = {
@@ -8,7 +9,22 @@ type Props = {
   busy: boolean;
   onSwitch: (persona: PersonaId) => void;
   onReset: () => void;
+  /** Start again with the incident the Figma frames show. */
+  onScenario: () => void;
 };
+
+const CONFIRM = {
+  reset: {
+    title: "Start again?",
+    body: "This deletes every incident, proposal, decision and audit event stored in this browser. The Dublin network data is not affected.",
+    action: "Start again",
+  },
+  scenario: {
+    title: "Load the Figma scenario?",
+    body: "This deletes everything stored in this browser, then reports the incident the Figma frames show: a 150 m closure on O'Connell St Upper. The Dublin network data is not affected.",
+    action: "Load scenario",
+  },
+} as const;
 
 /**
  * The persona being simulated, at the foot of the navigation rail. It opens the role menu:
@@ -17,8 +33,9 @@ type Props = {
  *
  * The menu is opaque: it is not one of the three glass surfaces in ADR-0021.
  */
-export function RoleSwitcher({ persona, busy, onSwitch, onReset }: Props) {
+export function RoleSwitcher({ persona, busy, onSwitch, onReset, onScenario }: Props) {
   const [open, setOpen] = useState(false);
+  const [asking, setAsking] = useState<keyof typeof CONFIRM>("reset");
   const trigger = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
@@ -72,8 +89,9 @@ export function RoleSwitcher({ persona, busy, onSwitch, onReset }: Props) {
     if (id !== persona) onSwitch(id);
   };
 
-  const askReset = () => {
+  const ask = (what: keyof typeof CONFIRM) => {
     close(false);
+    setAsking(what);
     dialog.current?.showModal();
   };
 
@@ -97,7 +115,10 @@ export function RoleSwitcher({ persona, busy, onSwitch, onReset }: Props) {
         }}
       >
         <span className="avatar" aria-hidden="true">
-          ◉<span className="caret">▾</span>
+          <Icon name="person" />
+          <span className="caret">
+            <Icon name="caret" size={18} />
+          </span>
         </span>
         <span className="role-name">{roleName(persona)}</span>
         <span className="simulated">Simulated</span>
@@ -128,7 +149,14 @@ export function RoleSwitcher({ persona, busy, onSwitch, onReset }: Props) {
               </span>
             </button>
           ))}
-          <button type="button" role="menuitem" tabIndex={-1} className="role-item reset" disabled={busy} onClick={askReset}>
+          <button type="button" role="menuitem" tabIndex={-1} className="role-item reset" disabled={busy} onClick={() => ask("scenario")}>
+            <span className="check" aria-hidden="true" />
+            <span>
+              <b>Load the Figma scenario</b>
+              <small>Starts again with the incident the design shows. Asks first.</small>
+            </span>
+          </button>
+          <button type="button" role="menuitem" tabIndex={-1} className="role-item reset" disabled={busy} onClick={() => ask("reset")}>
             <span className="check" aria-hidden="true" />
             <span>
               <b>Start again (reset demo)</b>
@@ -147,11 +175,8 @@ export function RoleSwitcher({ persona, busy, onSwitch, onReset }: Props) {
         onClose={() => trigger.current?.focus()}
       >
         <form method="dialog">
-          <h2 id="reset-title">Start again?</h2>
-          <p id="reset-body">
-            This deletes every incident, proposal, decision and audit event stored in this browser. The Dublin network
-            data is not affected.
-          </p>
+          <h2 id="reset-title">{CONFIRM[asking].title}</h2>
+          <p id="reset-body">{CONFIRM[asking].body}</p>
           <div className="confirm-actions">
             <button type="submit" value="cancel" className="text" autoFocus>
               Cancel
@@ -160,11 +185,9 @@ export function RoleSwitcher({ persona, busy, onSwitch, onReset }: Props) {
               type="submit"
               value="reset"
               className="text danger"
-              onClick={() => {
-                onReset();
-              }}
+              onClick={() => (asking === "scenario" ? onScenario() : onReset())}
             >
-              Start again
+              {CONFIRM[asking].action}
             </button>
           </div>
         </form>

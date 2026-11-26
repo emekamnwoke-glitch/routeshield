@@ -9,7 +9,7 @@ import { FILTERS, FILTER_LABEL, STATUS_CHIP, countByStatus, routeCodes } from ".
 import { EmptyPanel } from "./shell/EmptyPanel";
 import { ScreenHead } from "./shell/ScreenHead";
 import { useListPanel } from "./shell/useListPanel";
-import { clock } from "./incidents/incidents";
+import { placeName } from "./incidents/incidents";
 import type { DisruptionView, VehicleView } from "./workspace/service";
 
 type Props = {
@@ -55,6 +55,7 @@ export function ReviewQueue({ rows: loaded, failed, onRetry, busy, onReview, net
   return (
     <div className="screen">
       <section ref={ui.list} className="screen-main" aria-label="Review queue">
+        <div className="screen-fill">
         <ScreenHead title="Review queue" />
 
         <div className="filters-row">
@@ -130,10 +131,8 @@ export function ReviewQueue({ rows: loaded, failed, onRetry, busy, onReview, net
                 {r.kind === "open" ? (
                   <>
                     <td>
-                      <b>{r.d.footprint.radiusM} m closure</b>
-                      <small>
-                        {clock(r.d.createdAt)} · by Controller
-                      </small>
+                      <b>{placeName(r.d)}</b>
+                      <small>{r.d.footprint.radiusM} m · by Controller</small>
                     </td>
                     <td>{routeCodes(r.d).join(" ") || "—"}</td>
                     <td className="num">{r.d.impact?.patterns.length ?? "—"}</td>
@@ -155,6 +154,7 @@ export function ReviewQueue({ rows: loaded, failed, onRetry, busy, onReview, net
           vehicles={vehicles}
           onPick={onPick}
         />
+        </div>
         {note}
       </section>
 

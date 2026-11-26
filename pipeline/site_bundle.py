@@ -46,6 +46,14 @@ def build(network: JsonDict, graph: JsonDict, network_sha: str, graph_sha: str) 
     stop_ids = sorted({s for p in network["patterns"] for s in p["stops"]})
     stop_remap = {s: i for i, s in enumerate(stop_ids)}
     lines = [line(edge) for edge in used]
+
+    # The OSM name of the road each edge belongs to, so the site can suggest where a closure is.
+    def road(edge: int) -> str:
+        tags = graph["tag_sets"][graph["ways"]["tags"][e["way"][edge]]]
+        return str(tags.get("name") or tags.get("ref") or "")
+
+    names = sorted({road(edge) for edge in used} - {""})
+    name_index = {n: i for i, n in enumerate(names)}
     lats = [v for ln in lines for v in ln[0::2]]
     lons = [v for ln in lines for v in ln[1::2]]
 
@@ -56,6 +64,9 @@ def build(network: JsonDict, graph: JsonDict, network_sha: str, graph_sha: str) 
         "bounds": [min(lats), min(lons), max(lats), max(lons)],
         # Each edge is a flat [lat, lon, lat, lon, ...] line from its u end to its v end.
         "edges": lines,
+        # Road names, and for each edge the index of its name (-1 for an unnamed road).
+        "roads": names,
+        "edge_roads": [name_index.get(road(edge), -1) for edge in used],
         "routes": [{"code": r["public_code"], "name": r["name"]} for r in network["routes"]],
         "stops": [
             {

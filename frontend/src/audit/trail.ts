@@ -1,4 +1,7 @@
-import type { TrailEntry } from "../workspace/service";
+import type { Json } from "../../../src/core/kernel/primitives";
+import { incidentTitle } from "../incidents/incidents";
+import { listJoin, routeCodes } from "../review/queue";
+import type { DisruptionView, TrailEntry } from "../workspace/service";
 
 /** The audit trail's filters (Figma frame E). Every event type the core records falls in exactly one. */
 export type TrailCategory = "assessment" | "decisions" | "service" | "authority";
@@ -73,23 +76,113 @@ const PERSONA: Record<string, string> = {
 /** A person by role; a component acting on its own, or no actor, is "System". */
 export const actorName = (actor: string | null): string => (actor === null || COMPONENT[actor] ? "System" : (PERSONA[actor] ?? actor));
 
-/** One row of the trail: a run of the same event from the same component and actor collapses into one row. */
-export type TrailRow = { first: number; last: number; type: string; component: string; actor: string | null; at: string; count: number; seqs: number[] };
+/**
+ * One row of the trail: a run of the same event from the same component and actor collapses into one row
+ * ("Authority granted (5)", one for each role). The row keeps the newest event's id, subject and payload.
+ */
+export type TrailRow = {
+  first: number;
+  last: number;
+  type: string;
+  component: string;
+  actor: string | null;
+  at: string;
+  count: number;
+  seqs: number[];
+  eventId: string;
+  subject: string;
+  payload: Json;
+};
 
 /** Rows newest first, as the trail arrives; a run of 13 notices becomes "27–39 · Passenger notice issued (13)". */
 export function trailRows(trail: TrailEntry[]): TrailRow[] {
   const rows: TrailRow[] = [];
   for (const e of trail) {
     const prev = rows.at(-1);
-    if (prev && prev.type === e.type && prev.component === e.component && prev.actor === e.actor && prev.first === e.seq + 1) {
+    if (
+      prev &&
+      prev.type === e.type &&
+      prev.component === e.component &&
+      prev.actor === e.actor &&
+      prev.first === e.seq + 1
+    ) {
       prev.first = e.seq;
       prev.count += 1;
       prev.seqs.push(e.seq);
     } else {
-      rows.push({ first: e.seq, last: e.seq, type: e.type, component: e.component, actor: e.actor, at: e.at, count: 1, seqs: [e.seq] });
+      rows.push({
+        first: e.seq,
+        last: e.seq,
+        type: e.type,
+        component: e.component,
+        actor: e.actor,
+        at: e.at,
+        count: 1,
+        seqs: [e.seq],
+        eventId: e.id,
+        subject: e.subject,
+        payload: e.payload,
+      });
     }
   }
   return rows;
+}
+
+const field = (payload: Json, key: string): Json | undefined =>
+  payload !== null && typeof payload === "object" && !Array.isArray(payload) ? payload[key] : undefined;
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+/** What the event panel shows for a row (Figma frame E). */
+export type EventDetail = {
+  /** "Decision made: approve". */
+  title: string;
+  facts: [string, string][];
+  /** The other events about the same incident in the same phase, oldest first. */
+  related: TrailRow[];
+  /** The disruption the event is about, when it is still listed: "Open incident" opens it. */
+  incidentId: string | null;
+};
+
+/**
+ * An event in plain words: the incident it is about, the verdict, the bypasses and the reason recorded,
+ * all read from what the ledger holds. An event with none of these (authority, assessment) lists its
+ * action, component and actor instead.
+ */
+export function eventDetail(row: TrailRow, rows: TrailRow[], disruptions: DisruptionView[]): EventDetail {
+  const d = disruptions.find((x) => x.id === row.subject) ?? null;
+  const verdict = field(row.payload, "verdict");
+  const items = field(row.payload, "items");
+  const reason = field(row.payload, "reason");
+  const facts: [string, string][] = [];
+  if (d) facts.push(["Incident", incidentTitle(d)]);
+  if (typeof verdict === "string") facts.push(["Verdict", verdict.charAt(0).toUpperCase() + verdict.slice(1)]);
+  if (Array.isArray(items)) {
+    const routes = d ? routeCodes(d) : [];
+    facts.push(["Bypasses", `${plural(items.length, "route pattern")}${routes.length ? ` on ${listJoin(routes)}` : ""}`]);
+  }
+  if (typeof reason === "string" && reason) {
+    // A decision made on review records "approved proposal prp_…": name the proposal's own event instead.
+    const proposalId = /^approved proposal (\S+)$/.exec(reason)?.[1];
+    const proposed = proposalId
+      ? rows.find((r) => r.type === "proposal.submitted" && field(r.payload, "proposalId") === proposalId)
+      : undefined;
+    facts.push([
+      "Reason recorded",
+      proposed ? `Approved the ${actorName(proposed.actor).toLowerCase()}'s proposal (event #${proposed.first})` : reason,
+    ]);
+  }
+  if (facts.length <= (d ? 1 : 0)) {
+    facts.push(["Action", actionName(row.type)], ["Component", componentName(row.component)], ["Actor", actorName(row.actor)]);
+  }
+  const phase = (r: TrailRow) => (categoryOf(r.type) === "assessment" ? "assessment" : "after");
+  const related = rows.filter((r) => r !== row && r.subject === row.subject && phase(r) === phase(row)).reverse();
+  return {
+    title: `${actionName(row.type)}${row.type === "decision.made" && typeof verdict === "string" ? `: ${verdict}` : ""}`,
+    facts,
+    related,
+    incidentId: d?.id ?? null,
+  };
 }
 
 export const rowLabel = (r: TrailRow): string => (r.count > 1 ? `${r.first}–${r.last}` : String(r.first));

@@ -1,4 +1,5 @@
 import type { PersonaId } from "../../../src/core/modules/ac-14-access-control/contract";
+import type { IconName } from "./icons";
 
 /** The screens of the site. Each role lands on its own work (Figma frames A, D and E) and shares the map. */
 export type Screen = "incidents" | "proposals" | "review" | "audit" | "map";
@@ -11,12 +12,12 @@ export const SCREENS: Record<PersonaId, readonly Screen[]> = {
   "contingency-approver": ["incidents", "map"],
 };
 
-export const SCREEN_META: Record<Screen, { label: string; icon: string; title: string }> = {
-  incidents: { label: "Incidents", icon: "!", title: "Incidents" },
-  proposals: { label: "Proposals", icon: "▤", title: "My proposals" },
-  review: { label: "Review", icon: "▥", title: "Review queue" },
-  audit: { label: "Audit", icon: "▥", title: "Audit trail" },
-  map: { label: "Map", icon: "⌖", title: "Network map" },
+export const SCREEN_META: Record<Screen, { label: string; icon: IconName; title: string }> = {
+  incidents: { label: "Incidents", icon: "incidents", title: "Incidents" },
+  proposals: { label: "Proposals", icon: "inbox", title: "My proposals" },
+  review: { label: "Review", icon: "inbox", title: "Review queue" },
+  audit: { label: "Audit", icon: "inbox", title: "Audit trail" },
+  map: { label: "Map", icon: "map", title: "Network map" },
 };
 
 /** Where a role lands: switching role always opens the new role's home screen. */

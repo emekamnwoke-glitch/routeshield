@@ -17,6 +17,7 @@ function disruption(id: string, status: "pending" | "approved" | "denied" | null
   const patterns = [pattern("E1", 0), pattern("E2", 1), pattern("E1", 2)];
   return {
     id,
+    place: null,
     status: "assessed",
     footprint: { lat: 53.35, lon: -6.26, radiusM: 150 },
     createdAt: "2026-11-25T08:00:00Z",

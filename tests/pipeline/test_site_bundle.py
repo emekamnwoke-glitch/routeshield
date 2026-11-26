@@ -31,6 +31,13 @@ def test_bundle_keeps_every_pattern_and_only_the_roads_they_use() -> None:
         assert [de & 1 for de in sp["path"]] == [de & 1 for de in np_["path"]]
 
 
+def test_bundle_names_each_road_from_osm() -> None:
+    site = json.loads(COMMITTED.read_bytes())
+    assert len(site["edge_roads"]) == len(site["edges"])
+    assert all(-1 <= i < len(site["roads"]) for i in site["edge_roads"])
+    assert "O'Connell Street Upper" in site["roads"]
+
+
 def test_bundle_carries_both_attributions() -> None:
     site = json.loads(COMMITTED.read_bytes())
     assert any("National Transport Authority" in a for a in site["attribution"])

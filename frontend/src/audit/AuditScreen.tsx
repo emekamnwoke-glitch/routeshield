@@ -5,27 +5,51 @@ import { trapIndex } from "../shell/failure";
 import { EmptyPanel } from "../shell/EmptyPanel";
 import { ScreenHead } from "../shell/ScreenHead";
 import { useListPanel } from "../shell/useListPanel";
-import type { AuditView } from "../workspace/service";
+import type { AuditView, DisruptionView } from "../workspace/service";
 import type { TrailCategory, TrailRow } from "./trail";
-import { CATEGORIES, CATEGORY_LABEL, actionName, actorName, categoryOf, componentName, countByCategory, rowLabel, trailRows } from "./trail";
+import { CATEGORIES, CATEGORY_LABEL, actionName, actorName, categoryOf, componentName, countByCategory, eventDetail, rowLabel, trailRows } from "./trail";
 
 type Props = {
   /** null while the workspace is still loading. */
   audit: AuditView | null;
+  /** The incidents an event can name and open. */
+  disruptions: DisruptionView[];
   failed: boolean;
   busy: boolean;
   onRetry: () => void;
+  onOpenIncident: (disruptionId: string) => void;
   /** The fiction notice at the foot of the list. */
   note?: ReactNode;
 };
 
 type Row = TrailRow & { id: string };
 
-function EventPanel({ row, rows, chainOk, modal, takeFocus, onClose }: { row: Row; rows: Row[]; chainOk: boolean; modal: boolean; takeFocus: boolean; onClose: () => void }) {
+type PanelProps = {
+  row: Row;
+  /** Every row of the trail, not only the filtered ones: related events may be in another category. */
+  rows: Row[];
+  disruptions: DisruptionView[];
+  chainOk: boolean;
+  modal: boolean;
+  takeFocus: boolean;
+  onClose: () => void;
+  onOpenIncident: (disruptionId: string) => void;
+};
+
+function EventPanel({ row, rows, disruptions, chainOk, modal, takeFocus, onClose, onOpenIncident }: PanelProps) {
   const panel = useRef<HTMLElement>(null);
-  const index = rows.findIndex((r) => r.id === row.id);
-  const nearby = [rows[index + 1], rows[index - 1]].filter((r): r is Row => r !== undefined);
+  const detail = eventDetail(row, rows, disruptions);
   const grouped = row.count > 1;
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => setCopied(false), [row.id]);
+
+  const copy = () => {
+    void navigator.clipboard?.writeText(row.eventId).then(
+      () => setCopied(true),
+      () => setCopied(false),
+    );
+  };
 
   useEffect(() => {
     if (takeFocus) panel.current?.focus();
@@ -65,7 +89,7 @@ function EventPanel({ row, rows, chainOk, modal, takeFocus, onClose }: { row: Ro
             {grouped ? `EVENTS #${rowLabel(row)}` : `EVENT #${row.first}`} · {row.type}
           </p>
           <h2 id="event-title">
-            {actionName(row.type)}
+            {detail.title}
             {grouped ? ` (${row.count})` : ""}
           </h2>
           <small>
@@ -78,22 +102,12 @@ function EventPanel({ row, rows, chainOk, modal, takeFocus, onClose }: { row: Ro
       </header>
       <div className="drawer-body">
         <dl className="event-facts">
-          <div>
-            <dt>Action</dt>
-            <dd>{actionName(row.type)}</dd>
-          </div>
-          <div>
-            <dt>Category</dt>
-            <dd>{CATEGORY_LABEL[categoryOf(row.type)]}</dd>
-          </div>
-          <div>
-            <dt>Component</dt>
-            <dd>{componentName(row.component)}</dd>
-          </div>
-          <div>
-            <dt>Actor</dt>
-            <dd>{actorName(row.actor)}</dd>
-          </div>
+          {detail.facts.map(([term, value]) => (
+            <div key={term}>
+              <dt>{term}</dt>
+              <dd>{value}</dd>
+            </div>
+          ))}
           {grouped && (
             <div>
               <dt>Events</dt>
@@ -109,14 +123,15 @@ function EventPanel({ row, rows, chainOk, modal, takeFocus, onClose }: { row: Ro
             </dd>
           </div>
         </dl>
-        {nearby.length > 0 && (
+        {detail.related.length > 0 && (
           <>
-            <h3 className="related-title">Events either side</h3>
+            <h3 className="related-title">Related events</h3>
             <ul className="related">
-              {nearby.map((r) => (
-                <li key={r.id}>
+              {detail.related.map((r) => (
+                <li key={r.last}>
                   #{rowLabel(r)} · {actionName(r.type)}
-                  {r.count > 1 ? ` (${r.count})` : ""} · {actorName(r.actor)}
+                  {r.count > 1 ? ` (${r.count})` : ""}
+                  {actorName(r.actor) === "System" ? "" : ` · ${actorName(r.actor)}`}
                 </li>
               ))}
             </ul>
@@ -125,13 +140,24 @@ function EventPanel({ row, rows, chainOk, modal, takeFocus, onClose }: { row: Ro
       </div>
       <footer className="drawer-actions">
         <p>Read-only. The administrator reads the trail and cannot decide.</p>
+        <button type="button" className="tonal" onClick={copy}>
+          {copied ? "Copied" : "Copy event ID"}
+        </button>
+        {detail.incidentId && (
+          <button type="button" className="primary" onClick={() => detail.incidentId && onOpenIncident(detail.incidentId)}>
+            Open incident
+          </button>
+        )}
+        <span className="visually-hidden" role="status">
+          {copied ? `Event ID ${row.eventId} copied` : ""}
+        </span>
       </footer>
     </aside>
   );
 }
 
 /** The administrator's home (Figma frame E): the hash-chained audit trail, newest first, with each event's detail. */
-export function AuditScreen({ audit, failed, busy, onRetry, note }: Props) {
+export function AuditScreen({ audit, disruptions, failed, busy, onRetry, onOpenIncident, note }: Props) {
   const all: Row[] = trailRows(audit?.trail ?? []).map((r) => ({ ...r, id: String(r.last) }));
   const [filter, setFilter] = useState<TrailCategory | "all">("all");
   const counts = countByCategory(all);
@@ -145,7 +171,7 @@ export function AuditScreen({ audit, failed, busy, onRetry, note }: Props) {
         <ScreenHead title="Audit trail">
           {audit && (
             <div className="chain">
-              <span className={`chip ${audit.chain.ok ? "tone-in-effect" : "tone-danger"}`}>
+              <span className={`chip ${audit.chain.ok ? "outlined" : "tone-danger"}`}>
                 <span aria-hidden="true">{audit.chain.ok ? "✓" : "!"}</span>
                 {audit.chain.ok ? "Chain verified" : "Chain broken"}
               </span>
@@ -238,7 +264,16 @@ export function AuditScreen({ audit, failed, busy, onRetry, note }: Props) {
       {ui.panelRow ? (
         <>
           {ui.modal && <div className="scrim" aria-hidden="true" onClick={ui.close} />}
-          <EventPanel row={ui.panelRow} rows={shown} chainOk={audit?.chain.ok ?? false} modal={ui.modal} takeFocus={ui.takeFocus} onClose={ui.close} />
+          <EventPanel
+            row={ui.panelRow}
+            rows={all}
+            disruptions={disruptions}
+            chainOk={audit?.chain.ok ?? false}
+            modal={ui.modal}
+            takeFocus={ui.takeFocus}
+            onClose={ui.close}
+            onOpenIncident={onOpenIncident}
+          />
         </>
       ) : (
         !ui.modal && <EmptyPanel>Select an event to see its detail.</EmptyPanel>

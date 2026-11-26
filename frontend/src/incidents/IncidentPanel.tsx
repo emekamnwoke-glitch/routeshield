@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { routeCodes } from "../review/queue";
 import { trapIndex } from "../shell/failure";
 import type { DisruptionView } from "../workspace/service";
+import { bypassName, incidentTitle } from "./incidents";
 
 type Props = {
   d: DisruptionView;
@@ -77,7 +78,7 @@ export function IncidentPanel({ d, eyebrow, subtitle, ask, modal, takeFocus, onC
       <header className="drawer-head">
         <div>
           <p>{eyebrow}</p>
-          <h2 id="drawer-title">{d.footprint.radiusM} m closure</h2>
+          <h2 id="drawer-title">{incidentTitle(d)}</h2>
           <small>{subtitle}</small>
         </div>
         <button type="button" className="icon-button" aria-label="Close" onClick={onClose}>
@@ -155,7 +156,7 @@ export function IncidentPanel({ d, eyebrow, subtitle, ask, modal, takeFocus, onC
                           <td className="num">{p.inside}</td>
                           <td>
                             {item?.kind === "reroute"
-                              ? `${item.divertStop ?? "?"} → ${item.rejoinStop ?? "?"}`
+                              ? bypassName(item.divertStop ?? "?", item.rejoinStop ?? "?")
                               : item?.kind === "contingency"
                                 ? "Pre-approved contingency"
                                 : "Hold until reopened"}

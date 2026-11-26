@@ -6,6 +6,9 @@ export type SiteNetwork = {
   attribution: string[];
   bounds: [number, number, number, number];
   edges: number[][];
+  /** OSM road names, and for each edge the index of its name (-1 for an unnamed road). */
+  roads: string[];
+  edge_roads: number[];
   routes: { code: string; name: string }[];
   stops: { code: string; name: string; location: [number, number] }[];
   patterns: {

@@ -16,6 +16,7 @@ const pattern = (routeCode: string) => ({
 function disruption(cut: string[], states: { routeCode: string; state: string }[] = []): DisruptionView {
   return {
     id: "d",
+    place: null,
     status: "reported",
     footprint: { lat: 0, lon: 0, radiusM: 1 },
     createdAt: "",

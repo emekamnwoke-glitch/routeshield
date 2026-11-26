@@ -10,10 +10,15 @@ import { useMedia } from "./useMedia";
  * move it, Enter moves focus into the panel, and Esc or ✕ closes it until the next selection.
  * At 1280 px and below the panel is a modal sheet that opens only on Enter or a click.
  */
-export function useListPanel<T extends { id: string }>(shown: T[], canOpen: (row: T) => boolean = () => true) {
+export function useListPanel<T extends { id: string }>(
+  shown: T[],
+  canOpen: (row: T) => boolean = () => true,
+  /** A row to start on, opened (another screen's "Open incident"). */
+  initialId: string | null = null,
+) {
   const modal = useMedia("(max-width: 1280px)");
-  const [selected, setSelected] = useState(0);
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [selected, setSelected] = useState(() => Math.max(0, shown.findIndex((r) => r.id === initialId)));
+  const [openId, setOpenId] = useState<string | null>(initialId);
   const [closed, setClosed] = useState(false);
   const [takeFocus, setTakeFocus] = useState(false);
   const rowRefs = useRef<(HTMLTableRowElement | null)[]>([]);

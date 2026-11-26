@@ -16,7 +16,7 @@ import { Network } from "../../../src/core/kernel/network";
 import { SchemaMismatch } from "../../../src/core/kernel/schema";
 import type { FleetScene } from "../../../src/core/modules/ac-01-source-gateway/contract";
 import type { Request, Response, Storage } from "../workspace/service";
-import { handle, readState } from "../workspace/service";
+import { FIGMA_INCIDENT, handle, readState } from "../workspace/service";
 
 type Session = { core: Core; store: SqliteStore; storage: Storage; wipe: () => Promise<void>; notice?: string };
 
@@ -94,13 +94,22 @@ function serialise<T>(work: () => Promise<T>): Promise<T> {
 }
 
 async function respond(req: Request): Promise<Response> {
-  if (req.kind === "reset") {
+  if (req.kind === "reset" || req.kind === "scenario") {
     // If the store never opened there is nothing to close or wipe; the reset still starts it again.
     const old = await current().catch(() => null);
     old?.store.close();
     await old?.wipe();
     session = open();
     const fresh = await session;
+    if (req.kind === "scenario") {
+      const res = await handle(fresh.core, fresh.storage, { persona: "controller", kind: "report", incident: FIGMA_INCIDENT });
+      if (!res.ok) return res;
+      return {
+        ok: true,
+        state: await readState(fresh.core, fresh.storage, req.persona),
+        notice: "Loaded the incident in the Figma frames. Propose as the controller, then review as the duty manager.",
+      };
+    }
     return {
       ok: true,
       state: await readState(fresh.core, fresh.storage, req.persona),

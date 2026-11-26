@@ -151,6 +151,21 @@ h2 {
   gap: var(--rs-space-4);
 }
 
+/* As the Figma frames: the + sits 44 px down and the screens 44 px below it; without +, the screens start lower. */
+@media (min-width: 821px) and (min-height: 700px) {
+  .rail {
+    padding-top: 44px;
+  }
+
+  .rail > nav {
+    margin-top: 28px;
+  }
+
+  .rail.no-fab > nav {
+    margin-top: 160px;
+  }
+}
+
 nav {
   display: grid;
   gap: var(--rs-space-3);
@@ -233,21 +248,25 @@ nav i {
   background: var(--rs-color-surface-container-highest);
 }
 
+/* As the Figma frames: an account icon in a 40 px circle, the menu caret beside it. */
 .role-trigger .avatar {
+  position: relative;
   display: grid;
   place-items: center;
-  grid-template-columns: auto auto;
-  gap: 2px;
   width: 40px;
-  height: 32px;
+  height: 40px;
+  margin-bottom: var(--rs-space-1);
   border-radius: var(--rs-radius-full);
   background: var(--chrome-active);
   color: var(--chrome-active-text);
-  font-size: 15px;
 }
 
 .role-trigger .caret {
-  font-size: 9px;
+  position: absolute;
+  left: calc(100% + 1px);
+  top: 11px;
+  display: grid;
+  color: var(--chrome-text);
 }
 
 .role-trigger .role-name {
@@ -513,18 +532,44 @@ button.text.danger {
   border-radius: var(--rs-radius-md);
 }
 
+/*
+ * An incident list and its map fill the first screenful (Figma frames A and D): the map runs to the foot of
+ * the window, and the fiction notice follows below it, a scroll away.
+ */
+.screen-fill {
+  flex: 0 0 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--rs-space-4);
+  min-height: 0;
+}
+
 /* The map under an incident list: zoomed to the selected closure. */
 .mini-map {
+  position: relative;
   flex: 1 0 280px;
   display: flex;
   flex-direction: column;
-  gap: var(--rs-space-1);
   min-height: 280px;
 }
 
 .mini-map .map {
+  position: relative;
   flex: 1;
   min-height: 0;
+}
+
+/* The sources' credit sits on the map, as a map's does. */
+.mini-map .attribution {
+  position: absolute;
+  left: 0;
+  right: 56px; /* clear of the zoom buttons */
+  bottom: 0;
+  padding: 2px var(--rs-space-2);
+  border-radius: 0 var(--rs-radius-sm) 0 var(--rs-radius-md);
+  background: color-mix(in srgb, var(--map-bg) 80%, transparent);
+  font-size: 10px;
+  pointer-events: none;
 }
 
 .mini-map .map-canvas {
@@ -1167,6 +1212,17 @@ button.pill-button {
 .chip.tone-closed {
   background: var(--rs-status-closed-container);
   color: var(--rs-status-closed-on-container);
+}
+
+/* A plain fact rather than a status, as "Chain verified" in Figma frame E. */
+.chip.outlined {
+  border: 1px solid var(--rs-color-outline);
+  color: var(--text);
+}
+
+nav .indicator .icon,
+.fab .icon {
+  display: block;
 }
 
 /* Review drawer: an opaque side sheet (ADR-0021), never glass. */

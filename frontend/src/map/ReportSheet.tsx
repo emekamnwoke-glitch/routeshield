@@ -65,9 +65,18 @@ export function ReportSheet({ pick, radiusM, description, busy, disabled, onRadi
           </select>
         </label>
         <label className="field">
-          <span>Description</span>
-          <input value={description} onChange={(e) => onDescription(e.target.value)} maxLength={120} />
+          <span>Place</span>
+          <input
+            value={description}
+            onChange={(e) => onDescription(e.target.value)}
+            maxLength={120}
+            placeholder="Street or landmark"
+            aria-describedby="place-hint"
+          />
         </label>
+        <p id="place-hint" className="hint">
+          Suggested from the nearest bus road (OpenStreetMap). Every screen names the incident by this.
+        </p>
       </div>
       <div className="sheet-actions">
         <button type="button" className="text" onClick={onCancel}>
