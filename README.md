@@ -104,6 +104,8 @@ These are **fictional**. They are documented in [`fictional-operating-model.md`]
 
 The implementation as built is described in the **[reference implementation architecture at v1.2.0](docs/02-stage-two-reference-implementation/solution-design/architecture-v1.2.0.md)**, the second architecture beside Stage One's target. It lists every place the build departs from the target, with its class and record.
 
+Since `v1.2.0`, the Control Workspace has been redesigned in Figma and rebuilt to the design's clickable prototype. The changes are listed in the [roadmap](#15-roadmap) and described in [section 18.1](#181-interface-redesign).
+
 ## 7. The fact / assumption boundary
 
 Every load-bearing statement in Stage Two carries one of four classifications:
@@ -177,7 +179,23 @@ npm ci
 npm run dev
 ```
 
-Then open <http://localhost:5173/routeshield/>. Also in the repository:
+Then open <http://localhost:5173/routeshield/>.
+
+### A walk through the demonstrator
+
+The site follows the redesign's Round 3 prototype. One pass through it covers every role:
+
+1. **Report, as the Controller.** Press **+** or click the map. The closure starts on O'Connell Street: a 150 m radius on O'Connell St Upper. Press **Report incident**.
+2. **Read the assessment.** The panel shows what the closure cuts: 13 route patterns on E1, E2, F1 and F2, 848 trips a day, and 59 buses approaching. It also lists a suggested bypass for each pattern.
+3. **Propose.** Press **Propose: approve all**, then **Continue as duty manager** in the message at the foot of the list.
+4. **Decide, as the Duty manager.** Approve the 13 changes, or deny them with a reason. Then press **See the controller's view** to see the outcome: the routes diverted, or the reason under *My proposals*.
+5. **Audit, as the Administrator.** Choose Administrator in the role menu, at the foot of the rail. The audit trail lists every event, hash-chained, with each decision's incident, verdict and reason.
+
+To start over, choose **Start again (reset demo)** in the role menu. Everything is stored in your browser (OPFS), so a reload keeps your incidents.
+
+### The rest of the repository
+
+These run locally too:
 
 - **The core** (TypeScript, Node 24+): every component running over SQLite WASM, exercised end to end by the tests.
 - **The data pipeline** (Python 3.11+): the network fixtures under `data/fixtures/`.
@@ -213,7 +231,7 @@ routeshield/
 ├── tests/                                   Test suites
 ├── tools/                                   Governance tooling (traceability, boundaries, links)
 ├── data/                                    Synthetic datasets & fixtures
-├── infrastructure/                          Local containerised environment
+├── infrastructure/                          Placeholders for a containerised environment (not built yet)
 └── .github/                                 Workflows, templates
 ```
 
@@ -244,6 +262,8 @@ Milestones are published as Git tags, so the repository history reads as the arc
 - Maker-checker on decisions: a controller proposes, a duty manager approves or denies with a reason, and only the administrator can read the audit trail ([CH-011](docs/01-stage-one-architecture/phase-h-change-management/change-log.md), under [ADR-0017](docs/05-architecture-decisions/adr-0017-banded-autonomy-with-prior-human-approval.md)).
 - A denied proposal declines its incident, and a fresh report can resubmit it ([CH-012](docs/01-stage-one-architecture/phase-h-change-management/change-log.md)).
 - The core worker handles one request at a time and retries a failed store open. The dev server can load SQLite WASM. Dependencies are kept clear of high-severity advisories.
+- A design language: every visual value comes from `--rs-*` tokens exported from Figma, decision surfaces stay opaque, and contrast is enforced by test ([CH-013](docs/01-stage-one-architecture/phase-h-change-management/change-log.md), [ADR-0021](docs/05-architecture-decisions/adr-0021-design-language-opaque-decision-surfaces.md)).
+- The Control Workspace has been redesigned and rebuilt to the Round 3 prototype in Figma ([CH-014 to CH-019](docs/01-stage-one-architecture/phase-h-change-management/change-log.md)). Each role has its own screen: the controller's Incidents, the duty manager's Review queue and the administrator's Audit trail. Incidents are reported on the Incidents screen and named by the street they are on, from OpenStreetMap road names. A message at the foot of the list hands the story from one role to the next. A denied proposal stays in the review queue, and its reason reaches the controller.
 
 ## 16. Architecture decisions
 
@@ -265,16 +285,16 @@ Stated plainly, because a portfolio project that hides its limitations is not de
 
 Everything in this section is a **FUTURE CONSIDERATION** in the sense of [section 7](#7-the-fact--assumption-boundary). It is a plan, not a description of what the demonstrator does today.
 
-### 18.1 In progress: interface redesign
+### 18.1 Interface redesign
 
-The control workspace is being redesigned in Figma before it is built. The redesign follows Material Design 3 and adds a dedicated design language:
+The control workspace was redesigned in Figma, then built from the design. The redesign is now on `main` and deployed. It follows Material Design 3 and adds a dedicated design language:
 
 - **Surfaces are opaque and tonal.** The review drawer, where a decision is made, always stays opaque.
 - **Translucent "glass" is used in three places only:** the map callout, the command palette and the selection bar.
 - **Motion has two speeds, 150 ms and 240 ms.** With reduced motion turned on, every transition becomes a cross-fade.
 - **Light and dark themes, and comfortable and compact density.**
 
-The design is reviewed against the same roles the demonstrator enforces: Controller, Duty manager and Administrator. The redesign covers:
+The design was reviewed against the same roles the demonstrator enforces: Controller, Duty manager and Administrator. The redesign covers:
 
 - **Role switcher.** Lets you change the simulated persona.
 - **Review flow.** Covers the proposal and the approve or deny decision with a reason.
@@ -282,7 +302,7 @@ The design is reviewed against the same roles the demonstrator enforces: Control
 - **Reset in the role menu.** Restores the demonstrator, which is disposable under [ADR-0020](docs/05-architecture-decisions/adr-0020-demonstrator-store-is-disposable.md).
 - **Empty, loading and error states, and narrow screens.**
 
-It moves into the repository in small steps, each with its own pull request:
+It moved into the repository in small steps, each with its own pull request:
 
 | Step | Change | Status |
 |---|---|---|
@@ -293,14 +313,25 @@ It moves into the repository in small steps, each with its own pull request:
 | 5 | Map: click-to-report and the glass callout | 🟢 |
 | 6 | Narrow screens, and empty, loading and error states | 🟢 |
 | 7 | Layout: one screen per role, as in Figma frames A, D and E (Incidents, Review queue, Audit trail), plus the shared map | 🟢 |
-| 8 | Rebuilt to the Round 3 prototype: report on the Incidents screen, hand-overs between roles, the deny path with its reason, and incidents named by the street they are on | 🟢 |
+| 8 | Rebuilt to the Round 3 prototype: report on the Incidents screen, hand-overs between roles, the deny path with its reason, and incidents named by the street they are on | 🟢 [Merged](https://github.com/emekamnwoke-glitch/routeshield/pull/23) |
 
-The redesign is intended to feed the `v1.5.0` Control dashboard milestone. These questions are still open:
+The site follows the prototype screen for screen, with three deliberate exceptions:
+
+- **The map:** the site draws the real Dublin bus network rather than the prototype's simplified streets.
+- **Audit times:** the audit trail shows the real time of each action.
+- **The fiction notice:** the notice sits below each screen's map, a scroll away.
+
+A test plays both of the prototype's flows through the real core and holds every figure and sentence to the prototype's.
+
+The redesign feeds the `v1.5.0` Control dashboard milestone.
+
+One question is settled, as the prototype shows it. Incidents are reported at the scenario time (Mon 08:00, when the timetable's vehicle positions are taken), and the audit trail keeps real times.
+
+These questions are still open:
 
 - the default theme
 - who approves when the duty manager is unavailable
-- which clock the audit trail displays
-- which roles may report an incident
+- which roles may report an incident (today any role can, by clicking the map)
 
 Live GPS and fleet telemetry are **deliberately out of scope** for the redesign. They would bring in real-time position data that the demonstrator's fictional environment does not model.
 
