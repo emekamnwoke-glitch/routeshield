@@ -56,6 +56,9 @@ function colours(el: HTMLElement): Colours {
   };
 }
 
+/** "−6.26030": five places, with a true minus sign, as the prototype writes coordinates. */
+export const coord = (n: number): string => n.toFixed(5).replace("-", "−");
+
 /** Pixels the pointer may move and still count as a click, not a drag. */
 const CLICK_SLOP = 4;
 
@@ -241,7 +244,20 @@ export function NetworkMap({ network, route, footprints, blocked, detours, vehic
       ctx.setLineDash([]);
     }
 
-    if (pick) {
+    if (pick && picking && focus) {
+      // Zoomed in to place a closure (prototype P2): a pin at the point, in the bypass's attention tone.
+      const [sx, sy] = toScreen(view, width, height, ...project(pick.lat, pick.lon));
+      ctx.strokeStyle = c.preview;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(sx, sy - 9, 6, Math.PI * 0.8, Math.PI * 2.2);
+      ctx.lineTo(sx, sy);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(sx, sy - 9, 2, 0, Math.PI * 2);
+      ctx.stroke();
+    } else if (pick) {
       const [sx, sy] = toScreen(view, width, height, ...project(pick.lat, pick.lon));
       ctx.strokeStyle = c.pick;
       ctx.lineWidth = 2;
@@ -337,7 +353,7 @@ export function NetworkMap({ network, route, footprints, blocked, detours, vehic
         <div className="glass callout" style={{ left: callout[0], top: callout[1] }}>
           <b>Closure point</b>
           <span>
-            {pick.lat.toFixed(5)}, {pick.lon.toFixed(5)} · {picking.radiusM} m radius
+            {coord(pick.lat)}, {coord(pick.lon)} · {picking.radiusM} m radius
           </span>
           <small>Click again to move it</small>
         </div>

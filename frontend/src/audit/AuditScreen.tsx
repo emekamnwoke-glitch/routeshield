@@ -3,11 +3,12 @@ import { useEffect, useRef, useState } from "react";
 import { clock } from "../incidents/incidents";
 import { trapIndex } from "../shell/failure";
 import { EmptyPanel } from "../shell/EmptyPanel";
+import { Icon } from "../shell/Icon";
 import { ScreenHead } from "../shell/ScreenHead";
 import { useListPanel } from "../shell/useListPanel";
 import type { AuditView, DisruptionView } from "../workspace/service";
 import type { TrailCategory, TrailRow } from "./trail";
-import { CATEGORIES, CATEGORY_LABEL, actionName, actorName, categoryOf, componentName, countByCategory, eventDetail, rowLabel, trailRows } from "./trail";
+import { CATEGORIES, CATEGORY_LABEL, actionName, actorName, categoryOf, componentName, countByCategory, eventDetail, rowLabel, rowTitle, trailRows } from "./trail";
 
 type Props = {
   /** null while the workspace is still loading. */
@@ -97,7 +98,7 @@ function EventPanel({ row, rows, disruptions, chainOk, modal, takeFocus, onClose
           </small>
         </div>
         <button type="button" className="icon-button" aria-label="Close" onClick={onClose}>
-          ✕
+          <Icon name="close" />
         </button>
       </header>
       <div className="drawer-body">
@@ -166,13 +167,13 @@ export function AuditScreen({ audit, disruptions, failed, busy, onRetry, onOpenI
   const loading = audit === null && !failed;
 
   return (
-    <div className="screen audit">
+    <div className={ui.closed && !ui.modal ? "screen audit panel-closed" : "screen audit"}>
       <section ref={ui.list} className="screen-main" aria-label="Audit trail">
         <ScreenHead title="Audit trail">
           {audit && (
             <div className="chain">
               <span className={`chip ${audit.chain.ok ? "outlined" : "tone-danger"}`}>
-                <span aria-hidden="true">{audit.chain.ok ? "✓" : "!"}</span>
+                {audit.chain.ok ? <Icon name="check" size={14} /> : <span aria-hidden="true">!</span>}
                 {audit.chain.ok ? "Chain verified" : "Chain broken"}
               </span>
               <small>
@@ -197,7 +198,7 @@ export function AuditScreen({ audit, disruptions, failed, busy, onRetry, onOpenI
                   ui.resetSelection();
                 }}
               >
-                {filter === c && <span aria-hidden="true">✓ </span>}
+                {filter === c && <Icon name="check" size={18} />}
                 {CATEGORY_LABEL[c]} ({counts[c]})
               </button>
             ))}
@@ -244,7 +245,7 @@ export function AuditScreen({ audit, disruptions, failed, busy, onRetry, onOpenI
                 <td>{clock(r.at, true)}</td>
                 <td>
                   <b>
-                    {actionName(r.type)}
+                    {rowTitle(r)}
                     {r.count > 1 ? ` (${r.count})` : ""}
                   </b>
                   <small>{r.type}</small>
@@ -276,7 +277,12 @@ export function AuditScreen({ audit, disruptions, failed, busy, onRetry, onOpenI
           />
         </>
       ) : (
-        !ui.modal && <EmptyPanel>Select an event to see its detail.</EmptyPanel>
+        !ui.modal &&
+        !ui.closed && (
+          <EmptyPanel eyebrow="NO EVENT SELECTED" title="Nothing selected">
+            Select an event to read what it records.
+          </EmptyPanel>
+        )
       )}
     </div>
   );

@@ -3,7 +3,8 @@ import type { ReactNode } from "react";
 import { routeCodes } from "../review/queue";
 import { trapIndex } from "../shell/failure";
 import type { DisruptionView } from "../workspace/service";
-import { bypassName, incidentTitle } from "./incidents";
+import { Icon } from "../shell/Icon";
+import { bypassName, incidentTitle, serviceNow } from "./incidents";
 
 type Props = {
   d: DisruptionView;
@@ -82,7 +83,7 @@ export function IncidentPanel({ d, eyebrow, subtitle, ask, modal, takeFocus, onC
           <small>{subtitle}</small>
         </div>
         <button type="button" className="icon-button" aria-label="Close" onClick={onClose}>
-          ✕
+          <Icon name="close" />
         </button>
       </header>
 
@@ -120,6 +121,21 @@ export function IncidentPanel({ d, eyebrow, subtitle, ask, modal, takeFocus, onC
                 Recommendation band {d.recommendation.band}: a person decides. Confidence is {d.recommendation.confidence},
                 because vehicle positions come from the timetable, not a live feed.
               </p>
+            )}
+
+            {/* Once approved, what each route is doing now (prototype P7 and P9). */}
+            {serviceNow(d).length > 0 && (
+              <section className="service-now" aria-labelledby="service-now-title">
+                <h3 id="service-now-title">Service now</h3>
+                <ul>
+                  {serviceNow(d).map((s) => (
+                    <li key={s.routeCode} className="chip tone-in-effect">
+                      <Icon name="check" size={14} />
+                      {s.routeCode} · {s.label}
+                    </li>
+                  ))}
+                </ul>
+              </section>
             )}
 
             {impact.patterns.length > 0 && (

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { countByStatus, listJoin, moveSelection, proposalText, queueRows, routeCodes } from "../../frontend/src/review/queue";
-import type { DisruptionView, NoticeItem } from "../../frontend/src/workspace/service";
+import type { DisruptionView } from "../../frontend/src/workspace/service";
 
 const pattern = (routeCode: string, i: number) => ({
   patternIndex: i,
@@ -13,14 +13,20 @@ const pattern = (routeCode: string, i: number) => ({
   inside: 0,
 });
 
-function disruption(id: string, status: "pending" | "approved" | "denied" | null, verdict: "approve" | "reject" = "approve"): DisruptionView {
+function disruption(
+  id: string,
+  status: "pending" | "approved" | "denied" | null,
+  verdict: "approve" | "reject" = "approve",
+  createdAt = "2026-11-25T08:00:00Z",
+): DisruptionView {
   const patterns = [pattern("E1", 0), pattern("E2", 1), pattern("E1", 2)];
   return {
     id,
     place: null,
-    status: "assessed",
+    description: null,
+    status: status === "denied" ? "declined" : "assessed",
     footprint: { lat: 53.35, lon: -6.26, radiusM: 150 },
-    createdAt: "2026-11-25T08:00:00Z",
+    createdAt,
     impact: { blockedRoads: 2, blockedLines: [], affectedTrips: 30, patterns, vehicles: { approaching: 3, inside: 0, past: 0 } },
     recommendation: {
       id: `rec-${id}`,
@@ -35,18 +41,17 @@ function disruption(id: string, status: "pending" | "approved" | "denied" | null
   } as DisruptionView;
 }
 
-const denied: NoticeItem = { id: "prop-gone", tone: "denied", text: "Recommendation denied … Reason: planned works." };
+const denied = disruption("gone", "denied", "approve", "2026-11-25T07:00:00Z");
 
 describe("review queue rows", () => {
-  it("lists open proposals newest first, then denials from the noticeboard", () => {
-    const rows = queueRows([disruption("a", "approved"), disruption("b", "pending"), disruption("c", null)], [denied]);
+  it("lists every proposal, the newest incident first, declined ones included (prototype P10)", () => {
+    const rows = queueRows(
+      [disruption("a", "approved", "approve", "2026-11-25T08:00:00Z"), disruption("b", "pending", "approve", "2026-11-25T09:00:00Z"), disruption("c", null)],
+      [denied],
+    );
     expect(rows.map((r) => r.id)).toEqual(["prop-b", "prop-a", "prop-gone"]);
-    expect(rows[2]?.kind).toBe("closed");
-  });
-
-  it("does not list a noticeboard line twice when its disruption is still open", () => {
-    const rows = queueRows([disruption("a", "pending")], [{ id: "prop-a", tone: "denied", text: "x" }]);
-    expect(rows).toHaveLength(1);
+    expect(rows[2]?.status).toBe("denied");
+    expect(rows[2]?.d.status).toBe("declined");
   });
 
   it("counts rows by status for the filter chips", () => {
@@ -78,6 +83,10 @@ describe("proposal wording", () => {
     expect(t.approve).toBe("Approve 3 changes");
     expect(t.consequence).toContain("E1 and E2");
     expect(t.consequence).toContain("audit trail");
+    // The approve dialog (prototype P6).
+    expect(t.confirmBody).toBe(
+      "This diverts E1 and E2 and issues 3 passenger notices. The approval is recorded in the audit trail under your name.",
+    );
   });
 
   it("says that approving a proposed rejection changes nothing", () => {

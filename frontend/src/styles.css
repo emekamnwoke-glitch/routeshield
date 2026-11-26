@@ -36,6 +36,8 @@
   --chrome-line: var(--rs-border-hairline);
   --chrome-active: var(--rs-color-secondary-container);
   --chrome-active-text: var(--rs-color-on-secondary-container);
+  --chip-alt: var(--rs-color-filter-selected);
+  --chip-alt-text: var(--rs-color-on-filter-selected);
   --chrome-chip: var(--rs-color-surface-container-highest);
   --badge: var(--rs-color-error);
   --badge-text: var(--rs-color-on-error);
@@ -131,7 +133,7 @@ h2 {
 
 .shell {
   display: grid;
-  grid-template-columns: 92px minmax(0, 1fr);
+  grid-template-columns: 96px minmax(0, 1fr); /* the prototype's rail */
   min-height: 100vh;
 }
 
@@ -471,7 +473,7 @@ button.text.danger {
   display: flex;
   flex-direction: column;
   gap: var(--rs-space-4);
-  padding: var(--rs-space-6) var(--rs-space-6) var(--rs-space-4);
+  padding: 18px var(--rs-space-6) var(--rs-space-6); /* the prototype's screen insets */
 }
 
 .screen-head {
@@ -506,7 +508,7 @@ button.text.danger {
 .chain {
   display: grid;
   justify-items: end;
-  gap: var(--rs-space-1);
+  gap: 0;
 }
 
 .filters-row {
@@ -536,12 +538,26 @@ button.text.danger {
  * An incident list and its map fill the first screenful (Figma frames A and D): the map runs to the foot of
  * the window, and the fiction notice follows below it, a scroll away.
  */
+/* The prototype shows no scrollbar beside the list: the column still scrolls, by wheel, touch or keyboard. */
+.screen-main:has(> .screen-fill) {
+  scrollbar-width: none;
+}
+
 .screen-fill {
   flex: 0 0 100%;
   display: flex;
   flex-direction: column;
   gap: var(--rs-space-4);
   min-height: 0;
+}
+
+/* The review queue spaces its filters and table further down than Incidents (prototype P5). */
+.screen.review .screen-head + .filters-row {
+  margin-top: 34px;
+}
+
+.screen.review .filters-row + .queue-table {
+  margin-top: 34px;
 }
 
 /* The map under an incident list: zoomed to the selected closure. */
@@ -559,14 +575,28 @@ button.text.danger {
   min-height: 0;
 }
 
+/* With nothing open (prototype P1, P10c and P11): how to start, in a small pill at the map's foot. */
+.map-hint {
+  position: absolute;
+  left: 12px;
+  bottom: 16px;
+  margin: 0;
+  padding: 3px 10px;
+  border-radius: 4px;
+  background: var(--rs-color-inverse-surface);
+  color: var(--rs-color-inverse-on-surface);
+  font: var(--rs-type-body-small);
+  pointer-events: none;
+}
+
 /* The sources' credit sits on the map, as a map's does. */
 .mini-map .attribution {
   position: absolute;
+  top: 0;
   left: 0;
-  right: 56px; /* clear of the zoom buttons */
-  bottom: 0;
+  right: 0;
   padding: 2px var(--rs-space-2);
-  border-radius: 0 var(--rs-radius-sm) 0 var(--rs-radius-md);
+  border-radius: 0 var(--rs-radius-md) 0 var(--rs-radius-sm);
   background: color-mix(in srgb, var(--map-bg) 80%, transparent);
   font-size: 10px;
   pointer-events: none;
@@ -644,19 +674,33 @@ button.pill-button {
 }
 
 /* Status messages: a snackbar at the foot of the screen (aria-live), shown only while there is one. */
+/* Snackbar (prototype P4, P7, P10 and P1r): at the foot of the list column, with at most one action. */
 .status {
   position: fixed;
   z-index: 40;
-  left: 50%;
-  bottom: var(--rs-space-4);
-  max-width: min(560px, calc(100vw - 32px));
+  left: 120px;
+  bottom: 24px;
+  width: min(476px, calc(100vw - 136px));
+  display: grid;
+  gap: 44px; /* the prototype's two-line snackbar: 112 px with its action */
   margin: 0;
-  padding: var(--rs-space-3) var(--rs-space-4);
-  border-radius: var(--rs-radius-sm);
+  padding: 14px var(--rs-space-4);
+  border-radius: 4px;
   background: var(--rs-color-inverse-surface);
   color: var(--rs-color-inverse-on-surface);
   font: var(--rs-type-body-medium);
-  transform: translateX(-50%);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 30%), 0 4px 8px 3px rgb(0 0 0 / 15%);
+}
+
+.status p {
+  margin: 0;
+}
+
+.status button.text {
+  justify-self: end;
+  padding: 0;
+  color: var(--rs-color-inverse-primary);
+  font: var(--rs-type-label-large);
 }
 
 .status:not(.shown) {
@@ -833,7 +877,7 @@ button.pill-button {
   top: 0;
   right: 0;
   bottom: 0;
-  width: min(var(--rs-size-drawer-detail), 100vw);
+  width: min(400px, 100vw); /* prototype P2 */
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
   background: var(--rs-color-surface-container-low);
@@ -984,9 +1028,7 @@ button.pill-button {
   margin: 0;
 }
 
-.noticeboard button.text {
-  margin: var(--rs-space-1) 0 0 calc(-1 * var(--rs-space-3));
-}
+
 
 .noticeboard ol {
   margin: 0;
@@ -996,17 +1038,27 @@ button.pill-button {
   gap: 10px;
 }
 
-.noticeboard li {
-  font-size: 13px;
-  line-height: 1.45;
+/* One proposal (prototype P4, P9 and P11): status chip, what was proposed, and for a denial the reason. */
+.noticeboard li p {
+  margin: 0;
 }
 
-.noticeboard li.tone-denied {
-  color: var(--bad);
+.noticeboard .line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--rs-space-2);
+  font: var(--rs-type-body-medium);
 }
 
-.noticeboard li.tone-approved b {
-  color: var(--ok);
+.noticeboard .reason {
+  margin-top: var(--rs-space-2);
+  color: var(--muted);
+  font: var(--rs-type-body-small);
+}
+
+.noticeboard li button.text {
+  margin: var(--rs-space-2) 0 0;
 }
 
 .noticeboard li.tone-pending b {
@@ -1097,18 +1149,29 @@ button.pill-button {
   margin: var(--rs-space-3) 0;
 }
 
+/* Filter chips (prototype): the first filter, the one that needs action, selects in green; the others in lavender. */
 .filter-chip {
-  padding: 5px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 5px 16px;
   border: 1px solid var(--rs-color-outline);
-  border-radius: var(--rs-radius-sm);
+  border-radius: var(--rs-radius-full);
   background: transparent;
   font: var(--rs-type-label-large);
 }
 
 .filter-chip[aria-pressed="true"] {
+  padding-left: 8px;
   border-color: transparent;
   background: var(--chrome-active);
   color: var(--chrome-active-text);
+}
+
+.filter-chip.alt[aria-pressed="true"] {
+  background: var(--chip-alt);
+  color: var(--chip-alt-text);
 }
 
 .queue-table,
@@ -1135,7 +1198,7 @@ button.pill-button {
   color: var(--muted);
   font: var(--rs-type-label-medium);
   text-align: left;
-  padding: var(--rs-inset-cell-y) var(--rs-inset-cell-x);
+  padding: 8px var(--rs-inset-cell-x); /* 32 px header rows (--rs-size-table-header) */
 }
 
 .queue-table td,
@@ -1157,8 +1220,42 @@ button.pill-button {
   display: block;
 }
 
+/* An incident row (prototype P3): its street in 15 px, the radius and time below in 12 px. */
+.queue-table td b {
+  font: 400 15px/20px Inter, system-ui, sans-serif;
+  letter-spacing: 0.1px;
+}
+
 .queue-table td small {
-  color: var(--muted);
+  color: var(--text);
+  font: var(--rs-type-body-small);
+}
+
+/* Beside the list, at 1281 px and wider, the bypass table fits its frame: no scrollbar for a sub-pixel (prototype P3). */
+@media (min-width: 1281px) {
+  .drawer .table-wrap {
+    overflow-x: hidden;
+  }
+}
+
+/* The bypass table's 32 px rows (--rs-size-row). */
+.bypass-table td,
+.bypass-table th[scope="row"] {
+  height: 32px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* An audit row is 44 px (prototype PA). */
+.queue-table.trail-table tbody td {
+  padding-top: 4px;
+  padding-bottom: 3px;
+}
+
+/* An incident row is 53 px (prototype P3): two lines and 8 px above and below. */
+.queue-table tbody td {
+  padding-top: 8px;
+  padding-bottom: 8px;
 }
 
 .queue-table tbody tr.opens {
@@ -1186,6 +1283,20 @@ button.pill-button {
 .queue-table tr.empty td {
   color: var(--muted);
   padding: var(--rs-space-4) var(--rs-inset-cell-x);
+}
+
+/* An empty list (prototype P1 and P11): an inbox, then what to do. */
+.queue-table tr.empty td:has(> .icon) {
+  padding: var(--rs-space-6) var(--rs-space-2);
+  color: var(--text);
+  font: var(--rs-type-body-medium);
+  text-align: center;
+}
+
+.queue-table tr.empty td > .icon {
+  display: block;
+  margin: 0 auto var(--rs-space-3);
+  color: var(--rs-color-on-surface-variant);
 }
 
 /* Status chip: tone plus icon plus label; colour is never the only signal. */
@@ -1250,12 +1361,16 @@ nav .indicator .icon,
   width: min(var(--rs-size-drawer-detail), 100vw);
 }
 
+/* Nothing selected (prototype P1 and P11): the panel's own heading says what goes here. */
 .empty-panel {
-  grid-template-rows: 1fr;
-  place-items: center;
-  padding: var(--rs-space-6);
-  color: var(--muted);
-  text-align: center;
+  grid-template-rows: auto;
+  align-content: start;
+}
+
+/* The panel closed with × (prototype P3c and the like): the list takes the whole width. */
+.screen.panel-closed,
+.screen.audit.panel-closed {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .drawer:focus {
@@ -1371,7 +1486,33 @@ nav .indicator .icon,
   align-items: center;
   gap: var(--rs-space-2);
   padding: var(--rs-space-4) var(--rs-space-6) var(--rs-space-6);
-  border-top: 1px solid var(--border);
+}
+
+/* "Proposal sent. Only a duty manager can approve or deny" (prototype P4): a lock, then the reason. */
+.drawer-actions > p.locked {
+  display: flex;
+  align-items: center;
+  gap: var(--rs-space-3);
+}
+
+.drawer-actions > p.locked .icon {
+  flex: none;
+  color: var(--text);
+}
+
+/* "Service now" (prototype P7 and P9): each route's state once approved. */
+.service-now h3 {
+  margin: var(--rs-space-4) 0 var(--rs-space-2);
+  font: var(--rs-type-body-large);
+}
+
+.service-now ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--rs-space-2);
+  margin: 0 0 var(--rs-space-4);
+  padding: 0;
+  list-style: none;
 }
 
 .drawer-actions > p {
@@ -1410,6 +1551,7 @@ button.tonal {
   font: var(--rs-type-body-small);
 }
 
+.deny-form input,
 .deny-form textarea {
   border: 0;
   background: transparent;
@@ -1418,6 +1560,7 @@ button.tonal {
   resize: vertical;
 }
 
+.deny-form input:focus,
 .deny-form textarea:focus {
   outline: none;
 }
@@ -1561,6 +1704,12 @@ button.tonal {
 }
 
 @media (max-width: 820px) {
+  .status {
+    left: 16px;
+    right: 16px;
+    width: auto;
+  }
+
   .shell {
     display: block;
     height: auto;

@@ -95,5 +95,24 @@ export function useListPanel<T extends { id: string }>(
 
   const resetSelection = () => select(0);
 
-  return { modal, list, selected, panelRow, takeFocus, close, onKey, rowProps, resetSelection };
+  /** Reopens the panel on the selected row: Enter or a click on it (prototype P3c and the like). */
+  const reopen = () => {
+    setClosed(false);
+    setTakeFocus(true);
+  };
+
+  return {
+    modal,
+    list,
+    selected,
+    panelRow,
+    takeFocus,
+    /** Closed with × or Esc: the list takes the whole width until a row is chosen again (prototype P3c). */
+    closed: closed && !modal,
+    close,
+    reopen,
+    onKey,
+    rowProps,
+    resetSelection,
+  };
 }

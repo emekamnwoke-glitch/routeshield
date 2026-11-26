@@ -6,11 +6,20 @@ import type { SiteNetwork } from "./map/network";
 import { ReviewDrawer } from "./review/ReviewDrawer";
 import type { QueueRow } from "./review/queue";
 import { FILTERS, FILTER_LABEL, STATUS_CHIP, countByStatus, routeCodes } from "./review/queue";
+import type { Chip } from "./incidents/incidents";
+import { StatusChip as Status } from "./incidents/MyProposals";
 import { EmptyPanel } from "./shell/EmptyPanel";
+import { Icon } from "./shell/Icon";
 import { ScreenHead } from "./shell/ScreenHead";
 import { useListPanel } from "./shell/useListPanel";
 import { placeName } from "./incidents/incidents";
 import type { DisruptionView, VehicleView } from "./workspace/service";
+
+const CHIP: Record<ProposalStatus, Chip> = {
+  pending: { label: "Pending review", tone: "attention", icon: "clock" },
+  approved: { label: "Approved", tone: "in-effect", icon: "check" },
+  denied: { label: "Denied", tone: "closed", icon: "minus" },
+};
 
 type Props = {
   /** null while the workspace is still loading. */
@@ -29,49 +38,51 @@ type Props = {
 };
 
 export function StatusChip({ status }: { status: ProposalStatus }) {
-  const chip = STATUS_CHIP[status];
-  return (
-    <span className={`chip tone-${chip.tone}`}>
-      <span aria-hidden="true">{status === "pending" ? "◷" : status === "approved" ? "✓" : "✕"}</span>
-      {chip.label}
-    </span>
-  );
+  return <Status chip={{ ...CHIP[status], label: STATUS_CHIP[status].label }} />;
 }
 
 /**
- * The duty manager's home (Figma frame A): controllers' proposals, filtered by status, with the selected
- * proposal's evidence and decision in the panel beside it.
+ * The duty manager's home (Round 3 prototype P5 to P10): controllers' proposals, filtered by status, with the
+ * selected proposal's evidence and decision in the panel beside it. A decision moves the list to its new filter.
  */
 export function ReviewQueue({ rows: loaded, failed, onRetry, busy, onReview, network, disruptions, vehicles, onPick, note }: Props) {
   const rows = loaded ?? [];
   const loading = loaded === null && !failed;
-  const [filter, setFilter] = useState<ProposalStatus>("pending");
+  // Opens on the newest proposal's filter (a hand-over from the controller lands on it).
+  const [filter, setFilter] = useState<ProposalStatus>(() => rows[0]?.status ?? "pending");
   const counts = countByStatus(rows);
   const shown = rows.filter((r) => r.status === filter);
-  const ui = useListPanel(shown, (r) => r.kind === "open");
-  const panel = ui.panelRow?.kind === "open" ? ui.panelRow : null;
+  const ui = useListPanel(shown);
+  const panel = ui.panelRow;
   const current = shown[ui.selected];
 
+  // Approving or denying moves the proposal to Approved or Denied: the list follows it, drawer open (P7, P10).
+  const review = (proposalId: string, outcome: ReviewOutcome, reason: string) => {
+    onReview(proposalId, outcome, reason);
+    setFilter(outcome === "approve" ? "approved" : "denied");
+    ui.resetSelection();
+  };
+
   return (
-    <div className="screen">
+    <div className={ui.closed ? "screen review panel-closed" : "screen review"}>
       <section ref={ui.list} className="screen-main" aria-label="Review queue">
         <div className="screen-fill">
         <ScreenHead title="Review queue" />
 
         <div className="filters-row">
           <div className="filters" role="group" aria-label="Show proposals">
-            {FILTERS.map((f) => (
+            {FILTERS.map((f, i) => (
               <button
                 key={f}
                 type="button"
-                className="filter-chip"
+                className={i === 0 ? "filter-chip" : "filter-chip alt"}
                 aria-pressed={filter === f}
                 onClick={() => {
                   setFilter(f);
                   ui.resetSelection();
                 }}
               >
-                {filter === f && <span aria-hidden="true">✓ </span>}
+                {filter === f && <Icon name="check" size={18} />}
                 {FILTER_LABEL[f]} ({counts[f]})
               </button>
             ))}
@@ -115,6 +126,7 @@ export function ReviewQueue({ rows: loaded, failed, onRetry, busy, onReview, net
             {loaded !== null && shown.length === 0 && (
               <tr className="empty">
                 <td colSpan={4}>
+                  <Icon name="inbox" size={28} />
                   {filter === "pending"
                     ? "Nothing waiting. A controller's proposal appears here."
                     : filter === "approved"
@@ -124,24 +136,16 @@ export function ReviewQueue({ rows: loaded, failed, onRetry, busy, onReview, net
               </tr>
             )}
             {shown.map((r, i) => (
-              <tr key={r.id} {...ui.rowProps(i)} className={r.kind === "open" ? "opens" : undefined}>
+              <tr key={r.id} {...ui.rowProps(i)} className="opens">
                 <td>
                   <StatusChip status={r.status} />
                 </td>
-                {r.kind === "open" ? (
-                  <>
-                    <td>
-                      <b>{placeName(r.d)}</b>
-                      <small>{r.d.footprint.radiusM} m · by Controller</small>
-                    </td>
-                    <td>{routeCodes(r.d).join(" ") || "—"}</td>
-                    <td className="num">{r.d.impact?.patterns.length ?? "—"}</td>
-                  </>
-                ) : (
-                  <td colSpan={3}>
-                    <small>{r.text}</small>
-                  </td>
-                )}
+                <td>
+                  <b>{placeName(r.d)}</b>
+                  <small>{r.d.footprint.radiusM} m · by Controller</small>
+                </td>
+                <td>{routeCodes(r.d).join(" ") || "—"}</td>
+                <td className="num">{r.d.impact?.patterns.length ?? "—"}</td>
               </tr>
             ))}
           </tbody>
@@ -150,7 +154,7 @@ export function ReviewQueue({ rows: loaded, failed, onRetry, busy, onReview, net
         <MiniMap
           network={network}
           disruptions={disruptions}
-          selected={current?.kind === "open" ? current.d : null}
+          selected={current?.d ?? null}
           vehicles={vehicles}
           onPick={onPick}
         />
@@ -161,14 +165,15 @@ export function ReviewQueue({ rows: loaded, failed, onRetry, busy, onReview, net
       {panel ? (
         <>
           {ui.modal && <div className="scrim" aria-hidden="true" onClick={ui.close} />}
-          <ReviewDrawer row={panel} busy={busy} modal={ui.modal} takeFocus={ui.takeFocus || ui.modal} onClose={ui.close} onReview={onReview} />
+          <ReviewDrawer row={panel} busy={busy} modal={ui.modal} takeFocus={ui.takeFocus || ui.modal} onClose={ui.close} onReview={review} />
         </>
       ) : (
-        !ui.modal && (
-          <EmptyPanel>
-            {current?.kind === "closed"
-              ? "This proposal was denied and its incident closed. The reason is in the row."
-              : "Select a proposal to see what it cuts and decide on it."}
+        !ui.modal &&
+        !ui.closed && (
+          <EmptyPanel eyebrow="NO PROPOSAL SELECTED" title={rows.length ? "Nothing selected" : "Nothing to review yet"}>
+            {rows.length
+              ? "Select a proposal to see what it cuts and decide on it."
+              : "A controller's proposal appears here, with what it cuts and the bypasses it suggests."}
           </EmptyPanel>
         )
       )}

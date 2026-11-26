@@ -1,3 +1,5 @@
+import { shortStreet } from "../incidents/incidents";
+
 /** The part of the site network (data/fixtures/site/network.json) that names roads. */
 export type RoadNames = {
   edges: number[][];
@@ -37,4 +39,19 @@ export function nearestRoad(net: RoadNames, lat: number, lon: number, maxM = 250
     }
   });
   return name;
+}
+
+/**
+ * Where a closure is, as the prototype names it: the nearest named bus road, shortened as a sign would
+ * ("O'Connell Street Upper" is "O'Connell St Upper"). Null where no named bus road is near.
+ */
+export function placeAt(net: RoadNames, lat: number, lon: number): string | null {
+  const road = nearestRoad(net, lat, lon);
+  return road ? shortStreet(road) : null;
+}
+
+/** Name each incident by where it is. */
+export function withPlaces<T extends { footprint: { lat: number; lon: number } }>(net: RoadNames | null, items: T[]): T[] {
+  if (!net) return items;
+  return items.map((d) => ({ ...d, place: placeAt(net, d.footprint.lat, d.footprint.lon) }));
 }

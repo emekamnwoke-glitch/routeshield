@@ -54,8 +54,13 @@ export type NoticeItem = { id: string; tone: ProposalStatus; text: string };
 
 export type DisruptionView = {
   id: string;
-  /** Where, in the reporter's words (the incident report's description); null when they gave none. */
+  /**
+   * Where the closure is, as a street name ("O'Connell St Upper"). The site fills it from the map's road names
+   * (map/roads.ts placeAt); the core does not hold road names, so the service leaves it null.
+   */
   place: string | null;
+  /** The reporter's words: the incident report's description ("Road closed"). */
+  description: string | null;
   status: string;
   footprint: Circle;
   createdAt: string;
@@ -94,6 +99,8 @@ export type WorkspaceState = {
   persona: PersonaId;
   network: { loaded: boolean; version: string };
   disruptions: DisruptionView[];
+  /** Incidents declined when their proposal was denied (CH-012): off the map, but the review queue still shows them. */
+  declined: DisruptionView[];
   vehicles: VehicleView[];
   noticeboard: NoticeItem[];
   audit: AuditView | null;
@@ -109,15 +116,13 @@ export type Request = { persona: PersonaId } & (
   | { kind: "propose"; recommendationId: string; verdict: Verdict }
   | { kind: "review"; proposalId: string; outcome: ReviewOutcome; reason: string }
   | { kind: "reset" }
-  /** Start again with the incident the Figma frames show. The worker wipes the store, then reports it. */
-  | { kind: "scenario" }
 );
 
 /**
- * The incident in Figma frames A, D and E: a 150 m closure on O'Connell Street. At this point the core finds what
- * the frames show: 13 route patterns on E1, E2, F1 and F2, 848 trips a day, 59 vehicles approaching and 3 inside.
+ * Where a report starts (the Round 3 prototype, P2): a 150 m closure on O'Connell Street. Here the core finds what
+ * the prototype shows: 13 route patterns on E1, E2, F1 and F2, 848 trips a day, 59 vehicles approaching and 3 inside.
  */
-export const FIGMA_INCIDENT: IncidentInput = { lat: 53.3498, lon: -6.26, radiusM: 150, description: "O'Connell St Upper" };
+export const DEFAULT_INCIDENT: IncidentInput = { lat: 53.3498, lon: -6.2603, radiusM: 150, description: "Road closed" };
 
 export type Response = { ok: true; state: WorkspaceState; notice?: string } | { ok: false; error: string };
 
@@ -175,19 +180,20 @@ export function readState(core: Core, storage: Storage, persona: PersonaId): Pro
   const network = core.sources.network();
   return core.store.read(async (tx) => {
     const relations = new Map<string, VehicleRelation>();
-    // A declined incident is closed: it leaves the map and the menus, but its proposal stays on the noticeboard.
+    // A declined incident is closed: it leaves the map and the incident list, but the review queue still shows it.
     const all = core.disruptions.list(tx);
-    const placeOf = (incidentId: string) => core.sources.incident(tx, incidentId)?.description.trim() || null;
-    // Every disruption's place, declined ones included, for the noticeboard.
-    const places = new Map(all.map((d) => [d.id, placeOf(d.incidentId)]));
-    const open = all.filter((d) => d.status !== "declined");
-    const disruptions = open.map((d): DisruptionView => {
+    const descriptionOf = (incidentId: string) => core.sources.incident(tx, incidentId)?.description.trim() || null;
+    const descriptions = new Map(all.map((d) => [d.id, descriptionOf(d.incidentId)]));
+    const views = all.map((d): DisruptionView => {
       const rec = core.support.forDisruption(tx, d.id);
       const assessment = rec && core.impact.assessment(tx, rec.assessmentId);
       const options = new Map(rec ? core.optimiser.options(tx, rec.assessmentId).map((o) => [o.id, o]) : []);
       const decision = rec ? core.decisions.forRecommendation(tx, rec.id) : undefined;
       const proposal = rec ? core.decisions.latestProposal(tx, rec.id) : undefined;
-      for (const v of assessment?.vehicles ?? []) if (!relations.has(v.vehicle)) relations.set(v.vehicle, v.relation);
+      // Only an open incident marks buses on the map: a declined one has left it.
+      if (d.status !== "declined") {
+        for (const v of assessment?.vehicles ?? []) if (!relations.has(v.vehicle)) relations.set(v.vehicle, v.relation);
+      }
 
       const count = (r: VehicleRelation, pattern?: number) =>
         (assessment?.vehicles ?? []).filter((v) => v.relation === r && (pattern === undefined || v.patternIndex === pattern))
@@ -195,7 +201,8 @@ export function readState(core: Core, storage: Storage, persona: PersonaId): Pro
 
       return {
         id: d.id,
-        place: places.get(d.id) ?? null,
+        place: null,
+        description: descriptions.get(d.id) ?? null,
         status: d.status,
         footprint: d.latest.footprint,
         createdAt: d.createdAt,
@@ -246,6 +253,8 @@ export function readState(core: Core, storage: Storage, persona: PersonaId): Pro
           .map((n) => ({ ...patternView(network, n.patternIndex), channel: n.channel, kind: n.kind })),
       };
     });
+    const disruptions = views.filter((d) => d.status !== "declined");
+    const declined = views.filter((d) => d.status === "declined");
     // The audit trail is read only by a persona that holds read_audit. The core decides, not the screen.
     const canAudit = core.access.authorise(tx, { kind: "persona", id: persona }, "read_audit").allowed;
     let audit: AuditView | null = null;
@@ -274,6 +283,7 @@ export function readState(core: Core, storage: Storage, persona: PersonaId): Pro
       persona,
       network: { loaded: network !== undefined, version: network?.version ?? "none" },
       disruptions,
+      declined,
       vehicles: core.sources.positions(tx).map((v) => ({
         vehicle: v.vehicle,
         routeCode: network?.patterns[v.pattern]?.routeCode ?? "?",
@@ -281,7 +291,7 @@ export function readState(core: Core, storage: Storage, persona: PersonaId): Pro
         lon: v.lon,
         relation: relations.get(v.vehicle) ?? null,
       })),
-      noticeboard: core.decisions.proposals(tx).reverse().slice(0, NOTICEBOARD_LENGTH).map((p) => noticeFor(p, places.get(p.disruptionId) ?? null)),
+      noticeboard: core.decisions.proposals(tx).reverse().slice(0, NOTICEBOARD_LENGTH).map((p) => noticeFor(p, descriptions.get(p.disruptionId) ?? null)),
       audit,
     };
   });
@@ -311,21 +321,18 @@ export async function handle(core: Core, storage: Storage, req: Request): Promis
           description,
         });
         await settle(core);
+        // The panel opens on the assessed incident (prototype P3): a message only when nothing runs through it.
         const state = await readState(core, storage, req.persona);
-        const affected = state.disruptions[0]?.impact?.patterns.length ?? 0;
-        return {
-          ok: true,
-          state,
-          notice: affected
-            ? `Incident assessed: ${affected} route pattern${affected === 1 ? "" : "s"} affected.`
-            : "Incident assessed: no bus route in the sample runs through it.",
-        };
+        const affected = state.disruptions.at(-1)?.impact?.patterns.length ?? 0;
+        return affected
+          ? { ok: true, state }
+          : { ok: true, state, notice: "Incident assessed: no bus route in the sample runs through it." };
       }
       case "propose": {
         let notice: string;
         try {
           await core.decisions.propose(actor, req.recommendationId, req.verdict, "proposed in the demonstrator");
-          notice = "Proposed. It is pending the Duty manager's approval.";
+          notice = "Proposed. It is pending the duty manager's approval.";
         } catch (err) {
           if (!(err instanceof ProposalRefused)) throw err;
           notice = `Refused: ${err.message}.`;
@@ -339,7 +346,7 @@ export async function handle(core: Core, storage: Storage, req: Request): Promis
           const p = await core.decisions.review(actor, req.proposalId, req.outcome, req.reason);
           notice =
             p.status === "approved"
-              ? "Approved. Service states and passenger notices updated; the controller's noticeboard shows it."
+              ? "Approved. Service states and passenger notices updated."
               : "Denied. The incident is declined and closed; the reason is on the controller's noticeboard.";
         } catch (err) {
           if (!(err instanceof ProposalRefused)) throw err;
@@ -349,7 +356,6 @@ export async function handle(core: Core, storage: Storage, req: Request): Promis
         return { ok: true, state: await readState(core, storage, req.persona), notice };
       }
       case "reset":
-      case "scenario":
         return { ok: false, error: `${req.kind} is handled by the core worker` };
     }
   } catch (err) {

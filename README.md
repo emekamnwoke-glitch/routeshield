@@ -293,7 +293,7 @@ It moves into the repository in small steps, each with its own pull request:
 | 5 | Map: click-to-report and the glass callout | 🟢 |
 | 6 | Narrow screens, and empty, loading and error states | 🟢 |
 | 7 | Layout: one screen per role, as in Figma frames A, D and E (Incidents, Review queue, Audit trail), plus the shared map | 🟢 |
-| 8 | Incidents named by place, suggested from the nearest bus road; **Load the Figma scenario** in the role menu recreates the incident the frames show | 🟢 |
+| 8 | Rebuilt to the Round 3 prototype: report on the Incidents screen, hand-overs between roles, the deny path with its reason, and incidents named by the street they are on | 🟢 |
 
 The redesign is intended to feed the `v1.5.0` Control dashboard milestone. These questions are still open:
 

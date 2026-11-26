@@ -9,21 +9,12 @@ type Props = {
   busy: boolean;
   onSwitch: (persona: PersonaId) => void;
   onReset: () => void;
-  /** Start again with the incident the Figma frames show. */
-  onScenario: () => void;
 };
 
 const CONFIRM = {
-  reset: {
-    title: "Start again?",
-    body: "This deletes every incident, proposal, decision and audit event stored in this browser. The Dublin network data is not affected.",
-    action: "Start again",
-  },
-  scenario: {
-    title: "Load the Figma scenario?",
-    body: "This deletes everything stored in this browser, then reports the incident the Figma frames show: a 150 m closure on O'Connell St Upper. The Dublin network data is not affected.",
-    action: "Load scenario",
-  },
+  title: "Start again?",
+  body: "This deletes every incident, proposal, decision and audit event stored in this browser. The Dublin network data is not affected.",
+  action: "Start again",
 } as const;
 
 /**
@@ -33,9 +24,8 @@ const CONFIRM = {
  *
  * The menu is opaque: it is not one of the three glass surfaces in ADR-0021.
  */
-export function RoleSwitcher({ persona, busy, onSwitch, onReset, onScenario }: Props) {
+export function RoleSwitcher({ persona, busy, onSwitch, onReset }: Props) {
   const [open, setOpen] = useState(false);
-  const [asking, setAsking] = useState<keyof typeof CONFIRM>("reset");
   const trigger = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
@@ -89,9 +79,8 @@ export function RoleSwitcher({ persona, busy, onSwitch, onReset, onScenario }: P
     if (id !== persona) onSwitch(id);
   };
 
-  const ask = (what: keyof typeof CONFIRM) => {
+  const ask = () => {
     close(false);
-    setAsking(what);
     dialog.current?.showModal();
   };
 
@@ -141,7 +130,7 @@ export function RoleSwitcher({ persona, busy, onSwitch, onReset, onScenario }: P
               onClick={() => choose(id)}
             >
               <span className="check" aria-hidden="true">
-                {id === persona ? "✓" : ""}
+                {id === persona && <Icon name="check" size={20} />}
               </span>
               <span>
                 <b>{roleName(id)}</b>
@@ -149,14 +138,7 @@ export function RoleSwitcher({ persona, busy, onSwitch, onReset, onScenario }: P
               </span>
             </button>
           ))}
-          <button type="button" role="menuitem" tabIndex={-1} className="role-item reset" disabled={busy} onClick={() => ask("scenario")}>
-            <span className="check" aria-hidden="true" />
-            <span>
-              <b>Load the Figma scenario</b>
-              <small>Starts again with the incident the design shows. Asks first.</small>
-            </span>
-          </button>
-          <button type="button" role="menuitem" tabIndex={-1} className="role-item reset" disabled={busy} onClick={() => ask("reset")}>
+          <button type="button" role="menuitem" tabIndex={-1} className="role-item reset" disabled={busy} onClick={ask}>
             <span className="check" aria-hidden="true" />
             <span>
               <b>Start again (reset demo)</b>
@@ -175,8 +157,8 @@ export function RoleSwitcher({ persona, busy, onSwitch, onReset, onScenario }: P
         onClose={() => trigger.current?.focus()}
       >
         <form method="dialog">
-          <h2 id="reset-title">{CONFIRM[asking].title}</h2>
-          <p id="reset-body">{CONFIRM[asking].body}</p>
+          <h2 id="reset-title">{CONFIRM.title}</h2>
+          <p id="reset-body">{CONFIRM.body}</p>
           <div className="confirm-actions">
             <button type="submit" value="cancel" className="text" autoFocus>
               Cancel
@@ -185,9 +167,9 @@ export function RoleSwitcher({ persona, busy, onSwitch, onReset, onScenario }: P
               type="submit"
               value="reset"
               className="text danger"
-              onClick={() => (asking === "scenario" ? onScenario() : onReset())}
+              onClick={onReset}
             >
-              {CONFIRM[asking].action}
+              {CONFIRM.action}
             </button>
           </div>
         </form>

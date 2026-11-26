@@ -1,9 +1,12 @@
 import { useEffect, useRef } from "react";
+import { coord } from "./NetworkMap";
 
 export const RADII = [100, 150, 300, 500];
 
 type Props = {
   pick: { lat: number; lon: number };
+  /** The street the point is on (prototype P2: "53.34980, −6.26030 · O'Connell St Upper"). */
+  place: string | null;
   radiusM: number;
   description: string;
   busy: boolean;
@@ -18,7 +21,7 @@ type Props = {
  * Report an incident: opens beside the map when a point is picked. It is opaque (ADR-0021): reporting starts
  * the decision flow, so it is not glass. Clicking the map again moves the point; Esc or Cancel closes the sheet.
  */
-export function ReportSheet({ pick, radiusM, description, busy, disabled, onRadius, onDescription, onCancel, onReport }: Props) {
+export function ReportSheet({ pick, place, radiusM, description, busy, disabled, onRadius, onDescription, onCancel, onReport }: Props) {
   const sheet = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
@@ -51,7 +54,8 @@ export function ReportSheet({ pick, radiusM, description, busy, disabled, onRadi
         <div className="field readonly-field">
           <span>Location</span>
           <output aria-live="polite">
-            {pick.lat.toFixed(5)}, {pick.lon.toFixed(5)}
+            {coord(pick.lat)}, {coord(pick.lon)}
+            {place ? ` · ${place}` : ""}
           </output>
         </div>
         <label className="field">
@@ -65,18 +69,9 @@ export function ReportSheet({ pick, radiusM, description, busy, disabled, onRadi
           </select>
         </label>
         <label className="field">
-          <span>Place</span>
-          <input
-            value={description}
-            onChange={(e) => onDescription(e.target.value)}
-            maxLength={120}
-            placeholder="Street or landmark"
-            aria-describedby="place-hint"
-          />
+          <span>Description</span>
+          <input value={description} onChange={(e) => onDescription(e.target.value)} maxLength={120} />
         </label>
-        <p id="place-hint" className="hint">
-          Suggested from the nearest bus road (OpenStreetMap). Every screen names the incident by this.
-        </p>
       </div>
       <div className="sheet-actions">
         <button type="button" className="text" onClick={onCancel}>
