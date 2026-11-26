@@ -4,7 +4,7 @@ import type { LatLon, VehicleView } from "../workspace/service";
 import type { SiteNetwork } from "./network";
 import type { View } from "./projection";
 import { placeCallout } from "./callout";
-import { fit, project, toScreen, toWorld, unproject, zoomAt } from "./projection";
+import { fit, focusView, project, toScreen, toWorld, unproject, zoomAt } from "./projection";
 
 type Props = {
   network: SiteNetwork;
@@ -18,6 +18,8 @@ type Props = {
   pick: { lat: number; lon: number } | null;
   /** While a report is being placed: the radius to preview around the pick, and the glass callout. */
   picking?: { radiusM: number } | null;
+  /** Zoom to this closure, close enough to read the streets around it (the incident screens' map). */
+  focus?: Circle | null;
   onPick: (lat: number, lon: number) => void;
 };
 
@@ -54,7 +56,7 @@ function colours(el: HTMLElement): Colours {
 /** Pixels the pointer may move and still count as a click, not a drag. */
 const CLICK_SLOP = 4;
 
-export function NetworkMap({ network, route, footprints, blocked, detours, vehicles, pick, picking = null, onPick }: Props) {
+export function NetworkMap({ network, route, footprints, blocked, detours, vehicles, pick, picking = null, focus = null, onPick }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [view, setView] = useState<View | null>(null);
@@ -101,6 +103,15 @@ export function NetworkMap({ network, route, footprints, blocked, detours, vehic
   useEffect(() => {
     if (size.width > 0 && view === null) setView(fit(network.bounds, size.width, size.height));
   }, [size, view, network]);
+
+  // A new incident to focus on re-centres the map; panning and zooming after that are the person's own.
+  const focusKey = focus ? `${focus.lat},${focus.lon},${focus.radiusM}` : "";
+  useEffect(() => {
+    if (!focus || size.width === 0) return;
+    setView(focusView(focus, size.width, size.height));
+  }, [focusKey, size.width, size.height]); // re-centre only when the incident or the map size changes
+
+  const home = () => setView(focus ? focusView(focus, size.width, size.height) : fit(network.bounds, size.width, size.height));
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -314,7 +325,7 @@ export function NetworkMap({ network, route, footprints, blocked, detours, vehic
         <button type="button" onClick={() => zoom(0.8)} aria-label="Zoom out">
           −
         </button>
-        <button type="button" onClick={() => setView(fit(network.bounds, size.width, size.height))}>
+        <button type="button" onClick={home}>
           Fit
         </button>
       </div>

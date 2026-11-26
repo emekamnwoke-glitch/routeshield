@@ -38,3 +38,9 @@ export function zoomAt(view: View, width: number, height: number, sx: number, sy
   const scale = view.scale * factor;
   return { scale, cx: x - (sx - width / 2) / scale, cy: y - (sy - height / 2) / scale };
 }
+
+/** The view centred on a closure, showing about eight radii across the shorter side (the incident screens' map). */
+export function focusView(f: { lat: number; lon: number; radiusM: number }, width: number, height: number): View {
+  const [cx, cy] = project(f.lat, f.lon);
+  return { cx, cy, scale: Math.min(width, height) / (Math.max(f.radiusM, 100) * 8) };
+}
