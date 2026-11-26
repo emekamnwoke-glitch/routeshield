@@ -21,6 +21,9 @@
   --rs-color-on-secondary: #ffffff;
   --rs-color-secondary-container: #c6ebd9;
   --rs-color-on-secondary-container: #012115;
+  /* A selected filter other than the first (Round 3 prototype): the lavender the prototype took from Material. */
+  --rs-color-filter-selected: #e8def8;
+  --rs-color-on-filter-selected: #4a4459;
   --rs-color-tertiary: #855301;
   --rs-color-on-tertiary: #ffffff;
   --rs-color-tertiary-container: #ffddb9;
@@ -62,6 +65,9 @@
     --rs-color-on-secondary: #173629;
     --rs-color-secondary-container: #2d4d3f;
     --rs-color-on-secondary-container: #c6ebd9;
+    /* A selected filter other than the first (Round 3 prototype): the lavender the prototype took from Material. */
+    --rs-color-filter-selected: #4a4458;
+    --rs-color-on-filter-selected: #e8def8;
     --rs-color-tertiary: #ffb961;
     --rs-color-on-tertiary: #462b01;
     --rs-color-tertiary-container: #653e00;
@@ -103,6 +109,9 @@
   --rs-color-on-secondary: #173629;
   --rs-color-secondary-container: #2d4d3f;
   --rs-color-on-secondary-container: #c6ebd9;
+  /* A selected filter other than the first (Round 3 prototype): the lavender the prototype took from Material. */
+  --rs-color-filter-selected: #4a4458;
+  --rs-color-on-filter-selected: #e8def8;
   --rs-color-tertiary: #ffb961;
   --rs-color-on-tertiary: #462b01;
   --rs-color-tertiary-container: #653e00;

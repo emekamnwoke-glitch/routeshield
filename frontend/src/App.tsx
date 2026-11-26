@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import type { PersonaId } from "../../src/core/modules/ac-14-access-control/contract";
 import { AuditScreen } from "./audit/AuditScreen";
 import { IncidentsScreen } from "./incidents/IncidentsScreen";
+import { proposalLines } from "./incidents/incidents";
+import { MyProposals } from "./incidents/MyProposals";
 import { MapScreen } from "./map/MapScreen";
 import { ReportSheet } from "./map/ReportSheet";
-import { Noticeboard } from "./Noticeboard";
 import { ReviewQueue } from "./ReviewQueue";
 import { queueRows } from "./review/queue";
 import { RoleSwitcher } from "./shell/RoleSwitcher";
@@ -15,13 +16,16 @@ import { ScreenHead } from "./shell/ScreenHead";
 import type { Screen } from "./shell/screens";
 import { SCREENS, SCREEN_META, homeScreen } from "./shell/screens";
 import { SiteNote } from "./shell/SiteNote";
+import type { Snack } from "./shell/Snackbar";
+import { Snackbar } from "./shell/Snackbar";
 import type { SiteNetwork } from "./map/network";
 import { loadNetwork } from "./map/network";
-import { nearestRoad } from "./map/roads";
+import { placeAt, withPlaces } from "./map/roads";
 import { CoreClient } from "./worker/client";
 import type { Request, WorkspaceState } from "./workspace/service";
+import { DEFAULT_INCIDENT } from "./workspace/service";
 
-const DEFAULT_PICK = { lat: 53.3498, lon: -6.2603 }; // O'Connell Street
+const DEFAULT_PICK = { lat: DEFAULT_INCIDENT.lat, lon: DEFAULT_INCIDENT.lon }; // O'Connell Street
 
 /** A command is a request without the persona, which the page adds from the role switcher. */
 type Command = Request extends infer R ? (R extends unknown ? Omit<R, "persona"> : never) : never;
@@ -31,58 +35,97 @@ type Command = Request extends infer R ? (R extends unknown ? Omit<R, "persona">
 const client = new CoreClient();
 
 /**
- * The site: one screen per role (Figma frames A, D and E) and a shared network map.
+ * The site, as the Round 3 prototype plays it: one screen per role and a shared network map.
  * The controller lands on Incidents, the duty manager on the Review queue and the administrator on the Audit trail.
+ * The snackbar's actions hand the story over from one role to the next.
  */
 export function App() {
   const [network, setNetwork] = useState<SiteNetwork | null>(null);
   const [state, setState] = useState<WorkspaceState | null>(null);
   const [failure, setFailure] = useState<Failure | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [snack, setSnack] = useState<Snack | null>(null);
   const [busy, setBusy] = useState(false);
   const [persona, setPersona] = useState<PersonaId>("controller");
   const [screen, setScreen] = useState<Screen>(homeScreen("controller"));
   const [route, setRoute] = useState<number | null>(null);
   const [pick, setPick] = useState(DEFAULT_PICK);
-  const [radiusM, setRadiusM] = useState(150);
-  const [description, setDescription] = useState("");
+  const [radiusM, setRadiusM] = useState(DEFAULT_INCIDENT.radiusM);
+  const [description, setDescription] = useState(DEFAULT_INCIDENT.description);
   const [reporting, setReporting] = useState(false);
-  // The incident the audit trail's "Open incident" asked for: the incident list opens with it selected.
-  const [openIncident, setOpenIncident] = useState<string | null>(null);
+  // Where a list opens: the incident a hand-over or a new report names. A new landing remounts the list.
+  const [landing, setLanding] = useState<{ id: string | null; n: number }>({ id: null, n: 0 });
 
-  // Moving the closure suggests the place again, from the nearest named bus road.
-  useEffect(() => {
-    if (network) setDescription(nearestRoad(network, pick.lat, pick.lon) ?? "");
-  }, [network, pick]);
+  const land = (id: string | null) => setLanding((l) => ({ id, n: l.n + 1 }));
 
-  const send = async (cmd: Command, as: PersonaId = persona): Promise<boolean> => {
+  const send = async (cmd: Command, as: PersonaId = persona): Promise<WorkspaceState | null> => {
     setBusy(true);
     const res = await client.request({ ...cmd, persona: as } as Request);
     setBusy(false);
     if (res.ok) {
       setState(res.state);
-      // A plain refresh (a role switch) keeps the last command's message.
-      if (cmd.kind !== "state" || res.notice) setNotice(res.notice ?? null);
+      // A plain refresh (a role switch) keeps the last message.
+      if (cmd.kind !== "state" || res.notice) setSnack(res.notice ? { text: res.notice } : null);
       // A network failure stands until the network loads; anything else is cleared by a request that works.
       setFailure((f) => (f?.kind === "network" ? f : null));
-    } else {
-      setFailure({ kind: cmd.kind === "state" ? "state" : "command", detail: res.error });
+      return res.state;
     }
-    return res.ok;
+    setFailure({ kind: cmd.kind === "state" ? "state" : "command", detail: res.error });
+    return null;
   };
 
-  // Reporting happens on the map: + in the rail, or a click on any incident screen's map, opens it there.
+  /** Act as another role, landing on its home screen at the given incident (the snackbar's hand-overs). */
+  const handOver = (p: PersonaId, id: string | null = null) => {
+    setSnack(null);
+    setReporting(false);
+    setPersona(p);
+    setScreen(homeScreen(p));
+    land(id);
+  };
+
+  // Reporting starts from + or a click on an incident map; the sheet opens over the panel (prototype P2).
   const startReport = (at?: { lat: number; lon: number }) => {
-    if (at) setPick(at);
-    setScreen("map");
+    setPick(at ?? DEFAULT_PICK);
+    if (screen !== "map") setScreen("incidents");
+    setSnack(null);
     setReporting(true);
   };
 
   const report = async () => {
-    if (await send({ kind: "report", incident: { ...pick, radiusM, description: description.trim() } })) {
+    const next = await send({ kind: "report", incident: { ...pick, radiusM, description: description.trim() } });
+    if (next) {
       setReporting(false);
-      setScreen("incidents"); // every role has the incident list: the new incident is there
+      setScreen("incidents");
+      land(next.disruptions.at(-1)?.id ?? null); // the new incident, selected with its panel open (P3)
     }
+  };
+
+  const propose = async (recommendationId: string, verdict: "approve" | "reject") => {
+    if (await send({ kind: "propose", recommendationId, verdict })) {
+      setSnack(
+        (s) =>
+          s &&
+          (s.text.startsWith("Proposed")
+            ? { ...s, action: { label: "Continue as duty manager", run: () => handOver("duty-manager") } }
+            : s),
+      );
+    }
+  };
+
+  const review = async (proposalId: string, outcome: "approve" | "deny", reason: string) => {
+    const next = await send({ kind: "review", proposalId, outcome, reason });
+    if (next) {
+      const open = next.disruptions.find((d) => d.proposal?.id === proposalId)?.id ?? null;
+      setSnack((s) =>
+        s && !s.text.startsWith("Refused")
+          ? { ...s, action: { label: "See the controller's view", run: () => handOver("controller", open) } }
+          : s,
+      );
+    }
+  };
+
+  const reset = async () => {
+    handOver("controller");
+    await send({ kind: "reset" }, "controller");
   };
 
   const loadMap = () => {
@@ -105,27 +148,47 @@ export function App() {
     void send({ kind: "state" }, persona);
   }, [persona]);
 
-  const switchRole = (p: PersonaId) => {
-    setOpenIncident(null);
-    setPersona(p);
-    setScreen(homeScreen(p));
-    setReporting(false);
-  };
+  const switchRole = (p: PersonaId) => handOver(p);
 
-  const disruptions = state?.disruptions ?? [];
+  // Incidents are named by the street they are on, from the map's road names.
+  const disruptions = withPlaces(network, state?.disruptions ?? []);
+  const declined = withPlaces(network, state?.declined ?? []);
   const failedState = failure?.kind === "state" && state === null;
   const note = <SiteNote storage={state?.storage ?? null} />;
   const pickAt = (lat: number, lon: number) => startReport({ lat, lon });
+  // A list remounts on a new landing, and once the first state arrives, so it opens on the right filter.
+  const listKey = `${landing.n}-${state ? "ready" : "loading"}`;
+
+  const sheet = reporting && (
+    <ReportSheet
+      pick={pick}
+      place={network ? placeAt(network, pick.lat, pick.lon) : null}
+      radiusM={radiusM}
+      description={description}
+      busy={busy}
+      disabled={!state?.network.loaded}
+      onRadius={setRadiusM}
+      onDescription={setDescription}
+      onCancel={() => setReporting(false)}
+      onReport={() => void report()}
+    />
+  );
 
   return (
     <div className="shell">
       <aside className={persona === "controller" ? "rail" : "rail no-fab"} aria-label="Navigation">
         {persona === "controller" && (
-          <button type="button" className="fab" title="Report an incident" aria-label="Report an incident" onClick={() => startReport()}>
+          <button
+            type="button"
+            className="fab"
+            title="Report an incident"
+            aria-label="Report an incident"
+            onClick={() => startReport()}
+          >
             <Icon name="add" />
           </button>
         )}
-        {/* As the Figma frames: icon and label only. Each screen's filter chips carry the counts. */}
+        {/* As the prototype: icon and label only. Each screen's filter chips carry the counts. */}
         <nav aria-label="Screens">
           {SCREENS[persona].map((s) => (
             <a
@@ -135,7 +198,8 @@ export function App() {
               aria-current={screen === s ? "page" : undefined}
               onClick={(e) => {
                 e.preventDefault();
-                setOpenIncident(null);
+                setReporting(false);
+                land(null);
                 setScreen(s);
               }}
             >
@@ -146,19 +210,7 @@ export function App() {
             </a>
           ))}
         </nav>
-        <RoleSwitcher
-          persona={persona}
-          busy={busy}
-          onSwitch={switchRole}
-          onReset={() => void send({ kind: "reset" })}
-          onScenario={() => {
-            // The scenario starts where frame D does: the controller's incident list.
-            setPersona("controller");
-            setScreen("incidents");
-            setReporting(false);
-            void send({ kind: "scenario" }, "controller");
-          }}
-        />
+        <RoleSwitcher persona={persona} busy={busy} onSwitch={switchRole} onReset={() => void reset()} />
       </aside>
 
       <div className="workspace">
@@ -174,37 +226,40 @@ export function App() {
               </button>
             )}
             <button type="button" className="icon-button" aria-label="Dismiss" onClick={() => setFailure(null)}>
-              ✕
+              <Icon name="close" />
             </button>
           </div>
         )}
 
         {screen === "incidents" && (
           <IncidentsScreen
-            key={openIncident ?? "list"}
-            openId={openIncident}
+            key={listKey}
+            openId={landing.id}
             persona={persona}
             disruptions={state ? disruptions : null}
+            declined={declined}
             failed={failedState}
             onRetry={retry}
-            noticeboard={state?.noticeboard ?? []}
             busy={busy}
             network={network}
             vehicles={state?.vehicles ?? []}
-            onPropose={(recommendationId, verdict) => void send({ kind: "propose", recommendationId, verdict })}
-            onPick={pickAt}
-            onShowProposals={() => setScreen("proposals")}
+            onPropose={(recommendationId, verdict) => void propose(recommendationId, verdict)}
+            onPick={(lat, lon) => (reporting ? setPick({ lat, lon }) : pickAt(lat, lon))}
+            onReportAgain={startReport}
+            picking={reporting ? { ...pick, radiusM } : null}
+            sheet={sheet || null}
             note={note}
           />
         )}
 
         {screen === "review" && (
           <ReviewQueue
-            rows={state ? queueRows(disruptions, state.noticeboard) : null}
+            key={listKey}
+            rows={state ? queueRows(disruptions, declined) : null}
             failed={failedState}
             onRetry={retry}
             busy={busy}
-            onReview={(proposalId, outcome, reason) => void send({ kind: "review", proposalId, outcome, reason })}
+            onReview={(proposalId, outcome, reason) => void review(proposalId, outcome, reason)}
             network={network}
             disruptions={disruptions}
             vehicles={state?.vehicles ?? []}
@@ -221,7 +276,7 @@ export function App() {
             busy={busy}
             onRetry={retry}
             onOpenIncident={(id) => {
-              setOpenIncident(id);
+              land(id);
               setScreen("incidents");
             }}
             note={note}
@@ -232,7 +287,7 @@ export function App() {
           <div className="screen single">
             <section className="screen-main" aria-label="My proposals">
               <ScreenHead title="My proposals" />
-              <Noticeboard items={state?.noticeboard ?? []} />
+              <MyProposals lines={proposalLines(disruptions, declined)} onReportAgain={startReport} />
               {note}
             </section>
           </div>
@@ -258,23 +313,9 @@ export function App() {
           />
         )}
 
-        {reporting && screen === "map" && (
-          <ReportSheet
-            pick={pick}
-            radiusM={radiusM}
-            description={description}
-            busy={busy}
-            disabled={!state?.network.loaded}
-            onRadius={setRadiusM}
-            onDescription={setDescription}
-            onCancel={() => setReporting(false)}
-            onReport={() => void report()}
-          />
-        )}
+        {screen === "map" && sheet}
 
-        <p className={notice || (!state && !failure) ? "status shown" : "status"} role="status" aria-live="polite">
-          {!state && !failure ? "Loading the road network and fleet…" : notice}
-        </p>
+        <Snackbar snack={!state && !failure ? { text: "Loading the road network and fleet…" } : snack} />
       </div>
     </div>
   );

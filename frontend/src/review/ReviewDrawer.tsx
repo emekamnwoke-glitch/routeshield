@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReviewOutcome } from "../../../src/core/modules/ac-07-decision-manager/contract";
 import { IncidentPanel } from "../incidents/IncidentPanel";
-import { SCENARIO_TIME } from "../incidents/incidents";
+import { SCENARIO_TIME, decidedText } from "../incidents/incidents";
 import type { QueueRow } from "./queue";
 import { proposalText } from "./queue";
 
@@ -36,11 +36,21 @@ export function ReviewDrawer({ row, busy, modal, takeFocus, onClose, onReview }:
 
   const eyebrow = denying ? "PROPOSAL · DENYING" : `PROPOSAL · ${status === "pending" ? "PENDING REVIEW" : status.toUpperCase()}`;
 
+  // Esc closes the deny form before the drawer (prototype notes: the top-most layer first).
+  useEffect(() => {
+    if (!denying) return;
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key === "Escape" && !e.defaultPrevented) {
+        e.preventDefault();
+        setDenying(false);
+      }
+    };
+    document.addEventListener("keydown", onKey, true);
+    return () => document.removeEventListener("keydown", onKey, true);
+  }, [denying]);
+
   const footer = !pending ? (
-    <p className="readonly">
-      {status === "approved" ? "Approved. Service changes and passenger notices are in effect." : "Reviewed."} This proposal is
-      read-only.
-    </p>
+    <p className="readonly">{decidedText(d, "you")}</p>
   ) : !denying ? (
     <>
       <p>{text.consequence}</p>
@@ -61,11 +71,11 @@ export function ReviewDrawer({ row, busy, modal, takeFocus, onClose, onReview }:
     >
       <label>
         Reason for denial (required)
-        <textarea
+        <input
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           maxLength={200}
-          rows={2}
+          placeholder="Why is this proposal denied?"
           autoFocus
           required
           aria-describedby="deny-help"
@@ -105,7 +115,7 @@ export function ReviewDrawer({ row, busy, modal, takeFocus, onClose, onReview }:
       >
         <form method="dialog">
           <h2 id="approve-title">{text.confirmTitle}</h2>
-          <p id="approve-body">{text.consequence}</p>
+          <p id="approve-body">{text.confirmBody}</p>
           <div className="confirm-actions">
             <button type="submit" value="cancel" className="text" autoFocus>
               Cancel

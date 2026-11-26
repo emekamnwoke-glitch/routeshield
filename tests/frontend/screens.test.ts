@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { actionName, actorName, categoryOf, componentName, countByCategory, rowLabel, trailRows } from "../../frontend/src/audit/trail";
-import { clock, countByStage, incidentRows, incidentTitle, placeName, stageOf } from "../../frontend/src/incidents/incidents";
+import { clock, countByStage, landingStage, incidentRows, incidentTitle, placeName, stageOf } from "../../frontend/src/incidents/incidents";
 import { focusView, project, toScreen } from "../../frontend/src/map/projection";
 import { SCREENS, homeScreen } from "../../frontend/src/shell/screens";
 import type { DisruptionView, TrailEntry } from "../../frontend/src/workspace/service";
@@ -24,6 +24,7 @@ function incident(id: string, over: Partial<DisruptionView> = {}): DisruptionVie
   return {
     id,
     place: null,
+    description: null,
     status: "assessed",
     footprint: { lat: 53.35, lon: -6.26, radiusM: 150 },
     createdAt: "2026-11-25T08:00:00.000Z",
@@ -55,7 +56,7 @@ describe("incident stages", () => {
     expect(stageOf(empty)).toBe("decided");
   });
 
-  it("names an incident by the place reported, or by where it is when none was given", () => {
+  it("names an incident by the street it is on, or by its coordinates where no bus road is near", () => {
     const named = incident("a", { place: "O'Connell St Upper" });
     expect(placeName(named)).toBe("O'Connell St Upper");
     expect(incidentTitle(named)).toBe("O'Connell St Upper, 150 m closure");
@@ -67,6 +68,10 @@ describe("incident stages", () => {
     const rows = incidentRows([incident("old"), incident("new")]);
     expect(rows.map((d) => d.id)).toEqual(["new", "old"]);
     expect(countByStage(rows)).toEqual({ needs: 2, awaiting: 0, decided: 0 });
+    // A declined incident counts as decided, though it leaves the list (prototype P11).
+    expect(countByStage([], 1)).toEqual({ needs: 0, awaiting: 0, decided: 1 });
+    expect(landingStage([], 1)).toBe("decided");
+    expect(landingStage([], 0)).toBe("needs");
     expect(clock("2026-11-25T08:00:42.000Z")).toBe("08:00");
     expect(clock("2026-11-25T08:00:42.000Z", true)).toBe("08:00:42");
   });
@@ -112,7 +117,7 @@ describe("audit trail rows", () => {
     expect(componentName("AC-07")).toBe("AC-07 Decision Manager");
     expect(actorName("duty-manager")).toBe("Duty manager");
     expect(actorName("AC-09")).toBe("System");
-    expect(actorName(null)).toBe("System");
+    expect(actorName(null)).toBe("Not recorded"); // as the prototype's evidence snapshot row
   });
 });
 

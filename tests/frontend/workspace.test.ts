@@ -47,7 +47,8 @@ describe("workspace service", () => {
   it("shows the impact and a bypass awaiting a person", async () => {
     const res = await handle(core, "memory", { persona: "controller", kind: "report", incident });
     if (!res.ok) throw new Error(res.error);
-    expect(res.notice).toBe("Incident assessed: 1 route pattern affected.");
+    // The panel opens on it (prototype P3): no message.
+    expect(res.notice).toBeUndefined();
     const [d] = res.state.disruptions;
     expect(d?.impact?.patterns).toMatchObject([{ routeCode: "E2" }]);
     expect(d?.impact?.blockedLines.length).toBeGreaterThan(0);
@@ -67,7 +68,7 @@ describe("workspace service", () => {
     const recommendationId = await reportedRecommendation();
     const proposed = await handle(core, "memory", { persona: "controller", kind: "propose", recommendationId, verdict: "approve" });
     if (!proposed.ok) throw new Error(proposed.error);
-    expect(proposed.notice).toBe("Proposed. It is pending the Duty manager's approval.");
+    expect(proposed.notice).toBe("Proposed. It is pending the duty manager's approval.");
     const proposal = proposed.state.disruptions[0]?.proposal;
     expect(proposal).toMatchObject({ status: "pending", verdict: "approve", proposedBy: "controller" });
     expect(proposed.state.disruptions[0]?.decision).toBeNull();
@@ -111,6 +112,8 @@ describe("workspace service", () => {
     if (!denied.ok) throw new Error(denied.error);
     // The incident is declined: it leaves the map and the menus, so the controller's card clears too.
     expect(denied.state.disruptions).toEqual([]);
+    // It stays in the duty manager's queue, declined (prototype P10).
+    expect(denied.state.declined).toMatchObject([{ status: "declined", proposal: { status: "denied", reason: "Bypass cuts the hospital stop" } }]);
     expect(denied.state.vehicles.every((v) => v.relation === null)).toBe(true);
     expect(denied.state.noticeboard[0]).toMatchObject({ tone: "denied" });
     expect(denied.state.noticeboard[0]?.text).toContain("Reason: Bypass cuts the hospital stop.");
@@ -137,7 +140,7 @@ describe("workspace service", () => {
     expect(secondRecommendation).not.toBe(firstRecommendation);
 
     const again = await handle(core, "memory", { persona: "controller", kind: "propose", recommendationId: secondRecommendation, verdict: "approve" });
-    expect(again).toMatchObject({ ok: true, notice: "Proposed. It is pending the Duty manager's approval." });
+    expect(again).toMatchObject({ ok: true, notice: "Proposed. It is pending the duty manager's approval." });
     if (again.ok) expect(again.state.disruptions[0]?.proposal).toMatchObject({ status: "pending" });
     expect(again.ok && again.state.noticeboard.map((n) => n.tone)).toEqual(["pending", "denied"]);
   });

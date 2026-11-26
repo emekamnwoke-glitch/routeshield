@@ -73,8 +73,9 @@ const PERSONA: Record<string, string> = {
   "contingency-approver": "Contingency approver",
 };
 
-/** A person by role; a component acting on its own, or no actor, is "System". */
-export const actorName = (actor: string | null): string => (actor === null || COMPONENT[actor] ? "System" : (PERSONA[actor] ?? actor));
+/** A person by role; a component acting on its own is "System"; an event with no actor is "Not recorded". */
+export const actorName = (actor: string | null): string =>
+  actor === null ? "Not recorded" : COMPONENT[actor] ? "System" : (PERSONA[actor] ?? actor);
 
 /**
  * One row of the trail: a run of the same event from the same component and actor collapses into one row
@@ -128,6 +129,12 @@ export function trailRows(trail: TrailEntry[]): TrailRow[] {
   return rows;
 }
 
+/** A row's action as the trail lists it: "Decision made: approve" names the verdict. */
+export function rowTitle(row: TrailRow): string {
+  const verdict = field(row.payload, "verdict");
+  return `${actionName(row.type)}${row.type === "decision.made" && typeof verdict === "string" ? `: ${verdict}` : ""}`;
+}
+
 const field = (payload: Json, key: string): Json | undefined =>
   payload !== null && typeof payload === "object" && !Array.isArray(payload) ? payload[key] : undefined;
 
@@ -178,7 +185,7 @@ export function eventDetail(row: TrailRow, rows: TrailRow[], disruptions: Disrup
   const phase = (r: TrailRow) => (categoryOf(r.type) === "assessment" ? "assessment" : "after");
   const related = rows.filter((r) => r !== row && r.subject === row.subject && phase(r) === phase(row)).reverse();
   return {
-    title: `${actionName(row.type)}${row.type === "decision.made" && typeof verdict === "string" ? `: ${verdict}` : ""}`,
+    title: rowTitle(row),
     facts,
     related,
     incidentId: d?.id ?? null,

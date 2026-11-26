@@ -17,6 +17,7 @@ function disruption(cut: string[], states: { routeCode: string; state: string }[
   return {
     id: "d",
     place: null,
+    description: null,
     status: "reported",
     footprint: { lat: 0, lon: 0, radiusM: 1 },
     createdAt: "",
