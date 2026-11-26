@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { countByStatus, listJoin, moveSelection, proposalText, queueRows, routeCodes } from "../../frontend/src/review/queue";
+import { DENY_CONFIRM, countByStatus, listJoin, moveSelection, proposalText, queueRows, routeCodes } from "../../frontend/src/review/queue";
 import type { DisruptionView } from "../../frontend/src/workspace/service";
 
 const pattern = (routeCode: string, i: number) => ({
@@ -93,5 +93,11 @@ describe("proposal wording", () => {
     const t = proposalText(disruption("a", "pending", "reject"));
     expect(t.approve).toBe("Approve rejection");
     expect(t.consequence).toContain("no route changes");
+  });
+
+  it("asks before a denial too, and says what it closes", () => {
+    expect(DENY_CONFIRM.title).toBe("Deny this proposal?");
+    expect(DENY_CONFIRM.body).toContain("declines and closes the incident");
+    expect(DENY_CONFIRM.body).toContain("recorded in the audit trail under your name");
   });
 });

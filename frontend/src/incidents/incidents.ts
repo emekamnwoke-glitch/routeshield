@@ -24,6 +24,7 @@ export function stageChip(d: DisruptionView): Chip {
   const stage = stageOf(d);
   if (stage === "needs") return { label: "Needs proposal", tone: "attention", icon: "clock" };
   if (stage === "awaiting") return { label: "Pending review", tone: "attention", icon: "clock" };
+  if (d.status === "declined") return { label: "Denied", tone: "closed", icon: "minus" };
   if (!d.decision) return { label: "Nothing to decide", tone: "closed", icon: "minus" };
   return d.decision.verdict === "approve"
     ? { label: "Approved", tone: "in-effect", icon: "check" }
@@ -35,31 +36,37 @@ export function stageEyebrow(d: DisruptionView): string {
   const stage = stageOf(d);
   if (stage === "needs") return "INCIDENT · NEEDS A PROPOSAL";
   if (stage === "awaiting") return "INCIDENT · AWAITING REVIEW";
+  if (d.status === "declined") return "INCIDENT · DECLINED";
   return d.decision?.verdict === "approve" && d.serviceStates.length ? "INCIDENT · IN EFFECT" : "INCIDENT · DECIDED";
 }
 
 export function stageOf(d: DisruptionView): IncidentStage {
-  if (d.decision) return "decided";
+  if (d.decision || d.status === "declined") return "decided";
   if (d.proposal?.status === "pending") return "awaiting";
   if (!d.recommendation || d.recommendation.items.length === 0) return d.impact ? "decided" : "needs";
   return "needs";
 }
 
-/** Newest first, as the review queue. */
-export const incidentRows = (disruptions: DisruptionView[]): DisruptionView[] => [...disruptions].reverse();
+/**
+ * Newest first, open incidents then declined ones. A declined incident stays listed under Decided, read-only, as the
+ * duty manager's queue keeps it: the prototype (P11) dropped it while still counting it (Jane's review, 26 Nov 2026).
+ */
+export const incidentRows = (disruptions: DisruptionView[], declined: DisruptionView[] = []): DisruptionView[] => [
+  ...[...disruptions].reverse(),
+  ...[...declined].reverse(),
+];
 
-/** Counts for the filter chips. A declined incident counts as decided, though it has left the list (prototype P11). */
-export function countByStage(rows: DisruptionView[], declined = 0): Record<IncidentStage, number> {
-  const out: Record<IncidentStage, number> = { needs: 0, awaiting: 0, decided: declined };
+/** Counts for the filter chips: each one is the number of rows its filter shows. */
+export function countByStage(rows: DisruptionView[]): Record<IncidentStage, number> {
+  const out: Record<IncidentStage, number> = { needs: 0, awaiting: 0, decided: 0 };
   for (const d of rows) out[stageOf(d)] += 1;
   return out;
 }
 
-/** The filter a list opens on: the given incident's, else the newest incident's, else Decided after a denial. */
-export function landingStage(rows: DisruptionView[], declined: number, openId: string | null = null): IncidentStage {
+/** The filter a list opens on: the given incident's, else the newest incident's (a declined one after a denial). */
+export function landingStage(rows: DisruptionView[], openId: string | null = null): IncidentStage {
   const start = rows.find((r) => r.id === openId) ?? rows[0];
-  if (start) return stageOf(start);
-  return declined > 0 ? "decided" : "needs";
+  return start ? stageOf(start) : "needs";
 }
 
 const STATE_LABEL: Record<string, string> = { diverted: "Diverted", held: "Held", contingency: "Contingency" };

@@ -57,6 +57,13 @@ export function listJoin(items: string[]): string {
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
+/** The deny dialog: a denial is as final as an approval, so it asks first too (Jane's review, 26 Nov 2026). */
+export const DENY_CONFIRM = {
+  title: "Deny this proposal?",
+  body: "This declines and closes the incident: no routes change and no notices are issued. Your reason goes to the controller and is recorded in the audit trail under your name.",
+  action: "Deny and close incident",
+} as const;
+
 /** What the review drawer says about a proposal: the ask, and what approving it does. */
 export function proposalText(d: DisruptionView): {
   ask: string;

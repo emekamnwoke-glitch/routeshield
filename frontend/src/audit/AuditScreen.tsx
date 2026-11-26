@@ -8,7 +8,7 @@ import { ScreenHead } from "../shell/ScreenHead";
 import { useListPanel } from "../shell/useListPanel";
 import type { AuditView, DisruptionView } from "../workspace/service";
 import type { TrailCategory, TrailRow } from "./trail";
-import { CATEGORIES, CATEGORY_LABEL, actionName, actorName, categoryOf, componentName, countByCategory, eventDetail, rowLabel, rowTitle, trailRows } from "./trail";
+import { CATEGORIES, CATEGORY_LABEL, actionName, actorInLine, actorName, categoryOf, componentName, countByCategory, eventDetail, rowLabel, rowTitle, trailRows } from "./trail";
 
 type Props = {
   /** null while the workspace is still loading. */
@@ -94,7 +94,7 @@ function EventPanel({ row, rows, disruptions, chainOk, modal, takeFocus, onClose
             {grouped ? ` (${row.count})` : ""}
           </h2>
           <small>
-            {clock(row.at, true)} · {actorName(row.actor)} · {componentName(row.component)}
+            {clock(row.at, true)} · {actorInLine(row.actor)} · {componentName(row.component)}
           </small>
         </div>
         <button type="button" className="icon-button" aria-label="Close" onClick={onClose}>
@@ -132,7 +132,7 @@ function EventPanel({ row, rows, disruptions, chainOk, modal, takeFocus, onClose
                 <li key={r.last}>
                   #{rowLabel(r)} · {actionName(r.type)}
                   {r.count > 1 ? ` (${r.count})` : ""}
-                  {actorName(r.actor) === "System" ? "" : ` · ${actorName(r.actor)}`}
+                  {actorName(r.actor) === "System" ? "" : ` · ${actorInLine(r.actor)}`}
                 </li>
               ))}
             </ul>

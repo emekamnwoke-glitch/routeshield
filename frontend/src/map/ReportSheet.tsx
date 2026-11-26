@@ -50,7 +50,7 @@ export function ReportSheet({ pick, place, radiusM, description, busy, disabled,
     >
       <div className="sheet-body">
         <h2 id="report-title">Report an incident</h2>
-        <p className="hint">Click the map to move the closure. It starts on O'Connell Street.</p>
+        <p className="hint">Click the map, or press Enter on it, to move the closure. It starts on O'Connell Street.</p>
         <div className="field readonly-field">
           <span>Location</span>
           <output aria-live="polite">

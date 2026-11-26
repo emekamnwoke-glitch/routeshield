@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { actionName, actorName, categoryOf, componentName, countByCategory, rowLabel, trailRows } from "../../frontend/src/audit/trail";
+import { actionName, actorInLine, actorName, categoryOf, componentName, countByCategory, rowLabel, trailRows } from "../../frontend/src/audit/trail";
 import { clock, countByStage, landingStage, incidentRows, incidentTitle, placeName, stageOf } from "../../frontend/src/incidents/incidents";
 import { focusView, project, toScreen } from "../../frontend/src/map/projection";
 import { SCREENS, homeScreen } from "../../frontend/src/shell/screens";
@@ -68,10 +68,12 @@ describe("incident stages", () => {
     const rows = incidentRows([incident("old"), incident("new")]);
     expect(rows.map((d) => d.id)).toEqual(["new", "old"]);
     expect(countByStage(rows)).toEqual({ needs: 2, awaiting: 0, decided: 0 });
-    // A declined incident counts as decided, though it leaves the list (prototype P11).
-    expect(countByStage([], 1)).toEqual({ needs: 0, awaiting: 0, decided: 1 });
-    expect(landingStage([], 1)).toBe("decided");
-    expect(landingStage([], 0)).toBe("needs");
+    // A declined incident stays listed under Decided, after the open ones, so each count matches its list.
+    const withDeclined = incidentRows([incident("open")], [incident("gone", { status: "declined" })]);
+    expect(withDeclined.map((d) => d.id)).toEqual(["open", "gone"]);
+    expect(countByStage(withDeclined)).toEqual({ needs: 1, awaiting: 0, decided: 1 });
+    expect(landingStage(incidentRows([], [incident("gone", { status: "declined" })]))).toBe("decided");
+    expect(landingStage([])).toBe("needs");
     expect(clock("2026-11-25T08:00:42.000Z")).toBe("08:00");
     expect(clock("2026-11-25T08:00:42.000Z", true)).toBe("08:00:42");
   });
@@ -118,6 +120,8 @@ describe("audit trail rows", () => {
     expect(actorName("duty-manager")).toBe("Duty manager");
     expect(actorName("AC-09")).toBe("System");
     expect(actorName(null)).toBe("Not recorded"); // as the prototype's evidence snapshot row
+    expect(actorInLine(null)).toBe("no actor recorded"); // in a line, without the "Actor" label
+    expect(actorInLine("duty-manager")).toBe(actorName("duty-manager"));
   });
 });
 

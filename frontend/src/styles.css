@@ -1231,6 +1231,16 @@ button.pill-button {
   font: var(--rs-type-body-small);
 }
 
+/*
+ * As a modal sheet (1280 px and below) the drawer is 820 px wide: tighter cell padding fits all eight columns,
+ * so Extra m is not cut off (Jane's review, 26 Nov 2026). The wrap still scrolls on anything narrower.
+ */
+.drawer.modal .bypass-table th,
+.drawer.modal .bypass-table td {
+  padding-left: calc(var(--rs-inset-cell-x) * 0.75);
+  padding-right: calc(var(--rs-inset-cell-x) * 0.75);
+}
+
 /* Beside the list, at 1281 px and wider, the bypass table fits its frame: no scrollbar for a sub-pixel (prototype P3). */
 @media (min-width: 1281px) {
   .drawer .table-wrap {

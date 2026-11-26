@@ -11,6 +11,7 @@ import {
   bypassName,
   countByStage,
   decidedText,
+  incidentRows,
   incidentTitle,
   landingStage,
   proposalLines,
@@ -221,8 +222,14 @@ describe("flow 2: deny with a reason", () => {
     );
 
     // P11: the controller's incidents and My proposals.
-    expect(countByStage(open, declined.length)).toEqual({ needs: 0, awaiting: 0, decided: 1 });
-    expect(landingStage(open, declined.length)).toBe("decided");
+    // Unlike the frame, the declined incident stays listed under Decided, read-only (Jane's review, 26 Nov 2026).
+    const rows = incidentRows(open, declined);
+    expect(countByStage(rows)).toEqual({ needs: 0, awaiting: 0, decided: 1 });
+    expect(landingStage(rows)).toBe("decided");
+    expect([stageChip(d).label, stageEyebrow(d)]).toEqual(["Denied", "INCIDENT · DECLINED"]);
+    expect(decidedText(d, "the duty manager")).toBe(
+      `Denied by the duty manager. Reason: ${reason} The incident is declined and closed; no routes changed and no notices were issued.`,
+    );
     expect(proposalLines(open, declined).map((l) => [l.chip.label, l.text, l.reason])).toEqual([
       ["Denied", "Approve all 13 bypasses · denied", `Reason: ${reason} To resubmit, report the incident again.`],
     ]);

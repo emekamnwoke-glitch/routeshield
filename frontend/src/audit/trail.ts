@@ -78,6 +78,12 @@ export const actorName = (actor: string | null): string =>
   actor === null ? "Not recorded" : COMPONENT[actor] ? "System" : (PERSONA[actor] ?? actor);
 
 /**
+ * The actor inside a running line ("#7 · Evidence snapshot frozen · no actor recorded"). Without the "Actor" label,
+ * a bare "Not recorded" reads as if the event itself was not recorded (Jane's review, 26 Nov 2026).
+ */
+export const actorInLine = (actor: string | null): string => (actor === null ? "no actor recorded" : actorName(actor));
+
+/**
  * One row of the trail: a run of the same event from the same component and actor collapses into one row
  * ("Authority granted (5)", one for each role). The row keeps the newest event's id, subject and payload.
  */

@@ -3,7 +3,7 @@ import type { ReviewOutcome } from "../../../src/core/modules/ac-07-decision-man
 import { IncidentPanel } from "../incidents/IncidentPanel";
 import { SCENARIO_TIME, decidedText } from "../incidents/incidents";
 import type { QueueRow } from "./queue";
-import { proposalText } from "./queue";
+import { DENY_CONFIRM, proposalText } from "./queue";
 
 type Props = {
   row: Extract<QueueRow, { kind: "open" }>;
@@ -16,7 +16,7 @@ type Props = {
 
 /**
  * The review drawer (Figma frame A): everything the duty manager reads before deciding (BR-019), and the decision.
- * Approve asks first, with initial focus on Cancel; deny needs a reason, which the controller sees.
+ * Both outcomes ask first, with initial focus on Cancel; deny also needs a reason, which the controller sees.
  */
 export function ReviewDrawer({ row, busy, modal, takeFocus, onClose, onReview }: Props) {
   const { d, status } = row;
@@ -25,8 +25,9 @@ export function ReviewDrawer({ row, busy, modal, takeFocus, onClose, onReview }:
   const [denying, setDenying] = useState(false);
   const [reason, setReason] = useState("");
   const confirm = useRef<HTMLDialogElement>(null);
+  const denyConfirm = useRef<HTMLDialogElement>(null);
   const pending = status === "pending" && proposal !== null;
-  const dialogOpen = useCallback(() => confirm.current?.open === true, []);
+  const dialogOpen = useCallback(() => confirm.current?.open === true || denyConfirm.current?.open === true, []);
 
   // A fresh proposal starts with the deny form closed.
   useEffect(() => {
@@ -40,14 +41,15 @@ export function ReviewDrawer({ row, busy, modal, takeFocus, onClose, onReview }:
   useEffect(() => {
     if (!denying) return;
     const onKey = (e: globalThis.KeyboardEvent) => {
-      if (e.key === "Escape" && !e.defaultPrevented) {
+      // With the deny dialog open, Esc belongs to the dialog.
+      if (e.key === "Escape" && !e.defaultPrevented && !dialogOpen()) {
         e.preventDefault();
         setDenying(false);
       }
     };
     document.addEventListener("keydown", onKey, true);
     return () => document.removeEventListener("keydown", onKey, true);
-  }, [denying]);
+  }, [denying, dialogOpen]);
 
   const footer = !pending ? (
     <p className="readonly">{decidedText(d, "you")}</p>
@@ -66,7 +68,8 @@ export function ReviewDrawer({ row, busy, modal, takeFocus, onClose, onReview }:
       className="deny-form"
       onSubmit={(e) => {
         e.preventDefault();
-        if (reason.trim() && proposal) onReview(proposal.id, "deny", reason.trim());
+        // Enter or the button asks first; nothing is denied until the dialog says so.
+        if (reason.trim() && proposal) denyConfirm.current?.showModal();
       }}
     >
       <label>
@@ -129,6 +132,33 @@ export function ReviewDrawer({ row, busy, modal, takeFocus, onClose, onReview }:
               }}
             >
               {proposal?.verdict === "reject" ? "Approve rejection" : "Approve and issue notices"}
+            </button>
+          </div>
+        </form>
+      </dialog>
+      <dialog
+        ref={denyConfirm}
+        className="confirm"
+        aria-labelledby="deny-title"
+        aria-describedby="deny-body"
+        onClose={() => document.getElementById("incident-panel")?.focus()}
+      >
+        <form method="dialog">
+          <h2 id="deny-title">{DENY_CONFIRM.title}</h2>
+          <p id="deny-body">{DENY_CONFIRM.body}</p>
+          <div className="confirm-actions">
+            <button type="submit" value="cancel" className="text" autoFocus>
+              Cancel
+            </button>
+            <button
+              type="submit"
+              value="deny"
+              className="text"
+              onClick={() => {
+                if (reason.trim() && proposal) onReview(proposal.id, "deny", reason.trim());
+              }}
+            >
+              {DENY_CONFIRM.action}
             </button>
           </div>
         </form>
