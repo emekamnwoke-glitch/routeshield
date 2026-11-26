@@ -12,7 +12,7 @@ import { useListPanel } from "../shell/useListPanel";
 import type { DisruptionView, NoticeItem, VehicleView } from "../workspace/service";
 import { IncidentPanel } from "./IncidentPanel";
 import type { IncidentStage } from "./incidents";
-import { STAGES, STAGE_CHIP, STAGE_LABEL, clock, countByStage, incidentRows, placeName, stageOf } from "./incidents";
+import { SCENARIO_TIME, STAGES, STAGE_CHIP, STAGE_LABEL, countByStage, incidentRows, placeName, stageOf } from "./incidents";
 
 type Props = {
   persona: PersonaId;
@@ -29,6 +29,8 @@ type Props = {
   onShowProposals: () => void;
   /** The fiction notice at the foot of the list. */
   note?: ReactNode;
+  /** Open on this incident (from the audit trail). */
+  openId?: string | null;
 };
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
@@ -58,13 +60,18 @@ function ask(d: DisruptionView): string {
  * The controller proposes a verdict from the panel; the duty manager decides on it in the review queue.
  */
 export function IncidentsScreen(props: Props) {
-  const { persona, disruptions: loaded, failed, onRetry, noticeboard, busy, network, vehicles, onPropose, onPick, onShowProposals, note } = props;
+  const { persona, disruptions: loaded, failed, onRetry, noticeboard, busy, network, vehicles, onPropose, onPick, onShowProposals, note, openId } =
+    props;
   const rows = incidentRows(loaded ?? []);
   const loading = loaded === null && !failed;
-  const [filter, setFilter] = useState<IncidentStage>("needs");
+  // Opened for one incident (the audit trail's "Open incident"): start on its filter, with it selected.
+  const [filter, setFilter] = useState<IncidentStage>(() => {
+    const start = rows.find((r) => r.id === openId);
+    return start ? stageOf(start) : "needs";
+  });
   const counts = countByStage(rows);
   const shown = rows.filter((d) => stageOf(d) === filter);
-  const ui = useListPanel(shown);
+  const ui = useListPanel(shown, undefined, openId ?? null);
   const d = ui.panelRow;
   const controller = persona === "controller";
 
@@ -113,6 +120,7 @@ export function IncidentsScreen(props: Props) {
   return (
     <div className="screen">
       <section ref={ui.list} className="screen-main" aria-label="Incidents">
+        <div className="screen-fill">
         <ScreenHead title="Incidents" />
 
         <div className="filters-row">
@@ -186,7 +194,7 @@ export function IncidentsScreen(props: Props) {
                 <td>
                   <b>{placeName(r)}</b>
                   <small>
-                    {r.footprint.radiusM} m · {clock(r.createdAt)}
+                    {r.footprint.radiusM} m · {SCENARIO_TIME.time}
                   </small>
                 </td>
                 <td>{routeCodes(r).join(" ") || "—"}</td>
@@ -199,6 +207,7 @@ export function IncidentsScreen(props: Props) {
         {controller && <Noticeboard items={noticeboard.slice(0, 2)} more={noticeboard.length > 2 ? onShowProposals : undefined} />}
 
         <MiniMap network={network} disruptions={loaded ?? []} selected={shown[ui.selected] ?? null} vehicles={vehicles} onPick={onPick} />
+        </div>
         {note}
       </section>
 
@@ -208,7 +217,7 @@ export function IncidentsScreen(props: Props) {
           <IncidentPanel
             d={d}
             eyebrow={`INCIDENT · ${(d.decision || !d.impact?.patterns.length ? "DECIDED" : STAGE_LABEL[stageOf(d)]).toUpperCase()}`}
-            subtitle={`Reported ${clock(d.createdAt)} · assessed automatically`}
+            subtitle={`Reported ${SCENARIO_TIME.day} ${SCENARIO_TIME.time} · assessed automatically`}
             ask={ask(d)}
             modal={ui.modal}
             takeFocus={ui.takeFocus}

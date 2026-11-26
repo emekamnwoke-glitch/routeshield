@@ -55,6 +55,7 @@ export function ReviewQueue({ rows: loaded, failed, onRetry, busy, onReview, net
   return (
     <div className="screen">
       <section ref={ui.list} className="screen-main" aria-label="Review queue">
+        <div className="screen-fill">
         <ScreenHead title="Review queue" />
 
         <div className="filters-row">
@@ -153,6 +154,7 @@ export function ReviewQueue({ rows: loaded, failed, onRetry, busy, onReview, net
           vehicles={vehicles}
           onPick={onPick}
         />
+        </div>
         {note}
       </section>
 

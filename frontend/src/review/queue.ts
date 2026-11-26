@@ -85,6 +85,9 @@ export function proposalText(d: DisruptionView): { ask: string; approve: string;
     ask: `${who} proposes: approve ${changes === 1 ? "the suggested bypass" : `all ${changes} suggested bypasses`}.`,
     approve: `Approve ${plural(changes, "change")}`,
     confirmTitle: `Approve ${plural(changes, "route change")}?`,
-    consequence: `Approving changes service on ${routes || "the affected routes"} and issues passenger notices. It is recorded in the audit trail under your name.`,
+    // As Figma frame A: "Approving diverts E1, E2, F1 and F2 and issues 13 passenger notices." One notice per change.
+    consequence: `Approving ${
+      d.recommendation?.items.every((i) => i.kind === "reroute") ? "diverts" : "changes service on"
+    } ${routes || "the affected routes"} and issues ${plural(changes, "passenger notice")}. It is recorded in the audit trail.`,
   };
 }

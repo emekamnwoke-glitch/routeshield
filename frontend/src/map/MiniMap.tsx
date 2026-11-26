@@ -31,6 +31,7 @@ export function MiniMap({ network, disruptions, selected, vehicles, onPick }: Pr
         vehicles={vehicles}
         pick={null}
         focus={selected?.footprint ?? null}
+        cut={disruptions.flatMap((d) => d.impact?.patterns.map((p) => p.patternIndex) ?? [])}
         onPick={onPick}
       />
       <small className="attribution">{network.attribution.join(" · ")}</small>

@@ -5,7 +5,7 @@
  */
 import type { Core } from "../../../src/core/core";
 import type { Network } from "../../../src/core/kernel/network";
-import type { Circle } from "../../../src/core/kernel/primitives";
+import type { Circle, Json } from "../../../src/core/kernel/primitives";
 import type { VehicleRelation } from "../../../src/core/modules/ac-04-impact-assessor/contract";
 import type { Proposal, ProposalStatus, ReviewOutcome, Verdict } from "../../../src/core/modules/ac-07-decision-manager/contract";
 import { ProposalRefused } from "../../../src/core/modules/ac-07-decision-manager/contract";
@@ -69,7 +69,17 @@ export type DisruptionView = {
 
 export type VehicleView = { vehicle: string; routeCode: string; lat: number; lon: number; relation: VehicleRelation | null };
 
-export type TrailEntry = { seq: number; at: string; component: string; type: string; actor: string | null };
+/** One audit event: what the ledger recorded, including its subject (a disruption or a persona) and payload. */
+export type TrailEntry = {
+  id: string;
+  seq: number;
+  at: string;
+  component: string;
+  type: string;
+  actor: string | null;
+  subject: string;
+  payload: Json;
+};
 
 /** The audit trail. Only built for a persona that holds read_audit (AC-14), so other personas never receive it. */
 export type AuditView = {
@@ -245,7 +255,16 @@ export function readState(core: Core, storage: Storage, persona: PersonaId): Pro
         trail: events
           .slice(-TRAIL_LENGTH)
           .reverse()
-          .map((e) => ({ seq: e.seq, at: e.at, component: e.component, type: e.type, actor: e.actor?.id ?? null })),
+          .map((e) => ({
+            id: e.id,
+            seq: e.seq,
+            at: e.at,
+            component: e.component,
+            type: e.type,
+            actor: e.actor?.id ?? null,
+            subject: e.subject,
+            payload: e.payload,
+          })),
         chain: await core.ledger.verify(tx),
         components: [...new Set(events.map((e) => e.component))].sort(),
       };

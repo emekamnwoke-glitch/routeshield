@@ -7,7 +7,10 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import type { RoadNames } from "../../frontend/src/map/roads";
 import { nearestRoad } from "../../frontend/src/map/roads";
-import { countByCategory, trailRows } from "../../frontend/src/audit/trail";
+import { countByCategory, eventDetail, rowLabel, trailRows } from "../../frontend/src/audit/trail";
+import { bypassName } from "../../frontend/src/incidents/incidents";
+import { proposalText } from "../../frontend/src/review/queue";
+import type { DisruptionView } from "../../frontend/src/workspace/service";
 import { FIGMA_INCIDENT, handle, readState } from "../../frontend/src/workspace/service";
 import { SqliteStore } from "../../src/adapters/sqlite/sqlite-store";
 import { createCore } from "../../src/core/core";
@@ -42,22 +45,25 @@ describe("the Figma scenario (frame D)", () => {
     // The bypass table, row by row: pattern, stop missed, approaching and inside, extra metres.
     const rows = (d?.recommendation?.items ?? []).map((it) => {
       const p = d?.impact?.patterns.find((x) => x.patternIndex === it.patternIndex);
-      return [it.patternId, it.stopsLost[0], p?.approaching, p?.inside, it.extraM];
+      const bypass = bypassName(it.divertStop ?? "?", it.rejoinStop ?? "?");
+      return [it.patternId, p?.towards, it.stopsLost[0], p?.approaching, p?.inside, bypass, it.extraM];
     });
+    const east = "Parnell Sq E → D'Olier St";
+    const west = "Westmoreland → Parnell Sq W";
     expect(rows).toEqual([
-      ["E1-0-18", "The Spire of Dublin", 5, 0, 1008],
-      ["E1-0-19", "The Spire of Dublin", 0, 0, 1008],
-      ["E1-1-20", "O'Connell St Upper", 11, 0, 494],
-      ["E1-1-21", "O'Connell St Upper", 7, 0, 494],
-      ["E1-1-22", "O'Connell St Upper", 1, 0, 494],
-      ["E2-0-23", "The Spire of Dublin", 7, 1, 1008],
-      ["E2-1-24", "O'Connell St Upper", 9, 0, 494],
-      ["F1-0-25", "O'Connell St Upr", 3, 0, 1009],
-      ["F1-0-26", "O'Connell St Upr", 4, 0, 1009],
-      ["F1-1-27", "O'Connell St Upr", 7, 0, 494],
-      ["F1-1-28", "O'Connell St Upr", 0, 0, 494],
-      ["F2-0-29", "O'Connell St Upr", 2, 1, 1009],
-      ["F2-1-30", "O'Connell St Upr", 3, 1, 494],
+      ["E1-0-18", "Southern Cross", "The Spire of Dublin", 5, 0, east, 1008],
+      ["E1-0-19", "Southern Cross", "The Spire of Dublin", 0, 0, east, 1008],
+      ["E1-1-20", "Northwood", "O'Connell St Upper", 11, 0, west, 494],
+      ["E1-1-21", "Parnell Square West", "O'Connell St Upper", 7, 0, west, 494],
+      ["E1-1-22", "Parnell Square West", "O'Connell St Upper", 1, 0, west, 494],
+      ["E2-0-23", "Dun Laoghaire Stn", "The Spire of Dublin", 7, 1, east, 1008],
+      ["E2-1-24", "Harristown Depot", "O'Connell St Upper", 9, 0, west, 494],
+      ["F1-0-25", "Tallaght Square", "O'Connell St Upr", 3, 0, east, 1009],
+      ["F1-0-26", "Mt Drummond Ave", "O'Connell St Upr", 4, 0, east, 1009],
+      ["F1-1-27", "IKEA Ballymun", "O'Connell St Upr", 7, 0, west, 494],
+      ["F1-1-28", "IKEA Ballymun", "O'Connell St Upr", 0, 0, west, 494],
+      ["F2-0-29", "Orwell Park Grn", "O'Connell St Upr", 2, 1, east, 1009],
+      ["F2-1-30", "Lanesborough Pk", "O'Connell St Upr", 3, 1, west, 494],
     ]);
   });
 });
@@ -74,6 +80,11 @@ describe("the Figma scenario (frames A and E)", () => {
       "Proposed to approve all for O'Connell St Upper. Pending the Duty manager's approval.",
     );
 
+    // Frame A: the duty manager's footer.
+    expect(proposalText(proposed.state.disruptions[0] as DisruptionView).consequence).toBe(
+      "Approving diverts E1, E2, F1 and F2 and issues 13 passenger notices. It is recorded in the audit trail.",
+    );
+
     const proposalId = proposed.state.disruptions[0]?.proposal?.id ?? "";
     const approved = await handle(core, "memory", {
       persona: "duty-manager",
@@ -83,15 +94,38 @@ describe("the Figma scenario (frames A and E)", () => {
       reason: "",
     });
     if (!approved.ok) throw new Error(approved.error);
-    const audit = (await readState(core, "memory", "administrator")).audit;
+    const admin = await readState(core, "memory", "administrator");
+    const audit = admin.audit;
     expect(audit?.chain.ok).toBe(true);
-    expect(countByCategory(trailRows(audit?.trail ?? []))).toEqual({
+    const rows = trailRows(audit?.trail ?? []);
+    expect(countByCategory(rows)).toEqual({
       all: 39,
       assessment: 5,
       decisions: 3,
       service: 26,
       authority: 5,
     });
+
+    // Frame E: the rows, newest first, and event #12's panel.
+    expect(rows.map(rowLabel)).toEqual(["27–39", "14–26", "13", "12", "11", "10", "9", "8", "7", "6", "1–5"]);
+    const decision = rows.find((r) => r.type === "decision.made");
+    if (!decision) throw new Error("no decision.made event");
+    expect(decision.first).toBe(12);
+    const detail = eventDetail(decision, rows, admin.disruptions);
+    expect(detail.title).toBe("Decision made: approve");
+    expect(detail.facts).toEqual([
+      ["Incident", "O'Connell St Upper, 150 m closure"],
+      ["Verdict", "Approve"],
+      ["Bypasses", "13 route patterns on E1, E2, F1 and F2"],
+      ["Reason recorded", "Approved the controller's proposal (event #11)"],
+    ]);
+    expect(detail.related.map((r) => [rowLabel(r), r.type])).toEqual([
+      ["11", "proposal.submitted"],
+      ["13", "proposal.approved"],
+      ["14–26", "service_state.changed"],
+      ["27–39", "notice.issued"],
+    ]);
+    expect(detail.incidentId).toBe(admin.disruptions[0]?.id);
   });
 });
 

@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import type { PersonaId } from "../../src/core/modules/ac-14-access-control/contract";
 import { AuditScreen } from "./audit/AuditScreen";
 import { IncidentsScreen } from "./incidents/IncidentsScreen";
-import { stageOf } from "./incidents/incidents";
 import { MapScreen } from "./map/MapScreen";
 import { ReportSheet } from "./map/ReportSheet";
 import { Noticeboard } from "./Noticeboard";
@@ -11,6 +10,7 @@ import { queueRows } from "./review/queue";
 import { RoleSwitcher } from "./shell/RoleSwitcher";
 import type { Failure } from "./shell/failure";
 import { failureText } from "./shell/failure";
+import { Icon } from "./shell/Icon";
 import { ScreenHead } from "./shell/ScreenHead";
 import type { Screen } from "./shell/screens";
 import { SCREENS, SCREEN_META, homeScreen } from "./shell/screens";
@@ -47,6 +47,8 @@ export function App() {
   const [radiusM, setRadiusM] = useState(150);
   const [description, setDescription] = useState("");
   const [reporting, setReporting] = useState(false);
+  // The incident the audit trail's "Open incident" asked for: the incident list opens with it selected.
+  const [openIncident, setOpenIncident] = useState<string | null>(null);
 
   // Moving the closure suggests the place again, from the nearest named bus road.
   useEffect(() => {
@@ -104,6 +106,7 @@ export function App() {
   }, [persona]);
 
   const switchRole = (p: PersonaId) => {
+    setOpenIncident(null);
     setPersona(p);
     setScreen(homeScreen(p));
     setReporting(false);
@@ -111,48 +114,37 @@ export function App() {
 
   const disruptions = state?.disruptions ?? [];
   const failedState = failure?.kind === "state" && state === null;
-  const needs = disruptions.filter((d) => stageOf(d) === "needs" && (d.recommendation?.items.length ?? 0) > 0).length;
-  const pending = disruptions.filter((d) => d.proposal?.status === "pending").length;
-  const badge: Partial<Record<Screen, { n: number; text: string }>> =
-    persona === "controller"
-      ? { incidents: { n: needs, text: "need a proposal" } }
-      : persona === "duty-manager"
-        ? { review: { n: pending, text: "awaiting review" } }
-        : {};
   const note = <SiteNote storage={state?.storage ?? null} />;
   const pickAt = (lat: number, lon: number) => startReport({ lat, lon });
 
   return (
     <div className="shell">
-      <aside className="rail" aria-label="Navigation">
+      <aside className={persona === "controller" ? "rail" : "rail no-fab"} aria-label="Navigation">
         {persona === "controller" && (
           <button type="button" className="fab" title="Report an incident" aria-label="Report an incident" onClick={() => startReport()}>
-            +
+            <Icon name="add" />
           </button>
         )}
+        {/* As the Figma frames: icon and label only. Each screen's filter chips carry the counts. */}
         <nav aria-label="Screens">
-          {SCREENS[persona].map((s) => {
-            const b = badge[s];
-            return (
-              <a
-                key={s}
-                href={`#${s}`}
-                title={SCREEN_META[s].title}
-                aria-current={screen === s ? "page" : undefined}
-                onClick={(e) => {
-                  e.preventDefault();
-                  setScreen(s);
-                }}
-              >
-                <span className="indicator" aria-hidden="true">
-                  {SCREEN_META[s].icon}
-                  {b && b.n > 0 && <i>{b.n}</i>}
-                </span>
-                <span className="label">{SCREEN_META[s].label}</span>
-                {b && b.n > 0 && <span className="visually-hidden">{` ${b.n} ${b.text}`}</span>}
-              </a>
-            );
-          })}
+          {SCREENS[persona].map((s) => (
+            <a
+              key={s}
+              href={`#${s}`}
+              title={SCREEN_META[s].title}
+              aria-current={screen === s ? "page" : undefined}
+              onClick={(e) => {
+                e.preventDefault();
+                setOpenIncident(null);
+                setScreen(s);
+              }}
+            >
+              <span className="indicator" aria-hidden="true">
+                <Icon name={SCREEN_META[s].icon} />
+              </span>
+              <span className="label">{SCREEN_META[s].label}</span>
+            </a>
+          ))}
         </nav>
         <RoleSwitcher
           persona={persona}
@@ -189,6 +181,8 @@ export function App() {
 
         {screen === "incidents" && (
           <IncidentsScreen
+            key={openIncident ?? "list"}
+            openId={openIncident}
             persona={persona}
             disruptions={state ? disruptions : null}
             failed={failedState}
@@ -219,7 +213,20 @@ export function App() {
           />
         )}
 
-        {screen === "audit" && <AuditScreen audit={state?.audit ?? null} failed={failedState} busy={busy} onRetry={retry} note={note} />}
+        {screen === "audit" && (
+          <AuditScreen
+            audit={state?.audit ?? null}
+            disruptions={disruptions}
+            failed={failedState}
+            busy={busy}
+            onRetry={retry}
+            onOpenIncident={(id) => {
+              setOpenIncident(id);
+              setScreen("incidents");
+            }}
+            note={note}
+          />
+        )}
 
         {screen === "proposals" && (
           <div className="screen single">

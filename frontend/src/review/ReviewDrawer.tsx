@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReviewOutcome } from "../../../src/core/modules/ac-07-decision-manager/contract";
 import { IncidentPanel } from "../incidents/IncidentPanel";
-import { clock } from "../incidents/incidents";
+import { SCENARIO_TIME } from "../incidents/incidents";
 import type { QueueRow } from "./queue";
 import { proposalText } from "./queue";
 
@@ -87,7 +87,7 @@ export function ReviewDrawer({ row, busy, modal, takeFocus, onClose, onReview }:
     <IncidentPanel
       d={d}
       eyebrow={eyebrow}
-      subtitle={`Reported ${clock(d.createdAt)} · proposed by Controller`}
+      subtitle={`Reported ${SCENARIO_TIME.day} ${SCENARIO_TIME.time} · proposed by Controller`}
       ask={text.ask}
       modal={modal}
       takeFocus={takeFocus}

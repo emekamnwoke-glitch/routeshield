@@ -73,7 +73,16 @@ describe("incident stages", () => {
 });
 
 describe("audit trail rows", () => {
-  const e = (seq: number, type: string, component: string, actor: string | null): TrailEntry => ({ seq, at: "2026-11-25T13:17:50Z", component, type, actor });
+  const e = (seq: number, type: string, component: string, actor: string | null): TrailEntry => ({
+    id: `evt_${seq}`,
+    seq,
+    at: "2026-11-25T13:17:50Z",
+    component,
+    type,
+    actor,
+    subject: "dis_1",
+    payload: {},
+  });
   // Newest first, as the core returns it.
   const trail = [
     e(5, "notice.issued", "AC-09", "AC-09"),

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import type { PersonaId } from "../../../src/core/modules/ac-14-access-control/contract";
+import { Icon } from "./Icon";
 import { AUTHORITY, ROLE_ORDER, moveFocus, roleName } from "./roles";
 
 type Props = {
@@ -114,7 +115,10 @@ export function RoleSwitcher({ persona, busy, onSwitch, onReset, onScenario }: P
         }}
       >
         <span className="avatar" aria-hidden="true">
-          ◉<span className="caret">▾</span>
+          <Icon name="person" />
+          <span className="caret">
+            <Icon name="caret" size={18} />
+          </span>
         </span>
         <span className="role-name">{roleName(persona)}</span>
         <span className="simulated">Simulated</span>
