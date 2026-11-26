@@ -5,7 +5,8 @@ import { SCENARIO_TIME } from "../incidents/incidents";
 export function ScreenHead({ title, children }: { title: string; children?: ReactNode }) {
   return (
     <div className="screen-head">
-      <h1>{title}</h1>
+      {/* Focusable by script: where focus lands after an action that leaves no panel open. */}
+      <h1 tabIndex={-1}>{title}</h1>
       {children ?? (
         <p className="scenario-time" title="Vehicle positions come from the timetable, not a live feed">
           <b>

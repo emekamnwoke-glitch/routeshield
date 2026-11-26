@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { PersonaId } from "../../src/core/modules/ac-14-access-control/contract";
 import { AuditScreen } from "./audit/AuditScreen";
 import { IncidentsScreen } from "./incidents/IncidentsScreen";
-import { proposalLines } from "./incidents/incidents";
+import { incidentTitle, proposalLines } from "./incidents/incidents";
 import { MyProposals } from "./incidents/MyProposals";
 import { MapScreen } from "./map/MapScreen";
 import { ReportSheet } from "./map/ReportSheet";
@@ -53,9 +53,25 @@ export function App() {
   const [description, setDescription] = useState(DEFAULT_INCIDENT.description);
   const [reporting, setReporting] = useState(false);
   // Where a list opens: the incident a hand-over or a new report names. A new landing remounts the list.
-  const [landing, setLanding] = useState<{ id: string | null; n: number }>({ id: null, n: 0 });
+  // `focus`: the landing follows an action, whose control has gone, so focus moves to what changed.
+  const [landing, setLanding] = useState<{ id: string | null; n: number; focus: boolean }>({
+    id: null,
+    n: 0,
+    focus: false,
+  });
+  // Said to screen readers only, for a change the screen shows without a message (a new report).
+  const [said, setSaid] = useState("");
 
-  const land = (id: string | null) => setLanding((l) => ({ id, n: l.n + 1 }));
+  const land = (id: string | null, focus = false) => setLanding((l) => ({ id, n: l.n + 1, focus }));
+
+  // After an action the landing's panel takes focus, or the screen's title when there is no panel
+  // (Jane's review, 26 Nov 2026: focus fell to the page body and a keyboard user started again from the top).
+  // The landing's screen has committed by now (children's effects run before this one).
+  useEffect(() => {
+    if (!landing.focus) return;
+    const target = document.getElementById("incident-panel") ?? document.querySelector<HTMLElement>(".screen-main h1");
+    target?.focus();
+  }, [landing]);
 
   const send = async (cmd: Command, as: PersonaId = persona): Promise<WorkspaceState | null> => {
     setBusy(true);
@@ -74,12 +90,12 @@ export function App() {
   };
 
   /** Act as another role, landing on its home screen at the given incident (the snackbar's hand-overs). */
-  const handOver = (p: PersonaId, id: string | null = null) => {
+  const handOver = (p: PersonaId, id: string | null = null, focus = true) => {
     setSnack(null);
     setReporting(false);
     setPersona(p);
     setScreen(homeScreen(p));
-    land(id);
+    land(id, focus);
   };
 
   // Reporting starts from + or a click on an incident map; the sheet opens over the panel (prototype P2).
@@ -87,6 +103,7 @@ export function App() {
     setPick(at ?? DEFAULT_PICK);
     if (screen !== "map") setScreen("incidents");
     setSnack(null);
+    setSaid("");
     setReporting(true);
   };
 
@@ -95,7 +112,19 @@ export function App() {
     if (next) {
       setReporting(false);
       setScreen("incidents");
-      land(next.disruptions.at(-1)?.id ?? null); // the new incident, selected with its panel open (P3)
+      // The new incident is the one that was not there before (the list's order is not report order).
+      const before = new Set(state?.disruptions.map((x) => x.id));
+      const d = next.disruptions.find((x) => !before.has(x.id)) ?? next.disruptions.at(-1);
+      land(d?.id ?? null, true); // the new incident, selected with its panel open (P3)
+      const [named] = withPlaces(network, d ? [d] : []);
+      if (named) {
+        const cut = named.impact?.patterns.length;
+        setSaid(
+          `Incident reported: ${incidentTitle(named)}. ${
+            cut === undefined ? "Being assessed." : `${cut} route pattern${cut === 1 ? "" : "s"} cut.`
+          }`,
+        );
+      }
     }
   };
 
@@ -124,7 +153,7 @@ export function App() {
   };
 
   const reset = async () => {
-    handOver("controller");
+    handOver("controller", null, false);
     await send({ kind: "reset" }, "controller");
   };
 
@@ -148,7 +177,8 @@ export function App() {
     void send({ kind: "state" }, persona);
   }, [persona]);
 
-  const switchRole = (p: PersonaId) => handOver(p);
+  // The role menu returns focus to its own button.
+  const switchRole = (p: PersonaId) => handOver(p, null, false);
 
   // Incidents are named by the street they are on, from the map's road names.
   const disruptions = withPlaces(network, state?.disruptions ?? []);
@@ -276,7 +306,7 @@ export function App() {
             busy={busy}
             onRetry={retry}
             onOpenIncident={(id) => {
-              land(id);
+              land(id, true);
               setScreen("incidents");
             }}
             note={note}
@@ -315,6 +345,9 @@ export function App() {
 
         {screen === "map" && sheet}
 
+        <p className="visually-hidden" role="status">
+          {said}
+        </p>
         <Snackbar snack={!state && !failure ? { text: "Loading the road network and fleet…" } : snack} />
       </div>
     </div>
