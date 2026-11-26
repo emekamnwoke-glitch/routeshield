@@ -32,7 +32,7 @@ type Props = {
   persona: PersonaId;
   /** null while the workspace is still loading. */
   disruptions: DisruptionView[] | null;
-  /** Incidents declined on denial: off the list, but their proposals stay under My proposals. */
+  /** Incidents declined on denial: listed under Decided, read-only, and their proposals stay under My proposals. */
   declined: DisruptionView[];
   failed: boolean;
   onRetry: () => void;
@@ -81,10 +81,10 @@ export function IncidentsScreen(props: Props) {
     onReportAgain,
   } = props;
   const { picking, sheet, note, openId = null } = props;
-  const rows = incidentRows(loaded ?? []);
+  const rows = incidentRows(loaded ?? [], declined);
   const loading = loaded === null && !failed;
-  const [filter, setFilter] = useState<IncidentStage>(() => landingStage(rows, declined.length, openId));
-  const counts = countByStage(rows, declined.length);
+  const [filter, setFilter] = useState<IncidentStage>(() => landingStage(rows, openId));
+  const counts = countByStage(rows);
   const shown = rows.filter((d) => stageOf(d) === filter);
   const ui = useListPanel(shown, undefined, openId);
   const d = ui.panelRow;
@@ -133,9 +133,7 @@ export function IncidentsScreen(props: Props) {
 
   const empty =
     rows.length === 0
-      ? declined.length > 0
-        ? "No open incidents. A declined incident is closed and leaves this list."
-        : `No open incidents. ${controller ? "Report one with the + button." : "A reported incident appears here."}`
+      ? `No open incidents. ${controller ? "Report one with the + button." : "A reported incident appears here."}`
       : filter === "needs"
         ? "Nothing needs a proposal."
         : filter === "awaiting"
@@ -143,11 +141,7 @@ export function IncidentsScreen(props: Props) {
           : "Nothing decided yet.";
 
   const emptyPanel =
-    rows.length === 0 && declined.length > 0 ? (
-      <EmptyPanel eyebrow="NO INCIDENT SELECTED" title="Nothing to propose">
-        Your denied proposal and its reason are on the left, under My proposals.
-      </EmptyPanel>
-    ) : rows.length === 0 ? (
+    rows.length === 0 ? (
       <EmptyPanel eyebrow="NO INCIDENT SELECTED" title="Nothing to propose yet">
         Report a closure to see what it cuts and a suggested bypass for each affected route.
       </EmptyPanel>

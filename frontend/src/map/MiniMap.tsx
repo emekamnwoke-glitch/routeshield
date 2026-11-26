@@ -44,7 +44,7 @@ export function MiniMap({ network, disruptions, selected, vehicles, picking = nu
         onPick={onPick}
       />
       {/* With nothing open, the map says how to start (prototype P1, P10c and P11). */}
-      {disruptions.length === 0 && !picking && <p className="map-hint">Click the map to place a closure. It starts on O'Connell Street.</p>}
+      {disruptions.length === 0 && !picking && <p className="map-hint">Click the map, or press Enter on it, to place a closure. It starts on O'Connell Street.</p>}
       <small className="attribution">{network.attribution.join(" · ")}</small>
     </section>
   );

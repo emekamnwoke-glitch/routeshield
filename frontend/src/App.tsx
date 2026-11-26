@@ -243,7 +243,8 @@ export function App() {
         <RoleSwitcher persona={persona} busy={busy} onSwitch={switchRole} onReset={() => void reset()} />
       </aside>
 
-      <div className="workspace">
+      {/* The page's main landmark: the role's screen (Jane's review, 26 Nov 2026). */}
+      <main className="workspace">
         {failure && (
           <div className="alert" role="alert">
             <span aria-hidden="true">!</span>
@@ -349,7 +350,7 @@ export function App() {
           {said}
         </p>
         <Snackbar snack={!state && !failure ? { text: "Loading the road network and fleet…" } : snack} />
-      </div>
+      </main>
     </div>
   );
 }
